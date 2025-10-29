@@ -55,9 +55,11 @@ dependencies: [
 
 ### Android Integration
 
-#### Step 1: Configure Git Repository
+Choose one of the following integration methods:
 
-Add to your `settings.gradle`:
+#### Option 1: Git Repository (Remote)
+
+**Step 1:** Configure Git Repository in `settings.gradle`:
 
 ```gradle
 sourceControl {
@@ -67,14 +69,69 @@ sourceControl {
 }
 ```
 
-#### Step 2: Add Dependency
-
-Add to your `app/build.gradle`:
+**Step 2:** Add Dependency in `app/build.gradle`:
 
 ```gradle
 dependencies {
     implementation 'com.rakuten.room:reels-sdk:1.0.0'
 }
+```
+
+**Note:** Git-based integration requires authentication. In corporate environments, you may encounter authentication issues with Gradle's Git support. If so, use Option 2 below.
+
+#### Option 2: Local Folder Import (Recommended for Development)
+
+**Step 1:** Clone the SDK repository:
+
+```bash
+cd /path/to/your/workspace
+git clone https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git
+```
+
+**Step 2:** Update `settings.gradle` to import from local path:
+
+```gradle
+rootProject.name = 'your-app'
+include ':app'
+
+// Reels SDK - External folder import
+include ':reels_android'
+project(':reels_android').projectDir = new File('/path/to/reels-sdk/reels_android')
+
+// Flutter module from reels-sdk
+setBinding(new Binding([gradle: this]))
+evaluate(new File(
+  '/path/to/reels-sdk/reels_flutter/.android/include_flutter.groovy'
+))
+```
+
+**Step 3:** Add dependency in `app/build.gradle`:
+
+```gradle
+dependencies {
+    implementation project(':reels_android')
+}
+```
+
+**Step 4:** Initialize Flutter module (first time only):
+
+```bash
+cd /path/to/reels-sdk/reels_flutter
+flutter pub get
+```
+
+**Advantages of Local Folder Import:**
+- ✅ No Git authentication issues
+- ✅ Immediate access to SDK updates during development
+- ✅ Easy debugging and code navigation
+- ✅ Works in corporate environments with firewall restrictions
+- ✅ Simpler setup for multi-module projects
+
+**Updating SDK Version:**
+```bash
+cd /path/to/reels-sdk
+git pull origin master
+git checkout v1.1.0  # Switch to desired version
 ```
 
 ## Usage
@@ -260,12 +317,27 @@ pod 'ReelsSDK', :git => '...', :tag => '1.1.0'
 pod update ReelsSDK
 ```
 
-**Android (Gradle):**
+**Android - Option 1 (Git Repository):**
 ```gradle
 // Update version in build.gradle
 implementation 'com.rakuten.room:reels-sdk:1.1.0'
 
 // Sync project
+```
+
+**Android - Option 2 (Local Folder):**
+```bash
+# Navigate to SDK folder
+cd /path/to/reels-sdk
+
+# Pull latest changes
+git pull origin master
+
+# Checkout desired version
+git checkout v1.1.0
+
+# Sync your Android project
+# Changes are automatically picked up since it references the folder
 ```
 
 ## Size Impact

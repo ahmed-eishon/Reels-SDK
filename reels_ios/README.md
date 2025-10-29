@@ -1,32 +1,37 @@
 # ReelsIOS
 
-A Swift package that provides a clean interface for integrating Flutter reels functionality into the ROOM iOS app.
+A Swift module that provides a clean interface for integrating Flutter reels functionality into iOS applications.
 
 ## Overview
 
-This package encapsulates all the complexity of communicating with the Flutter `reels_flutter` module, providing a simple API for the native iOS app to launch and interact with Flutter screens.
+This module encapsulates all the complexity of communicating with the Flutter `reels_flutter` module, providing a simple API for native iOS apps to launch and interact with reels screens using type-safe Pigeon-generated communication.
 
 ## Features
 
-- **Simple API**: Launch Flutter reels screen with a single line of code
-- **Method Channel Bridge**: Handles all communication between native iOS and Flutter
-- **Item Data Passing**: Send item information from native to Flutter
-- **Callbacks**: Handle Flutter requests to navigate back to native screens
+- **Simple API**: Launch Flutter reels screen with a single method call
+- **Type-Safe Communication**: Uses Pigeon for compile-time safety
+- **Dual Interface**: Both `ReelsModule` (full-featured) and `ReelsCoordinator` (convenience wrapper)
+- **Event Listener**: Receive callbacks for likes, shares, and analytics
+- **Access Token Provider**: Supply authentication tokens dynamically
 
 ## Usage
 
-### Initialize (Optional)
+### Initialize
 
-For better performance, initialize the Flutter engine during app startup:
+Initialize the module once during app startup for better performance:
 
 ```swift
 import ReelsIOS
 
 // In AppDelegate or app initialization
-ReelsCoordinator.initialize()
+ReelsModule.initialize(accessTokenProvider: {
+    return UserSession.shared.accessToken
+})
 ```
 
 ### Open Reels Screen
+
+**Option 1: Using ReelsCoordinator (Recommended - Simpler API)**
 
 ```swift
 import ReelsIOS
@@ -34,7 +39,7 @@ import ReelsIOS
 // Simple usage
 ReelsCoordinator.openReels(from: viewController)
 
-// With item data
+// With item ID
 ReelsCoordinator.openReels(
     from: viewController,
     itemId: "12345",
@@ -45,51 +50,208 @@ ReelsCoordinator.openReels(
 )
 ```
 
+**Option 2: Using ReelsModule (Advanced)**
+
+```swift
+import ReelsIOS
+
+// Open with custom initial route
+ReelsModule.openReels(
+    from: viewController,
+    initialRoute: "/reels?itemId=12345",
+    animated: true
+)
+
+// Or create a view controller for custom presentation
+let flutterVC = ReelsModule.createViewController(initialRoute: "/")
+navigationController?.pushViewController(flutterVC, animated: true)
+```
+
+### Set Event Listener
+
+Implement `ReelsListener` to receive events from Flutter:
+
+```swift
+import ReelsIOS
+
+class YourViewController: UIViewController, ReelsListener {
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+        ReelsCoordinator.setListener(self)
+    }
+
+    func onLikeButtonClick(videoId: String, isLiked: Bool, likeCount: Int64) {
+        print("Video \(videoId) liked: \(isLiked), count: \(likeCount)")
+        // Update your backend
+    }
+
+    func onShareButtonClick(
+        videoId: String,
+        videoUrl: String,
+        title: String,
+        description: String,
+        thumbnailUrl: String?
+    ) {
+        // Present native share sheet
+        let activityVC = UIActivityViewController(
+            activityItems: [title, URL(string: videoUrl)!],
+            applicationActivities: nil
+        )
+        present(activityVC, animated: true)
+    }
+
+    func onAnalyticsEvent(eventName: String, properties: [String: String]) {
+        // Track with your analytics service
+        Analytics.track(eventName, properties: properties)
+    }
+}
+```
+
 ## Architecture
 
 ### Components
 
-1. **ReelsCoordinator**: Main entry point for opening reels screens
-2. **ReelsFlutterBridge**: Handles method channel communication with Flutter
+1. **ReelsModule**: Full-featured API for reels functionality
+2. **ReelsCoordinator**: Convenience wrapper around ReelsModule
+3. **ReelsEngineManager**: Manages Flutter engine lifecycle
+4. **ReelsPigeonHandler**: Handles Pigeon-generated platform communication
+5. **PigeonGenerated.swift**: Auto-generated type-safe communication layer
+6. **ReelsListener**: Protocol for receiving events from Flutter
 
 ### Communication Flow
 
 ```
-Native iOS (FeedCoordinator)
+Native iOS App
     ↓
-ReelsCoordinator.openReels()
+ReelsCoordinator / ReelsModule
     ↓
-ReelsFlutterBridge (setup channels)
+ReelsEngineManager (Flutter engine)
+    ↓
+ReelsPigeonHandler (Pigeon)
     ↓
 Flutter (reels_flutter module)
-    ↓ (user actions)
-ReelsFlutterBridge (handle callbacks)
+    ↓ (user interactions)
+ReelsPigeonHandler → ReelsListener
     ↓
-Native iOS (dismiss, navigate, share, etc.)
+Native iOS App (handle callbacks)
 ```
 
-### Method Channels
+### Pigeon Communication
 
-#### Native → Flutter (`com.rakuten.room.reels/native_to_flutter`)
-- `showItem`: Send item data to Flutter
+The module uses [Pigeon](https://pub.dev/packages/pigeon) for type-safe platform channels:
 
-#### Flutter → Native (`com.rakuten.room.reels/flutter_to_native`)
-- `closeReels`: Close the reels screen
-- `navigateToItemDetail`: Navigate to native item detail
-- `shareItem`: Open native share sheet
+#### Flutter → Native (Host API)
+- `getAccessToken()` - Request user authentication token
+
+#### Native → Flutter (Flutter API)
+- `onLikeButtonClick()` - Notify like interactions
+- `onShareButtonClick()` - Notify share interactions
+- `onAnalyticsEvent()` - Send analytics events
+- `onScreenStateChanged()` - Track screen lifecycle
+- `onVideoStateChanged()` - Track video playback state
 
 ## Integration
 
-### Add to Xcode Project
+### Using CocoaPods (Recommended)
 
-1. Open your Xcode project
-2. Go to File → Add Packages → Add Local...
-3. Select the `reels_ios` directory
-4. Add `ReelsIOS` to your target's frameworks
+See the main [README.md](../README.md) for CocoaPods integration with Git or external folder import.
 
-### Add Flutter Module
+### Using Xcode Directly
 
-The `reels_flutter` Flutter module must be integrated via CocoaPods. See the main Podfile for configuration.
+For external folder import during development:
+
+1. Run the initialization script:
+   ```bash
+   cd /path/to/reels-sdk
+   ./scripts/init-ios.sh /path/to/reels-sdk /path/to/your-ios-app
+   ```
+
+2. In Xcode, add files from external location:
+   - Right-click project → Add Files
+   - Navigate to: `/path/to/reels-sdk/reels_ios/Sources/ReelsIOS`
+   - Select 'Create groups' and ensure target is checked
+
+3. Update your Podfile to include Flutter (see init script output)
+
+4. Run `pod install`
+
+## API Reference
+
+### ReelsCoordinator
+
+Simple wrapper for common use cases:
+
+```swift
+// Initialize
+static func initialize(accessTokenProvider: (() -> String?)?)
+
+// Open reels
+static func openReels(
+    from: UIViewController,
+    itemId: String?,
+    animated: Bool,
+    completion: (() -> Void)?
+)
+
+// Set listener
+static func setListener(_ listener: ReelsListener?)
+
+// Cleanup
+static func cleanup()
+```
+
+### ReelsModule
+
+Full-featured API:
+
+```swift
+// Initialize
+static func initialize(accessTokenProvider: (() -> String?)?)
+
+// Open reels with custom route
+static func openReels(
+    from: UIViewController,
+    initialRoute: String,
+    animated: Bool,
+    completion: (() -> Void)?
+)
+
+// Create view controller
+static func createViewController(initialRoute: String) -> FlutterViewController
+
+// Set listener
+static func setListener(_ listener: ReelsListener?)
+
+// Track analytics
+static func trackEvent(eventName: String, properties: [String: String])
+
+// Cleanup
+static func cleanup()
+
+// Available routes
+enum Routes {
+    static let home = "/"
+    static let reels = "/reels"
+    static let profile = "/profile"
+}
+```
+
+### ReelsListener Protocol
+
+```swift
+protocol ReelsListener: AnyObject {
+    func onLikeButtonClick(videoId: String, isLiked: Bool, likeCount: Int64)
+    func onShareButtonClick(
+        videoId: String,
+        videoUrl: String,
+        title: String,
+        description: String,
+        thumbnailUrl: String?
+    )
+    func onAnalyticsEvent(eventName: String, properties: [String: String])
+}
+```
 
 ## Development
 
@@ -98,17 +260,23 @@ The `reels_flutter` Flutter module must be integrated via CocoaPods. See the mai
 - iOS 16.0+
 - Swift 5.9+
 - Flutter 3.9.2+
+- CocoaPods (for Flutter integration)
+
+### Regenerating Pigeon Code
+
+When modifying platform communication APIs:
+
+```bash
+cd reels_flutter
+flutter pub run pigeon --input pigeons/messages.dart
+```
+
+This regenerates `PigeonGenerated.swift` with type-safe communication code.
 
 ### Testing
 
-Run unit tests:
-```bash
-swift test
-```
+The module is designed to be integrated via CocoaPods or external folder import. Standalone Swift builds are not supported for Flutter modules.
 
-## Future Enhancements
+## Platform Support
 
-- [ ] Add Pigeon for type-safe communication
-- [ ] Support for video playback
-- [ ] Analytics integration
-- [ ] Deep linking support
+This SDK is designed for **iOS and Android only** (not macOS, web, or other platforms).

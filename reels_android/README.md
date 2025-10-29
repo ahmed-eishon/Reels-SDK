@@ -1,136 +1,236 @@
 # Reels Android Module
 
-This is a self-contained Android module that provides Flutter-based reels functionality for the Room Android app. The module keeps the main codebase clean by encapsulating all Flutter-related implementations.
+A self-contained Android module that provides Flutter-based reels functionality with type-safe Pigeon communication.
+
+## Overview
+
+This module encapsulates all Flutter-related implementations, providing a clean API for integrating reels functionality into Android applications. It uses Pigeon for type-safe platform channel communication.
 
 ## Features
 
 - **Flutter Integration**: Complete Flutter add-to-app implementation
-- **Clean API**: Simple interface for the main app to use
-- **Modular Design**: Self-contained with all dependencies managed internally
-- **Sample Activity**: Demo showing different integration methods
-- **Platform Communication**: Bidirectional communication between Android and Flutter
+- **Type-Safe Communication**: Uses Pigeon for compile-time safety
+- **Clean API**: Simple interface via `ReelsModule`
+- **Event Listener**: Receive callbacks for likes, shares, and analytics
+- **Access Token Provider**: Supply authentication tokens dynamically
+- **Flexible Presentation**: Full-screen activity or embedded fragment
 
 ## Structure
 
 ```
 reels_android/
 ├── build.gradle                           # Module dependencies and configuration
-├── proguard-rules.pro                    # ProGuard rules for the module
-├── src/main/
-│   ├── AndroidManifest.xml               # Module manifest with activities
-│   └── java/com/rakuten/room/reels/
-│       ├── ReelsModule.kt                 # Public API for main app
-│       ├── flutter/                       # Flutter integration classes
-│       │   ├── FlutterReelsActivity.kt    # Full-screen Flutter activity
-│       │   ├── FlutterReelsFragment.kt    # Flutter fragment for embedding
-│       │   ├── FlutterEngineManager.kt    # Engine lifecycle management
-│       │   └── FlutterMethodChannelHandler.kt # Platform communication
-│       ├── sample/
-│       │   └── SampleFlutterIntegrationActivity.kt # Demo activity
-│       └── example/
-│           └── ReelsIntegrationExample.kt  # Usage examples
+├── proguard-rules.pro                    # ProGuard rules
+└── src/main/
+    ├── AndroidManifest.xml               # Module manifest
+    └── java/com/rakuten/room/reels/
+        ├── ReelsModule.kt                 # Public API
+        ├── flutter/
+        │   ├── FlutterReelsActivity.kt    # Full-screen Flutter activity
+        │   ├── FlutterReelsFragment.kt    # Flutter fragment for embedding
+        │   ├── FlutterEngineManager.kt    # Engine lifecycle management
+        │   ├── ReelsFlutterSDK.kt         # SDK entry point
+        │   └── ReelsListener.kt           # Event listener interface
+        └── pigeon/
+            └── PigeonGenerated.kt         # Auto-generated type-safe communication
 ```
 
 ## Quick Start
 
 ### 1. Initialize the Module
 
-In your main app's `Application` class:
+In your `Application` class:
 
 ```kotlin
-class RoomApp : Application() {
+import com.rakuten.room.reels.ReelsModule
+
+class YourApp : Application() {
     override fun onCreate() {
         super.onCreate()
-        
-        // Initialize the Reels module
-        ReelsModule.initialize(this)
-    }
-    
-    override fun onTerminate() {
-        super.onTerminate()
-        // Clean up resources
-        ReelsModule.cleanup()
+
+        // Initialize with access token provider
+        ReelsModule.initialize(this, accessTokenProvider = {
+            UserSession.instance.accessToken
+        })
     }
 }
 ```
 
 ### 2. Launch Flutter Reels
 
+**Option 1: Full-Screen Activity**
+
 ```kotlin
-// Launch full-screen reels
-val intent = ReelsModule.createReelsIntent(this, ReelsModule.Routes.REELS)
+// Launch reels screen
+val intent = ReelsModule.createReelsIntent(this)
 startActivity(intent)
 
-// Or use the convenience method
-ReelsModule.createReelsIntent(this).also { startActivity(it) }
+// Or with custom route
+val intent = ReelsModule.createReelsIntent(this, initialRoute = "/reels")
+startActivity(intent)
 ```
 
-### 3. Embed as Fragment
+**Option 2: Embedded Fragment**
 
 ```kotlin
 // Embed reels in existing activity
-val fragment = ReelsModule.createReelsFragment(ReelsModule.Routes.PROFILE)
+val fragment = ReelsModule.createReelsFragment(initialRoute = "/")
 supportFragmentManager
     .beginTransaction()
     .replace(R.id.fragment_container, fragment)
     .commit()
 ```
 
-### 4. Try the Demo
+### 3. Set Event Listener
+
+Implement `ReelsListener` to receive events:
 
 ```kotlin
-// Launch demo activity showing all integration methods
-val intent = ReelsModule.createSampleIntent(this)
-startActivity(intent)
+import com.rakuten.room.reels.flutter.ReelsListener
+
+class MainActivity : AppCompatActivity(), ReelsListener {
+
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        ReelsModule.setListener(this)
+    }
+
+    override fun onLikeButtonClick(videoId: String, isLiked: Boolean, likeCount: Long) {
+        Log.d("Reels", "Video $videoId liked: $isLiked, count: $likeCount")
+        // Update your backend
+    }
+
+    override fun onShareButtonClick(shareData: ShareData) {
+        // Present native share dialog
+        val shareIntent = Intent(Intent.ACTION_SEND).apply {
+            type = "text/plain"
+            putExtra(Intent.EXTRA_TEXT, "${shareData.title}\n${shareData.videoUrl}")
+        }
+        startActivity(Intent.createChooser(shareIntent, "Share Video"))
+    }
+
+    override fun onAnalyticsEvent(eventName: String, properties: Map<String, String>) {
+        // Track with your analytics service
+        Analytics.track(eventName, properties)
+    }
+}
 ```
 
-## Available Routes
+## Architecture
 
-- `ReelsModule.Routes.HOME` - Home screen (default)
-- `ReelsModule.Routes.REELS` - Reels listing page
-- `ReelsModule.Routes.PROFILE` - User profile page
+### Components
+
+1. **ReelsModule**: Main entry point with simple API
+2. **FlutterEngineManager**: Manages Flutter engine lifecycle
+3. **FlutterReelsActivity**: Full-screen Flutter presentation
+4. **FlutterReelsFragment**: Embeddable Flutter fragment
+5. **ReelsFlutterSDK**: Internal SDK coordinator
+6. **PigeonGenerated.kt**: Auto-generated type-safe communication
+7. **ReelsListener**: Interface for receiving events from Flutter
+
+### Communication Flow
+
+```
+Android App
+    ↓
+ReelsModule
+    ↓
+FlutterEngineManager
+    ↓
+Pigeon (type-safe channels)
+    ↓
+Flutter (reels_flutter module)
+    ↓ (user interactions)
+Pigeon → ReelsListener
+    ↓
+Android App (handle callbacks)
+```
+
+### Pigeon Communication
+
+The module uses [Pigeon](https://pub.dev/packages/pigeon) for type-safe platform channels:
+
+#### Flutter → Android (Host API)
+- `getAccessToken()` - Request user authentication token
+
+#### Android → Flutter (Flutter API)
+- `onLikeButtonClick()` - Notify like interactions
+- `onShareButtonClick()` - Notify share interactions
+- `onAnalyticsEvent()` - Send analytics events
+- `onScreenStateChanged()` - Track screen lifecycle
+- `onVideoStateChanged()` - Track video playback state
 
 ## API Reference
 
 ### ReelsModule
 
-Main entry point for the module with the following methods:
-
-- `initialize(context: Context)` - Initialize the module
-- `createReelsIntent(context: Context, initialRoute: String)` - Create intent for full-screen
-- `createReelsFragment(initialRoute: String)` - Create fragment for embedding
-- `createSampleIntent(context: Context)` - Create intent for demo activity
-- `sendDataToFlutter(method: String, data: Any?)` - Send data to Flutter
-- `cleanup()` - Clean up resources
-
-## Communication
-
-The module supports bidirectional communication between Android and Flutter:
-
-### Android → Flutter
-
 ```kotlin
-// Send user data to Flutter
-ReelsModule.sendDataToFlutter("updateUserData", mapOf(
-    "userId" to "12345",
-    "name" to "John Doe"
-))
+// Initialize
+fun initialize(
+    context: Context,
+    accessTokenProvider: (() -> String?)? = null
+)
 
-// Trigger refresh in Flutter
-ReelsModule.sendDataToFlutter("refreshReels", null)
+// Create full-screen intent
+fun createReelsIntent(
+    context: Context,
+    initialRoute: String = "/",
+    accessToken: String? = null
+): Intent
+
+// Create fragment
+fun createReelsFragment(initialRoute: String = "/"): Fragment
+
+// Set event listener
+fun setListener(listener: ReelsListener?)
+
+// Track analytics
+fun trackEvent(eventName: String, properties: Map<String, String> = emptyMap())
+
+// Cleanup
+fun cleanup()
 ```
 
-### Flutter → Android
+### ReelsListener Interface
 
-Flutter can call Android methods through platform channels:
+```kotlin
+interface ReelsListener {
+    fun onLikeButtonClick(videoId: String, isLiked: Boolean, likeCount: Long)
+    fun onShareButtonClick(shareData: ShareData)
+    fun onAnalyticsEvent(eventName: String, properties: Map<String, String>)
+}
 
-- `getUserProfile()` - Get user profile data
-- `shareReel(reelId, title)` - Share a reel using native Android sharing
-- `openNativeScreen(screenName)` - Navigate to native Android screens
+data class ShareData(
+    val videoId: String,
+    val videoUrl: String,
+    val title: String,
+    val description: String,
+    val thumbnailUrl: String?
+)
+```
 
 ## Integration in Main App
 
-Add the module dependency to your main app's `build.gradle`:
+### Add Module Dependency
+
+**Option 1: Git Repository**
+
+See main [README.md](../README.md) for Git-based integration.
+
+**Option 2: Local Folder Import (Recommended for Development)**
+
+In `settings.gradle`:
+
+```gradle
+include ':reels_android'
+project(':reels_android').projectDir = new File('/path/to/reels-sdk/reels_android')
+
+// Flutter module from reels-sdk
+setBinding(new Binding([gradle: this]))
+evaluate(new File('/path/to/reels-sdk/reels_flutter/.android/include_flutter.groovy'))
+```
+
+In `app/build.gradle`:
 
 ```gradle
 dependencies {
@@ -138,39 +238,34 @@ dependencies {
 }
 ```
 
-The module automatically includes all necessary Flutter dependencies, so you don't need to add them separately.
+Then run initialization script:
+
+```bash
+cd /path/to/reels-sdk
+./scripts/init-android.sh /path/to/reels-sdk
+```
 
 ## Development
 
-### Adding New Flutter Screens
+### Requirements
 
-1. Modify `reels_flutter/lib/main.dart` to add new routes
-2. Update `ReelsModule.Routes` if needed
-3. No changes required in Android code
+- Android SDK 21+
+- Kotlin 1.9+
+- Gradle 8.0+
+- Flutter 3.9.2+
 
-### Extending Platform Communication
+### Regenerating Pigeon Code
 
-1. Add new methods in `FlutterMethodChannelHandler.kt`
-2. Implement corresponding Flutter side in `reels_flutter/lib/services/native_channel_service.dart`
-3. Update documentation
+When modifying platform communication APIs:
 
-### Testing
+```bash
+cd reels_flutter
+flutter pub run pigeon --input pigeons/messages.dart
+```
 
-The module includes a comprehensive demo activity that shows:
-- Full-screen Flutter integration
-- Fragment embedding
-- Platform communication examples
-- Navigation between different Flutter screens
+This regenerates `PigeonGenerated.kt` with type-safe communication code.
 
-## Benefits
-
-1. **Clean Separation**: Main app stays clean, all Flutter code isolated
-2. **Easy Integration**: Simple API for the main app to use
-3. **Reusable**: Module can be easily reused in other projects
-4. **Maintainable**: Clear boundaries and responsibilities
-5. **Testable**: Module can be tested independently
-
-## Building
+### Building
 
 The module is automatically built when you build the main project:
 
@@ -179,3 +274,16 @@ The module is automatically built when you build the main project:
 ```
 
 The Flutter integration is handled transparently by the build system.
+
+## Platform Support
+
+This SDK is designed for **iOS and Android only** (not desktop, web, or other platforms).
+
+## Benefits
+
+1. **Clean Separation**: Main app stays clean, all Flutter code isolated
+2. **Type Safety**: Compile-time safety with Pigeon-generated code
+3. **Easy Integration**: Simple API for the main app
+4. **Reusable**: Module can be easily reused in other projects
+5. **Maintainable**: Clear boundaries and responsibilities
+6. **Testable**: Module can be tested independently

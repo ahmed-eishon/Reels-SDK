@@ -4,10 +4,14 @@ import 'package:pigeon/pigeon.dart';
   PigeonOptions(
     dartOut: 'lib/core/pigeon_generated.dart',
     dartOptions: DartOptions(),
-    // Generate Swift files directly in reels_ios module for Add-to-App integration
+    // Generate Swift files for iOS bridge (reels_ios module)
     swiftOut:
         '../reels_ios/Sources/ReelsIOS/PigeonGenerated.swift',
     swiftOptions: SwiftOptions(),
+    // Generate Kotlin files for Android bridge (reels_android module)
+    kotlinOut:
+        '../reels_android/src/main/java/com/rakuten/room/reels/pigeon/PigeonGenerated.kt',
+    kotlinOptions: KotlinOptions(package: 'com.rakuten.room.reels.pigeon'),
     dartPackageName: 'reels_flutter',
   ),
 )

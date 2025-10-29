@@ -17,7 +17,7 @@ A multi-platform SDK for integrating video reels functionality into iOS and Andr
 ### iOS
 - iOS 16.0+
 - Swift 5.9+
-- CocoaPods or Swift Package Manager
+- CocoaPods (required for Flutter integration)
 - Xcode 15.0+
 
 ### Android
@@ -29,7 +29,9 @@ A multi-platform SDK for integrating video reels functionality into iOS and Andr
 
 ### iOS Integration
 
-#### Option 1: CocoaPods (Recommended)
+**Note:** This SDK is designed for iOS and Android only. It requires Flutter integration via CocoaPods.
+
+#### Option 1: CocoaPods with Git (Recommended for Production)
 
 Add to your `Podfile`:
 
@@ -43,14 +45,77 @@ Then run:
 pod install
 ```
 
-#### Option 2: Swift Package Manager
+#### Option 2: External Folder Import (Recommended for Development)
 
-Add to your `Package.swift`:
+**Step 1:** Clone the SDK repository and run initialization script:
 
-```swift
-dependencies: [
-    .package(url: "https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git", from: "1.0.0")
-]
+```bash
+cd /path/to/your/workspace
+git clone https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git
+cd reels-sdk
+./scripts/init-ios.sh /path/to/reels-sdk /path/to/your-ios-app
+```
+
+The init script will:
+- Verify Flutter installation
+- Run `flutter pub get` to generate `.ios` platform files
+- Check that all required files are present
+- Provide step-by-step integration instructions
+
+**Step 2:** Follow the initialization script's output to update your `Podfile`:
+
+```ruby
+# Flutter module integration - External folder import
+flutter_application_path = '/path/to/reels-sdk/reels_flutter'
+load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
+
+target 'YourApp' do
+  # Your existing pods...
+
+  # Install Flutter pods
+  install_all_flutter_pods(flutter_application_path)
+end
+
+post_install do |installer|
+  # Flutter post install
+  flutter_post_install(installer)
+
+  # Your existing post_install code...
+end
+```
+
+**Step 3:** Add reels_ios files to your Xcode project:
+- In Xcode, remove any local reels_ios group if it exists
+- Right-click project → Add Files → Navigate to: `/path/to/reels-sdk/reels_ios/Sources/ReelsIOS`
+- Select 'Create groups' and ensure target is checked
+
+**Step 4:** Run pod install and open workspace:
+
+```bash
+cd /path/to/your-ios-app
+pod install
+open YourApp.xcworkspace
+```
+
+**Advantages of External Folder Import:**
+- ✅ No Git authentication issues
+- ✅ Immediate access to SDK updates during development
+- ✅ Easy debugging and code navigation in Xcode
+- ✅ Works in corporate environments with firewall restrictions
+- ✅ Simpler setup for active development
+
+**Updating SDK Version:**
+```bash
+cd /path/to/reels-sdk
+git pull origin master
+git checkout v1.1.0  # Switch to desired version
+# Re-run pod install in your iOS project
+```
+
+**Important:** If you run `flutter clean` in the reels_flutter module, you must re-run:
+```bash
+cd /path/to/reels-sdk/reels_flutter
+flutter pub get
 ```
 
 ### Android Integration
@@ -81,14 +146,22 @@ dependencies {
 
 #### Option 2: Local Folder Import (Recommended for Development)
 
-**Step 1:** Clone the SDK repository:
+**Step 1:** Clone the SDK repository and run initialization script:
 
 ```bash
 cd /path/to/your/workspace
 git clone https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git
+cd reels-sdk
+./scripts/init-android.sh /path/to/reels-sdk
 ```
 
-**Step 2:** Update `settings.gradle` to import from local path:
+The init script will:
+- Verify Flutter installation
+- Run `flutter pub get` to generate `.android` platform files
+- Check that all required files are present
+- Provide step-by-step integration instructions
+
+**Step 2:** Follow the initialization script's output to update `settings.gradle`:
 
 ```gradle
 rootProject.name = 'your-app'
@@ -113,11 +186,10 @@ dependencies {
 }
 ```
 
-**Step 4:** Initialize Flutter module (first time only):
+**Step 4:** Sync your Android project:
 
 ```bash
-cd /path/to/reels-sdk/reels_flutter
-flutter pub get
+./gradlew clean build
 ```
 
 **Advantages of Local Folder Import:**
@@ -241,7 +313,29 @@ reels-sdk/
 - iOS: Xcode 15.0+, CocoaPods
 - Android: Android Studio, JDK 17
 
-### Running Verification
+### Client Initialization Scripts
+
+Before integrating the SDK into your client app, run the appropriate initialization script:
+
+**For iOS:**
+```bash
+cd /path/to/reels-sdk
+./scripts/init-ios.sh /path/to/reels-sdk /path/to/your-ios-app
+```
+
+**For Android:**
+```bash
+cd /path/to/reels-sdk
+./scripts/init-android.sh /path/to/reels-sdk
+```
+
+These scripts will:
+- Check Flutter installation
+- Run `flutter pub get` to generate platform-specific files
+- Verify all required artifacts are present
+- Provide step-by-step integration instructions
+
+### SDK Verification Scripts
 
 Verify iOS SDK integrity:
 
@@ -254,6 +348,14 @@ Verify Android SDK integrity:
 ```bash
 ./scripts/verify-android.sh
 ```
+
+These verification scripts check:
+- VERSION file
+- Module structure (podspec/gradle)
+- Source files
+- Flutter module
+- Pigeon generated files
+- Build configurations
 
 ### Regenerating Pigeon Code
 
@@ -308,13 +410,27 @@ git tag -l
 
 ### Updating to New Versions
 
-**iOS (CocoaPods):**
+**iOS - Option 1 (CocoaPods with Git):**
 ```ruby
 # Update Podfile
 pod 'ReelsSDK', :git => '...', :tag => '1.1.0'
 
 # Run
 pod update ReelsSDK
+```
+
+**iOS - Option 2 (External Folder):**
+```bash
+# Navigate to SDK folder
+cd /path/to/reels-sdk
+
+# Pull latest changes and checkout version
+git pull origin master
+git checkout v1.1.0
+
+# Re-run pod install in your iOS project
+cd /path/to/your-ios-app
+pod install
 ```
 
 **Android - Option 1 (Git Repository):**

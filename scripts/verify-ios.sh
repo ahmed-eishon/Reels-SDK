@@ -89,18 +89,12 @@ fi
 echo -e "${GREEN}✅ Pigeon generated files present${NC}"
 echo ""
 
-# Step 8: Build check (if xcodebuild is available)
-echo "8️⃣  Attempting Swift Package build..."
-cd "$SDK_ROOT/reels_ios"
-if command -v swift &> /dev/null; then
-    if swift build 2>&1 | tee /tmp/swift_build.log; then
-        echo -e "${GREEN}✅ Swift Package builds successfully${NC}"
-    else
-        echo -e "${YELLOW}⚠️  Swift build has issues (check /tmp/swift_build.log)${NC}"
-    fi
-else
-    echo -e "${YELLOW}⚠️  swift command not available, skipping build test${NC}"
-fi
+# Step 8: Build check (iOS/Android only - Skip Swift Package build)
+echo "8️⃣  Checking build configuration..."
+echo -e "${YELLOW}ℹ️  Swift Package standalone build skipped${NC}"
+echo "   This SDK requires Flutter integration via CocoaPods"
+echo "   Standalone Swift builds are not supported for Flutter modules"
+echo "   The SDK is iOS and Android only (not macOS)"
 echo ""
 
 # Summary
@@ -109,17 +103,18 @@ echo "📊 iOS SDK Verification Summary"
 echo "============================================"
 echo -e "Version: ${GREEN}$VERSION${NC}"
 echo -e "Podspec: ${GREEN}✓${NC}"
-echo -e "Swift Package: ${GREEN}✓${NC}"
+echo -e "Swift Files: ${GREEN}✓ (5 files)${NC}"
 echo -e "Flutter Module: ${GREEN}✓${NC}"
 echo -e "Pigeon Files: ${GREEN}✓${NC}"
 echo ""
 echo -e "${GREEN}✅ iOS SDK verification completed!${NC}"
+echo -e "${YELLOW}Note: This SDK is designed for iOS and Android only${NC}"
 echo ""
 echo "📦 To integrate in your iOS project:"
 echo ""
-echo "  # Using CocoaPods (Podfile):"
+echo "  # Using CocoaPods with Git (Recommended):"
 echo "  pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => 'v$VERSION'"
 echo ""
-echo "  # Using Swift Package Manager (Package.swift):"
-echo "  .package(url: \"https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git\", from: \"$VERSION\")"
+echo "  # Using External Folder Import (Development):"
+echo "  Run: ./scripts/init-ios.sh /path/to/reels-sdk /path/to/your-ios-app"
 echo ""

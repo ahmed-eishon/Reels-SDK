@@ -1,0 +1,54 @@
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Xcode
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcworkspace/contents.xcworkspacedata
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.xcuserstate
+build/
+
+# Swift Package Manager
+.swiftpm/
+.build/
+
+# Flutter/Dart - Build artifacts
+reels_flutter/.dart_tool/
+reels_flutter/.flutter-plugins
+reels_flutter/.flutter-plugins-dependencies
+reels_flutter/.packages
+reels_flutter/build/
+reels_flutter/.ios/Flutter/flutter_export_environment.sh
+reels_flutter/.ios/Flutter/Generated.xcconfig
+reels_flutter/.ios/Flutter/App.framework
+reels_flutter/.ios/Flutter/Flutter.framework
+reels_flutter/.ios/Flutter/Flutter.podspec
+reels_flutter/.ios/
+reels_flutter/.android/
+
+# Android
+reels_android/build/
+reels_android/.gradle/
+*.iml
+local.properties
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+*.tmp

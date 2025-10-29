@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
+    id 'maven-publish'
 }
 
 android {
@@ -60,19 +61,66 @@ android {
 dependencies {
     // Flutter module
     implementation project(':flutter')
-    
+
     // Android X
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.fragment.ktx)
     implementation(libs.androidx.activity.ktx)
     implementation(libs.androidx.constraintlayout)
     implementation(libs.google.material.design)
-    
+
     // Jetbrains
     implementation(libs.jetbrains.kotlin.stdlib)
-    
+
     // Testing
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)
+}
+
+// Maven Publishing Configuration
+ext.getVersionName = { ->
+    def versionFile = new File(projectDir.parentFile, 'VERSION')
+    return versionFile.exists() ? versionFile.text.trim() : '1.0.0'
+}
+
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'com.rakuten.room'
+            artifactId = 'reels-sdk'
+            version = getVersionName()
+
+            afterEvaluate {
+                from components.release
+            }
+
+            pom {
+                name = 'Reels SDK for Android'
+                description = 'Flutter-based video reels SDK for Android applications'
+                url = 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk'
+
+                licenses {
+                    license {
+                        name = 'Proprietary'
+                        url = 'https://rakuten.com'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id = 'rakuten-room'
+                        name = 'Rakuten ROOM Team'
+                        email = 'room-team@rakuten.com'
+                    }
+                }
+
+                scm {
+                    connection = 'scm:git:git://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git'
+                    developerConnection = 'scm:git:ssh://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git'
+                    url = 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk'
+                }
+            }
+        }
+    }
 }

@@ -313,6 +313,44 @@ reels-sdk/
 - iOS: Xcode 15.0+, CocoaPods
 - Android: Android Studio, JDK 17
 
+### Building with room-ios
+
+For development with the room-ios app, use the automated build scripts to streamline the build process:
+
+#### Quick Start
+
+**Clean Build** (recommended when starting fresh or after major changes):
+```bash
+cd /path/to/reels-sdk
+./scripts/clean-build-room-ios.sh
+```
+
+**Incremental Build** (faster for day-to-day development):
+```bash
+cd /path/to/reels-sdk
+./scripts/build-room-ios.sh
+```
+
+**Build Flutter Frameworks Only**:
+```bash
+cd /path/to/reels-sdk
+./scripts/build-flutter-frameworks.sh         # Incremental
+./scripts/build-flutter-frameworks.sh --clean # Clean build
+```
+
+#### Documentation
+
+For detailed information about the build process, common issues, and troubleshooting:
+- See [docs/Build-Process.md](docs/Build-Process.md)
+
+The documentation covers:
+- Build architecture and dependencies
+- Build order (critical!)
+- Common issues with solutions
+- Development workflow best practices
+- Integration points with room-ios
+- Performance tips
+
 ### Client Initialization Scripts
 
 Before integrating the SDK into your client app, run the appropriate initialization script:

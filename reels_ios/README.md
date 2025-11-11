@@ -23,9 +23,17 @@ Initialize the module once during app startup for better performance:
 ```swift
 import ReelsIOS
 
-// In AppDelegate or app initialization
-ReelsModule.initialize(accessTokenProvider: {
-    return UserSession.shared.accessToken
+// In AppDelegate or app initialization with async access token provider
+ReelsModule.initialize(accessTokenProvider: { completion in
+    // Call your async token provider
+    loginManager.getRoomAccessToken { token in
+        completion(token)
+    }
+})
+
+// Or if you have a synchronous token
+ReelsModule.initialize(accessTokenProvider: { completion in
+    completion(UserSession.shared.accessToken)
 })
 ```
 
@@ -50,15 +58,30 @@ ReelsCoordinator.openReels(
 )
 ```
 
-**Option 2: Using ReelsModule (Advanced)**
+**Option 2: Using ReelsModule with Collect Context**
 
 ```swift
 import ReelsIOS
 
+// Open reels without collect context (browse mode)
+ReelsModule.openReels(from: viewController)
+
+// Open reels WITH collect context (from a collect detail screen)
+// This passes the collect object to Flutter, which can display relevant videos
+ReelsModule.openReels(
+    from: viewController,
+    collect: myCollectObject,  // Any object with collect properties
+    animated: true,
+    completion: {
+        print("Reels opened with collect context")
+    }
+)
+
 // Open with custom initial route
 ReelsModule.openReels(
     from: viewController,
-    initialRoute: "/reels?itemId=12345",
+    collect: nil,
+    initialRoute: "/reels",
     animated: true
 )
 
@@ -66,6 +89,8 @@ ReelsModule.openReels(
 let flutterVC = ReelsModule.createViewController(initialRoute: "/")
 navigationController?.pushViewController(flutterVC, animated: true)
 ```
+
+**Note**: The `collect` parameter accepts any object with collect properties (id, name, content, user, item, etc.). The module uses reflection to extract these properties safely, so you don't need to import or depend on specific model types.
 
 ### Set Event Listener
 
@@ -142,7 +167,8 @@ Native iOS App (handle callbacks)
 The module uses [Pigeon](https://pub.dev/packages/pigeon) for type-safe platform channels:
 
 #### Flutter → Native (Host API)
-- `getAccessToken()` - Request user authentication token
+- `getAccessToken()` - Request user authentication token (async)
+- `getInitialCollect()` - Get the collect context that was used to open the screen
 
 #### Native → Flutter (Flutter API)
 - `onLikeButtonClick()` - Notify like interactions
@@ -150,6 +176,8 @@ The module uses [Pigeon](https://pub.dev/packages/pigeon) for type-safe platform
 - `onAnalyticsEvent()` - Send analytics events
 - `onScreenStateChanged()` - Track screen lifecycle
 - `onVideoStateChanged()` - Track video playback state
+
+**Important**: Always use the Pigeon-generated API classes (`ReelsFlutterTokenApi`, `ReelsFlutterContextApi`) instead of manually creating `BasicMessageChannel` instances. The Pigeon-generated classes use the correct codec (`_PigeonCodec`) which ensures proper serialization of complex data types like `CollectData`.
 
 ## Integration
 
@@ -183,8 +211,8 @@ For external folder import during development:
 Simple wrapper for common use cases:
 
 ```swift
-// Initialize
-static func initialize(accessTokenProvider: (() -> String?)?)
+// Initialize with async access token provider
+static func initialize(accessTokenProvider: ((@escaping (String?) -> Void) -> Void)?)
 
 // Open reels
 static func openReels(
@@ -206,12 +234,13 @@ static func cleanup()
 Full-featured API:
 
 ```swift
-// Initialize
-static func initialize(accessTokenProvider: (() -> String?)?)
+// Initialize with async access token provider
+static func initialize(accessTokenProvider: ((@escaping (String?) -> Void) -> Void)?)
 
-// Open reels with custom route
+// Open reels with collect context
 static func openReels(
     from: UIViewController,
+    collect: Any?,
     initialRoute: String,
     animated: Bool,
     completion: (() -> Void)?
@@ -261,6 +290,41 @@ protocol ReelsListener: AnyObject {
 - Swift 5.9+
 - Flutter 3.9.2+
 - CocoaPods (for Flutter integration)
+
+### Building with room-ios
+
+For development with the room-ios app, automated build scripts are available to streamline the build process:
+
+**Quick Start:**
+
+```bash
+# Clean build (recommended when starting fresh)
+cd /path/to/reels-sdk
+./scripts/clean-build-room-ios.sh
+
+# Incremental build (faster for day-to-day development)
+./scripts/build-room-ios.sh
+
+# Build only Flutter frameworks
+./scripts/build-flutter-frameworks.sh         # Incremental
+./scripts/build-flutter-frameworks.sh --clean # Clean build
+```
+
+**Detailed Documentation:**
+
+For comprehensive information about the build process, troubleshooting, and common issues, see [docs/Build-Process.md](../docs/Build-Process.md).
+
+The build documentation covers:
+- Build architecture and critical dependencies
+- Common issues (video playback, debug menu, plugin registration)
+- Development workflow best practices
+- Integration points with room-ios
+- Troubleshooting checklist
+
+**Important Notes:**
+- Flutter frameworks must be built BEFORE building room-ios
+- Always register Flutter plugins in RRAppDelegate after ReelsModule initialization
+- Use clean build when encountering unexplainable build errors
 
 ### Regenerating Pigeon Code
 

@@ -182,3 +182,20 @@ abstract class ReelsFlutterNavigationApi {
   /// Called when user wants to dismiss/close the reels screen
   void dismissReels();
 }
+
+/// API for managing Flutter lifecycle and state
+/// Used to ensure each screen presentation is independent with fresh state
+@FlutterApi()
+abstract class ReelsFlutterLifecycleApi {
+  /// Reset Flutter state for fresh screen start
+  /// Clears video provider state, resets navigation, ensures independent screen
+  void resetState();
+
+  /// Pause all resources (videos, network) when screen loses focus
+  /// Called when screen is backgrounded or another screen is pushed on top
+  void pauseAll();
+
+  /// Resume all resources when screen gains focus
+  /// Called when screen returns to foreground or top of stack
+  void resumeAll();
+}

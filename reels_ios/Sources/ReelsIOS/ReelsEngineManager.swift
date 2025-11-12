@@ -69,9 +69,26 @@ class ReelsEngineManager {
             bundle: nil
         )
 
-        // Note: Flutter close button uses Navigator.pop() which triggers viewDidDisappear cleanup
+        // Note: State reset is handled in ReelsScreen.initState() when lifecycle callbacks are registered
+        // This ensures the callback is set up before reset is called
 
         return viewController
+    }
+
+    /// Reset Flutter state for fresh start
+    private func resetFlutterNavigation() {
+        guard let engine = flutterEngine else { return }
+
+        // Use Pigeon API to reset Flutter state
+        let lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger: engine.binaryMessenger)
+        lifecycleApi.resetState { result in
+            switch result {
+            case .success:
+                print("[ReelsSDK] Flutter state reset successfully")
+            case .failure(let error):
+                print("[ReelsSDK] Error resetting Flutter state: \(error)")
+            }
+        }
     }
 
     /// Destroy the Flutter engine

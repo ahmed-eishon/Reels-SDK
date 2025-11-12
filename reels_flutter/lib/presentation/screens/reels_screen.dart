@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:reels_flutter/core/di/injection_container.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
+import 'package:reels_flutter/core/services/lifecycle_service.dart';
 import 'package:reels_flutter/core/services/navigation_events_service.dart';
 import 'package:reels_flutter/core/services/state_events_service.dart';
 import 'package:reels_flutter/main.dart';
@@ -41,8 +42,37 @@ class _ReelsScreenState extends State<ReelsScreen>
     _stateEventsService = sl<StateEventsService>();
     WidgetsBinding.instance.addObserver(this);
 
-    // Always load videos when screen initializes
-    // This ensures we fetch fresh collect data even if the provider is reused
+    // Set up lifecycle callbacks to manage state and resources
+    final lifecycleService = sl<LifecycleService>();
+
+    // Reset state callback - only used when native explicitly requests reset
+    lifecycleService.setOnResetState(() {
+      print('[ReelsSDK-Flutter] ReelsScreen: Resetting state via lifecycle callback');
+      context.read<VideoProvider>().reset();
+    });
+
+    // Pause all resources when screen loses focus
+    lifecycleService.setOnPauseAll(() {
+      print('[ReelsSDK-Flutter] ReelsScreen: Pausing all resources');
+      if (mounted) {
+        setState(() {
+          _isScreenActive = false;  // This pauses video players
+        });
+      }
+    });
+
+    // Resume all resources when screen gains focus
+    lifecycleService.setOnResumeAll(() {
+      print('[ReelsSDK-Flutter] ReelsScreen: Resuming all resources');
+      if (mounted) {
+        setState(() {
+          _isScreenActive = true;  // This resumes video players
+        });
+      }
+    });
+
+    // Load videos when screen initializes
+    // loadVideos() fetches fresh collect data each time, so no need to reset
     WidgetsBinding.instance.addPostFrameCallback((_) {
       print('[ReelsSDK-Flutter] ReelsScreen.initState: Loading videos');
       context.read<VideoProvider>().loadVideos();
@@ -89,13 +119,7 @@ class _ReelsScreenState extends State<ReelsScreen>
       _isScreenActive = state == AppLifecycleState.resumed;
     });
 
-    // Reload videos when app resumes to fetch any new collect data
     if (state == AppLifecycleState.resumed) {
-      final videoProvider = context.read<VideoProvider>();
-      if (videoProvider.hasLoadedOnce) {
-        print('[ReelsSDK-Flutter] ReelsScreen: App resumed, reloading videos to fetch new collect data');
-        videoProvider.loadVideos();
-      }
       _stateEventsService.notifyScreenFocused(screenName: 'reels_screen');
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -110,14 +134,6 @@ class _ReelsScreenState extends State<ReelsScreen>
     setState(() {
       _isScreenActive = true;
     });
-
-    // Reload videos to fetch any new collect data when screen is shown again
-    // Skip if this is the initial load (handled by initState)
-    final videoProvider = context.read<VideoProvider>();
-    if (videoProvider.hasLoadedOnce) {
-      print('[ReelsSDK-Flutter] ReelsScreen: Reloading videos to fetch new collect data');
-      videoProvider.loadVideos();
-    }
 
     // Notify native that screen gained focus
     _stateEventsService.notifyScreenFocused(screenName: 'reels_screen');

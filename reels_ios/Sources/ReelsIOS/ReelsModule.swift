@@ -89,11 +89,12 @@ public class ReelsModule {
         // Store collect data if provided
         if let data = collectData {
             initialCollectData = convertDictionaryToCollectData(data)
-            print("[ReelsSDK-iOS] Stored collect data: id=\(initialCollectData?.id ?? "nil")")
+            print("[ReelsSDK-iOS] ✅ Stored collect data: id=\(initialCollectData?.id ?? "nil"), name=\(initialCollectData?.name ?? "nil")")
         } else {
             initialCollectData = nil
-            print("[ReelsSDK-iOS] No collect data provided")
+            print("[ReelsSDK-iOS] ⚠️ No collect data provided - initialCollectData set to nil")
         }
+        print("[ReelsSDK-iOS] Current initialCollectData state: \(initialCollectData != nil ? "HAS DATA" : "NIL")")
 
         let flutterViewController = engineManager.createFlutterViewController(initialRoute: initialRoute)
 
@@ -336,10 +337,26 @@ private class FlutterViewControllerWrapper: UIViewController {
         // Always hide navigation bar when Flutter screen appears
         // This ensures the bar is hidden even when navigating back from native screens
         navigationController?.setNavigationBarHidden(true, animated: animated)
+
+        // Ensure Flutter view is properly attached and ready
+        flutterViewController.viewWillAppear(animated)
+    }
+
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        flutterViewController.viewDidAppear(animated)
+    }
+
+    override func viewWillDisappear(_ animated: Bool) {
+        super.viewWillDisappear(animated)
+        flutterViewController.viewWillDisappear(animated)
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
+
+        // Forward lifecycle to Flutter
+        flutterViewController.viewDidDisappear(animated)
 
         // If this is the final dismissal (not just navigation to another screen)
         if isBeingDismissed || isMovingFromParent {

@@ -11,6 +11,8 @@ A multi-platform SDK for integrating video reels functionality into iOS and Andr
 - 📊 **Analytics Tracking** - Built-in event tracking support
 - 🎨 **Clean Architecture** - Maintainable and testable codebase
 - 🔐 **Private Distribution** - Git-based, secure access
+- 🔄 **Independent Screen Lifecycle** - Each screen presentation is completely independent
+- 🎯 **Resource Management** - Proper video player and resource cleanup
 
 ## Requirements
 
@@ -213,18 +215,42 @@ git checkout v1.1.0  # Switch to desired version
 ```swift
 import ReelsIOS
 
-// Initialize SDK
-ReelsCoordinator.initialize(accessTokenProvider: {
-    return "your-access-token"
-})
+// Initialize SDK (once in AppDelegate)
+ReelsModule.initialize(
+    accessTokenProvider: { completion in
+        // Async token provider
+        LoginManager.shared.getAccessToken { token in
+            completion(token)
+        }
+    },
+    debug: true  // Enable debug menu
+)
 
 // Set up event listener
-ReelsCoordinator.setListener(self)
+ReelsModule.setListener(self)
 
 // Open reels screen
-ReelsCoordinator.openReels(
-    from: navigationController,
-    itemId: "video123",
+ReelsModule.openReels(
+    from: viewController,
+    initialRoute: "/",
+    animated: true
+)
+
+// Open reels WITH collect context (optional)
+let collectData: [String: Any?] = [
+    "id": collect.id,
+    "name": collect.name,
+    "content": collect.content,
+    "likes": Int64(collect.likeCount),
+    "comments": Int64(collect.commentCount),
+    "userName": collect.user?.name,
+    "userProfileImage": collect.user?.profileImageUrl
+]
+
+ReelsModule.openReels(
+    from: viewController,
+    initialRoute: "/",
+    collectData: collectData,
     animated: true
 )
 
@@ -236,6 +262,14 @@ extension YourViewController: ReelsListener {
 
     func onShareButtonClick(videoId: String, videoUrl: String, title: String, description: String, thumbnailUrl: String?) {
         // Handle share action
+    }
+
+    func onScreenStateChanged(screenName: String, state: String) {
+        // Track screen lifecycle
+    }
+
+    func onVideoStateChanged(videoId: String, state: String, position: Int?, duration: Int?) {
+        // Track video playback
     }
 
     func onAnalyticsEvent(eventName: String, properties: [String: String]) {

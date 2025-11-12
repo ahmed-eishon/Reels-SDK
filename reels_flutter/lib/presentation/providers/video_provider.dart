@@ -59,6 +59,13 @@ class VideoProvider with ChangeNotifier {
   /// Notifies listeners of state changes.
   Future<void> loadVideos() async {
     print('[ReelsSDK-Flutter] VideoProvider.loadVideos() called');
+
+    // Prevent multiple simultaneous load calls
+    if (_isLoading) {
+      print('[ReelsSDK-Flutter] VideoProvider: Already loading, skipping');
+      return;
+    }
+
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -181,6 +188,18 @@ class VideoProvider with ChangeNotifier {
   /// Clears any error message.
   void clearError() {
     _errorMessage = null;
+    notifyListeners();
+  }
+
+  /// Reset all state for fresh screen start
+  /// Called when native wants to present a new independent screen
+  void reset() {
+    print('[ReelsSDK-Flutter] VideoProvider.reset() called');
+    _videos = [];
+    _isLoading = false;
+    _hasLoadedOnce = false;
+    _errorMessage = null;
+    _collectData = null;
     notifyListeners();
   }
 }

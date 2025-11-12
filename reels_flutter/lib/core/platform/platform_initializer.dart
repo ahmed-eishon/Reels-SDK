@@ -5,6 +5,7 @@ import '../services/access_token_service.dart';
 import '../services/analytics_service.dart';
 import '../services/button_events_service.dart';
 import '../services/collect_context_service.dart';
+import '../services/lifecycle_service.dart';
 import '../services/navigation_events_service.dart';
 import '../services/state_events_service.dart';
 
@@ -17,6 +18,7 @@ class PlatformServices {
     required this.stateEventsService,
     required this.navigationEventsService,
     required this.collectContextService,
+    required this.lifecycleService,
   });
 
   final AccessTokenService accessTokenService;
@@ -25,6 +27,7 @@ class PlatformServices {
   final StateEventsService stateEventsService;
   final NavigationEventsService navigationEventsService;
   final CollectContextService collectContextService;
+  final LifecycleService lifecycleService;
 }
 
 /// Implementation of ReelsFlutterAnalyticsApi that sends events to native
@@ -220,6 +223,11 @@ class PlatformInitializer {
       },
     );
 
+    // Create lifecycle service and set up handler for native calls
+    final lifecycleService = LifecycleService();
+    ReelsFlutterLifecycleApi.setUp(_ReelsLifecycleApiHandler(lifecycleService));
+    print('[ReelsSDK-Flutter] Lifecycle service initialized');
+
     return PlatformServices(
       accessTokenService: accessTokenService,
       analyticsService: analyticsService,
@@ -227,6 +235,32 @@ class PlatformInitializer {
       stateEventsService: stateEventsService,
       navigationEventsService: navigationEventsService,
       collectContextService: collectContextService,
+      lifecycleService: lifecycleService,
     );
+  }
+}
+
+/// Handler for lifecycle API calls from native
+class _ReelsLifecycleApiHandler extends ReelsFlutterLifecycleApi {
+  _ReelsLifecycleApiHandler(this._lifecycleService);
+
+  final LifecycleService _lifecycleService;
+
+  @override
+  void resetState() {
+    debugPrint('[ReelsSDK-Flutter] Lifecycle API: resetState called from native');
+    _lifecycleService.resetState();
+  }
+
+  @override
+  void pauseAll() {
+    debugPrint('[ReelsSDK-Flutter] Lifecycle API: pauseAll called from native');
+    _lifecycleService.pauseAll();
+  }
+
+  @override
+  void resumeAll() {
+    debugPrint('[ReelsSDK-Flutter] Lifecycle API: resumeAll called from native');
+    _lifecycleService.resumeAll();
   }
 }

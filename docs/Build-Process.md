@@ -4,12 +4,34 @@
 
 This document explains the build process for the ReelsSDK and its integration with room-ios. The build process has been automated with scripts to eliminate manual steps and common issues.
 
+## Path Placeholders
+
+Throughout this document, the following placeholders are used:
+
+- **`<REELS_SDK_ROOT>`**: The root directory of your reels-sdk project (e.g., `~/projects/reels-sdk`)
+- **`<ROOM_IOS_ROOT>`**: The ROOM directory of your room-ios project (e.g., `~/projects/room-ios/ROOM`)
+
+### Configuring Build Scripts
+
+The build scripts automatically detect your directory structure if you follow the standard layout:
+```
+parent-directory/
+├── reels-sdk/
+└── room-ios/
+    └── ROOM/
+```
+
+If your directories are in different locations, set the environment variable:
+```bash
+export ROOM_IOS_DIR=/path/to/your/room-ios/ROOM
+```
+
 ## Quick Start
 
 ### Option 1: Clean Build (Recommended when starting fresh)
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/reels-sdk
+cd <REELS_SDK_ROOT>
 ./scripts/clean-build-room-ios.sh
 ```
 
@@ -24,7 +46,7 @@ This performs a complete clean build:
 ### Option 2: Incremental Build (Faster)
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/reels-sdk
+cd <REELS_SDK_ROOT>
 ./scripts/build-room-ios.sh
 ```
 
@@ -37,7 +59,7 @@ This performs an incremental build without cleaning:
 ### Option 3: Build Only Flutter Frameworks
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/reels-sdk
+cd <REELS_SDK_ROOT>
 ./scripts/build-flutter-frameworks.sh         # Incremental
 ./scripts/build-flutter-frameworks.sh --clean # Clean build
 ```
@@ -176,7 +198,7 @@ If you need to build manually (not recommended):
 ### Step 1: Build Flutter Frameworks
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/reels-sdk/reels_flutter
+cd <REELS_SDK_ROOT>/reels_flutter
 
 # Clean (optional)
 flutter clean
@@ -194,7 +216,7 @@ This creates:
 ### Step 2: Update CocoaPods (if needed)
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/room-ios/ROOM
+cd <ROOM_IOS_ROOT>
 pod install
 ```
 
@@ -206,7 +228,7 @@ Run this when:
 ### Step 3: Build room-ios
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/room-ios/ROOM
+cd <ROOM_IOS_ROOT>
 
 # Clean build (slow)
 xcodebuild -workspace ROOM.xcworkspace \
@@ -236,7 +258,7 @@ xcodebuild -workspace ROOM.xcworkspace \
 
 3. **Test in Xcode**:
    ```bash
-   open /Users/ahmed.eishon/Rakuten/room-ios/ROOM/ROOM.xcworkspace
+   open <ROOM_IOS_ROOT>/ROOM.xcworkspace
    ```
    Then press Cmd+R
 
@@ -274,12 +296,12 @@ If you've made significant changes or encounter weird issues:
 
 ### room-ios Podfile
 
-Location: `/Users/ahmed.eishon/Rakuten/room-ios/ROOM/Podfile`
+Location: `<ROOM_IOS_ROOT>/Podfile`
 
 Key sections:
 ```ruby
 # Flutter module integration
-flutter_application_path = '/Users/ahmed.eishon/Rakuten/reels-sdk/reels_flutter'
+flutter_application_path = '<REELS_SDK_ROOT>/reels_flutter'
 load File.join(flutter_application_path, '.ios', 'Flutter', 'podhelper.rb')
 
 target 'ROOM' do
@@ -287,13 +309,13 @@ target 'ROOM' do
   install_all_flutter_pods(flutter_application_path)
 
   # Add ReelsIOS native module
-  pod 'ReelsIOS', :path => '/Users/ahmed.eishon/Rakuten/reels-sdk/reels_ios'
+  pod 'ReelsIOS', :path => '<REELS_SDK_ROOT>/reels_ios'
 end
 ```
 
 ### RRAppDelegate.swift
 
-Location: `/Users/ahmed.eishon/Rakuten/room-ios/ROOM/ROOM/Source/App/RRAppDelegate.swift`
+Location: `<ROOM_IOS_ROOT>/ROOM/Source/App/RRAppDelegate.swift`
 
 Key sections:
 ```swift
@@ -319,7 +341,7 @@ if let flutterEngine = ReelsModule.getEngine() {
 
 ### FeedItemCollectionViewController.swift
 
-Location: `/Users/ahmed.eishon/Rakuten/room-ios/ROOM/ROOM/Source/Feed/FeedFollowing/Item/FeedItemCollectionViewController.swift`
+Location: `<ROOM_IOS_ROOT>/ROOM/Source/Feed/FeedFollowing/Item/FeedItemCollectionViewController.swift`
 
 Opens reels when collect item tapped:
 ```swift
@@ -364,13 +386,13 @@ If build fails, check in this order:
 
 1. **Flutter frameworks exist**:
    ```bash
-   ls -la /Users/ahmed.eishon/Rakuten/reels-sdk/reels_flutter/.ios/Flutter/Debug/
+   ls -la <REELS_SDK_ROOT>/reels_flutter/.ios/Flutter/Debug/
    ```
    Should show: `App.xcframework`, `Flutter.xcframework`, etc.
 
 2. **CocoaPods up to date**:
    ```bash
-   cd /Users/ahmed.eishon/Rakuten/room-ios/ROOM
+   cd <ROOM_IOS_ROOT>
    pod install
    ```
 

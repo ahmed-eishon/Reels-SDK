@@ -17,7 +17,22 @@ NC='\033[0m' # No Color
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 REELS_SDK_ROOT="$(dirname "$SCRIPT_DIR")"
 FLUTTER_MODULE_DIR="$REELS_SDK_ROOT/reels_flutter"
-ROOM_IOS_DIR="/Users/ahmed.eishon/Rakuten/room-ios/ROOM"
+
+# Configure room-ios directory
+# Option 1: Set ROOM_IOS_DIR environment variable
+# Option 2: Auto-detect (assumes room-ios is sibling to reels-sdk)
+if [ -z "$ROOM_IOS_DIR" ]; then
+    ROOM_IOS_DIR="$(dirname "$REELS_SDK_ROOT")/room-ios/ROOM"
+fi
+
+# Verify room-ios directory exists
+if [ ! -d "$ROOM_IOS_DIR" ]; then
+    echo -e "${RED}Error: room-ios directory not found at: $ROOM_IOS_DIR${NC}"
+    echo -e "${YELLOW}Please set ROOM_IOS_DIR environment variable:${NC}"
+    echo -e "  export ROOM_IOS_DIR=/path/to/room-ios/ROOM"
+    echo -e "  ./scripts/clean-build-room-ios.sh"
+    exit 1
+fi
 
 echo -e "${BLUE}======================================${NC}"
 echo -e "${BLUE}Clean Build: Room-iOS + ReelsSDK${NC}"

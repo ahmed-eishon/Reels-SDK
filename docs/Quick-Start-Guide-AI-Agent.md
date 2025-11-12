@@ -11,6 +11,27 @@ This guide helps AI assistants quickly understand the reels-sdk project structur
 - **Communication**: Type-safe platform channels using Pigeon
 - **Primary Use Case**: Integration with room-ios app for development/testing
 
+## Path Placeholders
+
+Throughout this guide, the following placeholders represent paths on your system:
+
+- **`<REELS_SDK_ROOT>`**: The root directory where reels-sdk is cloned (e.g., `~/projects/reels-sdk`)
+- **`<ROOM_IOS_ROOT>`**: The ROOM directory in your room-ios project (e.g., `~/projects/room-ios/ROOM`)
+
+Replace these placeholders with your actual paths when following the guide.
+
+### Build Script Configuration
+
+The build scripts automatically detect your directory structure if organized as:
+```
+parent-directory/
+├── reels-sdk/
+└── room-ios/
+    └── ROOM/
+```
+
+For custom locations, set: `export ROOM_IOS_DIR=/path/to/room-ios/ROOM`
+
 ## Key Directories
 
 ```
@@ -53,7 +74,7 @@ reels-sdk/
 ## External Dependencies
 
 **room-ios** (test/integration app):
-- Location: `/Users/ahmed.eishon/Rakuten/room-ios/ROOM/`
+- Location: `<ROOM_IOS_ROOT>/`
 - Integration point: References reels-sdk via CocoaPods (external folder import)
 - Key files:
   - `ROOM/Podfile` - Includes Flutter pods and ReelsIOS module
@@ -112,7 +133,7 @@ Generates:
 
 **Solution** (in room-ios):
 
-**File**: `/Users/ahmed.eishon/Rakuten/room-ios/ROOM/ROOM/Source/App/RRAppDelegate.swift`
+**File**: `<ROOM_IOS_ROOT>/ROOM/Source/App/RRAppDelegate.swift`
 
 ```swift
 // Lines 8-17: Imports
@@ -138,7 +159,7 @@ if let flutterEngine = ReelsModule.getEngine() {
 ### Quick Commands
 
 ```bash
-cd /Users/ahmed.eishon/Rakuten/reels-sdk
+cd <REELS_SDK_ROOT>
 
 # Clean build (recommended when starting fresh or after major changes)
 ./scripts/clean-build-room-ios.sh
@@ -200,7 +221,7 @@ See [Build-Process.md](Build-Process.md) for detailed troubleshooting. Quick fix
 
 Check recent changes:
 ```bash
-cd /Users/ahmed.eishon/Rakuten/reels-sdk
+cd <REELS_SDK_ROOT>
 git log --oneline -10
 ```
 
@@ -280,11 +301,11 @@ Shows/Hides debug menu
 
 ```bash
 # After making changes
-cd /Users/ahmed.eishon/Rakuten/reels-sdk
+cd <REELS_SDK_ROOT>
 ./scripts/build-room-ios.sh
 
 # Open in Xcode
-open /Users/ahmed.eishon/Rakuten/room-ios/ROOM/ROOM.xcworkspace
+open <ROOM_IOS_ROOT>/ROOM.xcworkspace
 
 # Press Cmd+R to run on simulator
 ```

@@ -71,11 +71,17 @@ class _ReelsScreenState extends State<ReelsScreen>
       }
     });
 
-    // Load videos when screen initializes
-    // loadVideos() fetches fresh collect data each time, so no need to reset
+    // Reset provider state for fresh screen presentation
+    // This ensures collect data is fetched fresh each time
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      print('[ReelsSDK-Flutter] ReelsScreen.initState: Loading videos');
-      context.read<VideoProvider>().loadVideos();
+      print('[ReelsSDK-Flutter] ReelsScreen.initState: Resetting and loading videos');
+      final videoProvider = context.read<VideoProvider>();
+
+      // Reset to clear any stale data from previous screen
+      videoProvider.reset();
+
+      // Load fresh videos and collect data
+      videoProvider.loadVideos();
 
       // Track page view
       _analyticsService.trackPageView('reels_screen');

@@ -31,6 +31,7 @@ class CollectData {
     this.isLiked,
     this.isCollected,
     this.trackingTag,
+    this.userId,
     this.userName,
     this.userProfileImage,
     this.itemName,
@@ -47,6 +48,7 @@ class CollectData {
   final bool? isLiked;              // Is liked by current user
   final bool? isCollected;          // Is collected by current user
   final String? trackingTag;        // For analytics tracking
+  final String? userId;             // User ID who created the collect
   final String? userName;           // User who created the collect
   final String? userProfileImage;   // User's profile image URL
   final String? itemName;           // Associated item name
@@ -170,8 +172,8 @@ abstract class ReelsFlutterStateApi {
 /// API for handling navigation gestures
 @FlutterApi()
 abstract class ReelsFlutterNavigationApi {
-  /// Called when user swipes left
-  void onSwipeLeft();
+  /// Called when user swipes left (to open My Room / user profile)
+  void onSwipeLeft(String userId, String userName);
 
   /// Called when user swipes right
   void onSwipeRight();

@@ -64,6 +64,7 @@ data class CollectData (
   val isLiked: Boolean? = null,
   val isCollected: Boolean? = null,
   val trackingTag: String? = null,
+  val userId: String? = null,
   val userName: String? = null,
   val userProfileImage: String? = null,
   val itemName: String? = null,
@@ -82,12 +83,13 @@ data class CollectData (
       val isLiked = pigeonVar_list[6] as Boolean?
       val isCollected = pigeonVar_list[7] as Boolean?
       val trackingTag = pigeonVar_list[8] as String?
-      val userName = pigeonVar_list[9] as String?
-      val userProfileImage = pigeonVar_list[10] as String?
-      val itemName = pigeonVar_list[11] as String?
-      val itemImageUrl = pigeonVar_list[12] as String?
-      val imageUrl = pigeonVar_list[13] as String?
-      return CollectData(id, content, name, likes, comments, recollects, isLiked, isCollected, trackingTag, userName, userProfileImage, itemName, itemImageUrl, imageUrl)
+      val userId = pigeonVar_list[9] as String?
+      val userName = pigeonVar_list[10] as String?
+      val userProfileImage = pigeonVar_list[11] as String?
+      val itemName = pigeonVar_list[12] as String?
+      val itemImageUrl = pigeonVar_list[13] as String?
+      val imageUrl = pigeonVar_list[14] as String?
+      return CollectData(id, content, name, likes, comments, recollects, isLiked, isCollected, trackingTag, userId, userName, userProfileImage, itemName, itemImageUrl, imageUrl)
     }
   }
   fun toList(): List<Any?> {
@@ -101,6 +103,7 @@ data class CollectData (
       isLiked,
       isCollected,
       trackingTag,
+      userId,
       userName,
       userProfileImage,
       itemName,
@@ -547,13 +550,13 @@ class ReelsFlutterNavigationApi(private val binaryMessenger: BinaryMessenger, pr
       PigeonGeneratedPigeonCodec()
     }
   }
-  /** Called when user swipes left */
-  fun onSwipeLeft(callback: (Result<Unit>) -> Unit)
+  /** Called when user swipes left (to open My Room / user profile) */
+  fun onSwipeLeft(userIdArg: String, userNameArg: String, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(null) {
+    channel.send(listOf(userIdArg, userNameArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

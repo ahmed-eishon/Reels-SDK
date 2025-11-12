@@ -60,6 +60,13 @@ class ReelsEngineManager {
             fatalError("Flutter engine not initialized")
         }
 
+        // Detach any existing view controller from the engine
+        // This is required for multiple screen presentations with a persistent engine
+        if engine.viewController != nil {
+            print("[ReelsSDK-iOS] Detaching existing view controller from engine")
+            engine.viewController = nil
+        }
+
         // Create view controller with the engine
         // Note: Don't call setInitialRoute after engine is already running
         // The Flutter app is already running, so we just attach the view controller
@@ -69,8 +76,18 @@ class ReelsEngineManager {
             bundle: nil
         )
 
-        // Note: State reset is handled in ReelsScreen.initState() when lifecycle callbacks are registered
-        // This ensures the callback is set up before reset is called
+        // Explicitly trigger state reset for fresh screen presentation
+        // This ensures collect data is fetched fresh each time
+        print("[ReelsSDK-iOS] Triggering Flutter state reset for fresh presentation")
+        let lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger: engine.binaryMessenger)
+        lifecycleApi.resetState { result in
+            switch result {
+            case .success:
+                print("[ReelsSDK-iOS] ✅ Flutter state reset completed successfully")
+            case .failure(let error):
+                print("[ReelsSDK-iOS] ❌ Error resetting Flutter state: \(error)")
+            }
+        }
 
         return viewController
     }

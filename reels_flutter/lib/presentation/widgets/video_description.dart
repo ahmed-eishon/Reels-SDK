@@ -266,6 +266,7 @@ class _MarqueeText extends StatefulWidget {
 class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderStateMixin {
   late ScrollController _scrollController;
   bool _isOverflowing = false;
+  bool _isDisposed = false;
 
   @override
   void initState() {
@@ -277,7 +278,7 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
   }
 
   void _checkOverflow() {
-    if (!mounted) return;
+    if (!mounted || _isDisposed) return;
 
     // Check if text is overflowing
     final textPainter = TextPainter(
@@ -291,40 +292,53 @@ class _MarqueeTextState extends State<_MarqueeText> with SingleTickerProviderSta
       final availableWidth = renderBox.size.width;
       _isOverflowing = textPainter.width > availableWidth;
 
-      if (_isOverflowing && mounted) {
+      if (_isOverflowing && mounted && !_isDisposed) {
         _startScrolling();
       }
     }
   }
 
   void _startScrolling() async {
-    if (!mounted || !_scrollController.hasClients) return;
+    if (!mounted || _isDisposed || !_scrollController.hasClients) return;
 
-    await Future.delayed(const Duration(seconds: 2));
-    if (!mounted || !_scrollController.hasClients) return;
+    try {
+      await Future.delayed(const Duration(seconds: 2));
+      if (!mounted || _isDisposed || !_scrollController.hasClients) return;
 
-    final maxScroll = _scrollController.position.maxScrollExtent;
-    if (maxScroll > 0) {
-      await _scrollController.animateTo(
-        maxScroll,
-        duration: Duration(milliseconds: (maxScroll * 30).toInt()),
-        curve: Curves.linear,
-      );
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      if (maxScroll > 0) {
+        await _scrollController.animateTo(
+          maxScroll,
+          duration: Duration(milliseconds: (maxScroll * 30).toInt()),
+          curve: Curves.linear,
+        );
 
-      if (mounted && _scrollController.hasClients) {
+        if (!mounted || _isDisposed || !_scrollController.hasClients) return;
+
         await Future.delayed(const Duration(seconds: 1));
+        if (!mounted || _isDisposed || !_scrollController.hasClients) return;
+
         await _scrollController.animateTo(
           0,
           duration: Duration(milliseconds: (maxScroll * 30).toInt()),
           curve: Curves.linear,
         );
+
+        if (!mounted || _isDisposed || !_scrollController.hasClients) return;
+
         _startScrolling(); // Loop
+      }
+    } catch (e) {
+      // Ignore errors from disposed controller
+      if (mounted && !_isDisposed) {
+        print('[ReelsSDK-Flutter] MarqueeText scroll error: $e');
       }
     }
   }
 
   @override
   void dispose() {
+    _isDisposed = true;
     _scrollController.dispose();
     super.dispose();
   }

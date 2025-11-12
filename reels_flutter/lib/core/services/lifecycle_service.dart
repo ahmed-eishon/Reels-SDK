@@ -18,18 +18,25 @@ class LifecycleService {
   VoidCallback? _onResumeAll;
 
   /// Register callback for reset state event
-  void setOnResetState(VoidCallback callback) {
+  void setOnResetState(VoidCallback? callback) {
     _onResetState = callback;
   }
 
   /// Register callback for pause all event
-  void setOnPauseAll(VoidCallback callback) {
+  void setOnPauseAll(VoidCallback? callback) {
     _onPauseAll = callback;
   }
 
   /// Register callback for resume all event
-  void setOnResumeAll(VoidCallback callback) {
+  void setOnResumeAll(VoidCallback? callback) {
     _onResumeAll = callback;
+  }
+
+  /// Clear all callbacks
+  void clearCallbacks() {
+    _onResetState = null;
+    _onPauseAll = null;
+    _onResumeAll = null;
   }
 
   /// Called by native to reset Flutter state for fresh screen start

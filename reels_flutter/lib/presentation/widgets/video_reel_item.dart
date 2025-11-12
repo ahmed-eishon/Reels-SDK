@@ -69,13 +69,20 @@ class _VideoReelItemState extends State<VideoReelItem>
   }
 
   void _handleSwipeLeft() {
-    // Notify native platform about swipe left gesture
-    _navigationEventsService.notifySwipeLeft();
+    // Get user ID and name - prefer collect data if available
+    final userId = widget.collectData?.userId ?? widget.video.user.id;
+    final userName = widget.collectData?.userName ?? widget.video.user.name;
+
+    // Notify native platform about swipe left gesture with user info
+    _navigationEventsService.notifySwipeLeft(
+      userId: userId,
+      userName: userName,
+    );
 
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Swiped left'),
-        duration: Duration(milliseconds: 800),
+      SnackBar(
+        content: Text('Opening My Room for $userName'),
+        duration: const Duration(milliseconds: 800),
       ),
     );
   }
@@ -228,9 +235,13 @@ class _VideoReelItemState extends State<VideoReelItem>
                             },
                             onUserProfileClick: () {
                               // Notify native platform about user profile click with actual user ID
+                              // Prefer collect data if available
+                              final userId = widget.collectData?.userId ?? widget.video.user.id;
+                              final userName = widget.collectData?.userName ?? widget.video.user.name;
+
                               _navigationEventsService.notifyUserProfileClick(
-                                userId: widget.video.user.id,
-                                userName: widget.video.user.name,
+                                userId: userId,
+                                userName: userName,
                               );
                             },
                           ),

@@ -5,24 +5,25 @@ import Flutter
 /// Implement this to handle user profile navigation and other coordinator-level actions
 public protocol ReelsCoordinatorDelegate: AnyObject {
 
-    /// Called when user clicks on a profile
+    /// Called when user clicks on a profile OR swipes left
+    /// Both actions navigate to the user's My Room screen
     /// Implement this to navigate to your app's user profile screen
     /// - Parameters:
-    ///   - userId: User ID
-    ///   - userName: User name
+    ///   - userId: User ID to navigate to
+    ///   - userName: User name (for display)
     ///   - navigationController: Navigation controller to push onto (optional, from Flutter)
     func reelsDidRequestUserProfile(userId: String, userName: String, navigationController: UINavigationController?)
 
-    /// Called when user swipes left
-    /// Implement this to handle custom left swipe action (e.g., open current user's profile)
+    /// Called when user swipes right
+    /// Implement this to handle custom right swipe action
     /// - Parameter navigationController: Navigation controller to push onto (optional, from Flutter)
-    func reelsDidSwipeLeft(navigationController: UINavigationController?)
+    func reelsDidSwipeRight(navigationController: UINavigationController?)
 }
 
 // Make delegate methods optional with default empty implementations
 public extension ReelsCoordinatorDelegate {
     func reelsDidRequestUserProfile(userId: String, userName: String, navigationController: UINavigationController?) {}
-    func reelsDidSwipeLeft(navigationController: UINavigationController?) {}
+    func reelsDidSwipeRight(navigationController: UINavigationController?) {}
 }
 
 /// Simple coordinator for launching the Flutter reels screen
@@ -135,10 +136,10 @@ private class DefaultReelsListener: ReelsListener {
         // print("[ReelsSDK] Video state changed - videoId: \(videoId), state: \(state)")
     }
 
-    func onSwipeLeft() {
-        print("[ReelsSDK] User swiped left")
+    func onSwipeLeft(userId: String, userName: String) {
+        print("[ReelsSDK] User swiped left - opening My Room for userId: \(userId), userName: \(userName)")
         let navController = ReelsModule.getFlutterNavigationController()
-        delegate?.reelsDidSwipeLeft(navigationController: navController)
+        delegate?.reelsDidRequestUserProfile(userId: userId, userName: userName, navigationController: navController)
     }
 
     func onSwipeRight() {

@@ -6,11 +6,11 @@ class NavigationEventsService {
 
   final ReelsFlutterNavigationApi api;
 
-  /// Called when user swipes left (navigate back)
-  void onSwipeLeft() {
+  /// Called when user swipes left (opens user's My Room)
+  void onSwipeLeft(String userId, String userName) {
     try {
-      api.onSwipeLeft();
-      print('[ReelsSDK-Flutter] Swipe left detected - navigating back');
+      api.onSwipeLeft(userId, userName);
+      print('[ReelsSDK-Flutter] Swipe left detected - opening My Room for user: $userId');
     } catch (e) {
       print('[ReelsSDK-Flutter] Error on swipe left: $e');
     }
@@ -26,14 +26,14 @@ class NavigationEventsService {
     }
   }
 
-  // Legacy compatibility wrapper methods
+  // Convenience wrapper methods
 
-  /// Notify swipe left (legacy method name)
-  void notifySwipeLeft({int? currentIndex}) {
-    onSwipeLeft();
+  /// Notify swipe left with user info
+  void notifySwipeLeft({required String userId, required String userName}) {
+    onSwipeLeft(userId, userName);
   }
 
-  /// Notify swipe right (legacy method name)
+  /// Notify swipe right
   void notifySwipeRight({int? currentIndex}) {
     onSwipeRight();
   }

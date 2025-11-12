@@ -48,8 +48,17 @@ class ReelsPigeonHandler: NSObject {
             codec: codec
         )
         swipeLeftChannel.setMessageHandler { message, reply in
-            print("[ReelsSDK-iOS] Received swipe left event")
-            ReelsModule.getListener()?.onSwipeLeft()
+            guard let args = message as? [Any],
+                  args.count >= 2,
+                  let userId = args[0] as? String,
+                  let userName = args[1] as? String else {
+                print("[ReelsSDK-iOS] Invalid swipe left arguments")
+                reply(nil)
+                return
+            }
+
+            print("[ReelsSDK-iOS] Received swipe left: userId=\(userId), userName=\(userName)")
+            ReelsModule.getListener()?.onSwipeLeft(userId: userId, userName: userName)
             reply(nil)
         }
 

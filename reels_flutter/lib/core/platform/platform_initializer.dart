@@ -111,12 +111,12 @@ class _ReelsNavigationApiImpl extends ReelsFlutterNavigationApi {
       ReelsFlutterNavigationApi.pigeonChannelCodec;
 
   @override
-  void onSwipeLeft() {
+  void onSwipeLeft(String userId, String userName) {
     const channel = BasicMessageChannel<Object?>(
       'dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft',
       _codec,
     );
-    channel.send(null);
+    channel.send(<Object?>[userId, userName]);
   }
 
   @override

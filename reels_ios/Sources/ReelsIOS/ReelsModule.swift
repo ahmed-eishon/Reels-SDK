@@ -208,6 +208,48 @@ public class ReelsModule {
         engineManager.destroyFlutterEngine()
     }
 
+    /// Pause Flutter resources (videos, network) when screen loses focus
+    internal static func pauseFlutter() {
+        print("[ReelsSDK-DEBUG] ⏸️ pauseFlutter() called")
+
+        guard let engine = engineManager.getEngine() else {
+            print("[ReelsSDK-DEBUG] ❌ Cannot pause - no Flutter engine")
+            return
+        }
+
+        print("[ReelsSDK-DEBUG] 📞 Calling Flutter pauseAll API")
+        let lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger: engine.binaryMessenger)
+        lifecycleApi.pauseAll { result in
+            switch result {
+            case .success:
+                print("[ReelsSDK-DEBUG] ✅ Flutter resources paused successfully")
+            case .failure(let error):
+                print("[ReelsSDK-DEBUG] ❌ Error pausing Flutter resources: \(error)")
+            }
+        }
+    }
+
+    /// Resume Flutter resources (videos, network) when screen gains focus
+    internal static func resumeFlutter() {
+        print("[ReelsSDK-DEBUG] ▶️ resumeFlutter() called")
+
+        guard let engine = engineManager.getEngine() else {
+            print("[ReelsSDK-DEBUG] ❌ Cannot resume - no Flutter engine")
+            return
+        }
+
+        print("[ReelsSDK-DEBUG] 📞 Calling Flutter resumeAll API")
+        let lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger: engine.binaryMessenger)
+        lifecycleApi.resumeAll { result in
+            switch result {
+            case .success:
+                print("[ReelsSDK-DEBUG] ✅ Flutter resources resumed successfully")
+            case .failure(let error):
+                print("[ReelsSDK-DEBUG] ❌ Error resuming Flutter resources: \(error)")
+            }
+        }
+    }
+
     // MARK: - Routes
 
     /// Available Flutter routes
@@ -233,6 +275,7 @@ public class ReelsModule {
             isLiked: dict["isLiked"] as? Bool,
             isCollected: dict["isCollected"] as? Bool,
             trackingTag: dict["trackingTag"] as? String,
+            userId: dict["userId"] as? String,
             userName: dict["userName"] as? String,
             userProfileImage: dict["userProfileImage"] as? String,
             itemName: dict["itemName"] as? String,
@@ -275,8 +318,11 @@ public protocol ReelsListener: AnyObject {
     ///   - duration: Total duration in seconds (optional)
     func onVideoStateChanged(videoId: String, state: String, position: Int?, duration: Int?)
 
-    /// Called when user swipes left
-    func onSwipeLeft()
+    /// Called when user swipes left (opens user's My Room)
+    /// - Parameters:
+    ///   - userId: User ID to navigate to
+    ///   - userName: User name for display
+    func onSwipeLeft(userId: String, userName: String)
 
     /// Called when user swipes right
     func onSwipeRight()
@@ -300,7 +346,7 @@ public extension ReelsListener {
     func onShareButtonClick(videoId: String, videoUrl: String, title: String, description: String, thumbnailUrl: String?) {}
     func onScreenStateChanged(screenName: String, state: String) {}
     func onVideoStateChanged(videoId: String, state: String, position: Int?, duration: Int?) {}
-    func onSwipeLeft() {}
+    func onSwipeLeft(userId: String, userName: String) {}
     func onSwipeRight() {}
     func onUserProfileClick(userId: String, userName: String) {}
     func onAnalyticsEvent(eventName: String, properties: [String: String]) {}
@@ -334,37 +380,94 @@ private class FlutterViewControllerWrapper: UIViewController {
     override func viewWillAppear(_ animated: Bool) {
         super.viewWillAppear(animated)
 
+        print("[ReelsSDK-DEBUG] 🟢 viewWillAppear - START")
+        print("[ReelsSDK-DEBUG]   isMovingToParent: \(isMovingToParent)")
+        print("[ReelsSDK-DEBUG]   isBeingPresented: \(isBeingPresented)")
+        print("[ReelsSDK-DEBUG]   view.frame: \(view.frame)")
+        print("[ReelsSDK-DEBUG]   flutterView.frame BEFORE: \(flutterViewController.view.frame)")
+
         // Always hide navigation bar when Flutter screen appears
         // This ensures the bar is hidden even when navigating back from native screens
         navigationController?.setNavigationBarHidden(true, animated: animated)
 
-        // Ensure Flutter view is properly attached and ready
-        flutterViewController.viewWillAppear(animated)
+        // Ensure Flutter view frame is correct when coming back
+        // This fixes layout corruption after multiple navigation cycles
+        flutterViewController.view.frame = view.bounds
+        print("[ReelsSDK-DEBUG]   flutterView.frame AFTER: \(flutterViewController.view.frame)")
+
+        // Resume Flutter resources when navigating back
+        // Check if we're appearing after being pushed off the stack
+        if isMovingToParent == false && isBeingPresented == false {
+            print("[ReelsSDK-DEBUG]   🔄 Will resume Flutter resources")
+            ReelsModule.resumeFlutter()
+        }
+
+        print("[ReelsSDK-DEBUG] 🟢 viewWillAppear - END")
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
-        flutterViewController.viewDidAppear(animated)
+
+        print("[ReelsSDK-DEBUG] 🟢 viewDidAppear")
+        print("[ReelsSDK-DEBUG]   view.frame: \(view.frame)")
+        print("[ReelsSDK-DEBUG]   flutterView.frame: \(flutterViewController.view.frame)")
+        print("[ReelsSDK-DEBUG]   navigationController: \(String(describing: navigationController))")
+
+        // Child view controller automatically receives lifecycle callbacks
+        // No need to call manually
+    }
+
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+
+        print("[ReelsSDK-DEBUG] 📐 viewDidLayoutSubviews")
+        print("[ReelsSDK-DEBUG]   view.bounds: \(view.bounds)")
+        print("[ReelsSDK-DEBUG]   flutterView.frame BEFORE: \(flutterViewController.view.frame)")
+
+        // Ensure Flutter view always matches parent bounds
+        // This prevents layout corruption after navigation
+        flutterViewController.view.frame = view.bounds
+
+        print("[ReelsSDK-DEBUG]   flutterView.frame AFTER: \(flutterViewController.view.frame)")
     }
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        flutterViewController.viewWillDisappear(animated)
+
+        print("[ReelsSDK-DEBUG] 🔴 viewWillDisappear - START")
+        print("[ReelsSDK-DEBUG]   isBeingDismissed: \(isBeingDismissed)")
+        print("[ReelsSDK-DEBUG]   isMovingFromParent: \(isMovingFromParent)")
+
+        // Pause Flutter resources when navigating away (but not when dismissing)
+        if !isBeingDismissed && !isMovingFromParent {
+            print("[ReelsSDK-DEBUG]   ⏸️ Will pause Flutter resources")
+            ReelsModule.pauseFlutter()
+        } else {
+            print("[ReelsSDK-DEBUG]   ⏹️ Skipping pause (being dismissed or moving from parent)")
+        }
+
+        print("[ReelsSDK-DEBUG] 🔴 viewWillDisappear - END")
     }
 
     override func viewDidDisappear(_ animated: Bool) {
         super.viewDidDisappear(animated)
 
-        // Forward lifecycle to Flutter
-        flutterViewController.viewDidDisappear(animated)
+        print("[ReelsSDK-DEBUG] 🔴 viewDidDisappear - START")
+        print("[ReelsSDK-DEBUG]   isBeingDismissed: \(isBeingDismissed)")
+        print("[ReelsSDK-DEBUG]   isMovingFromParent: \(isMovingFromParent)")
 
         // If this is the final dismissal (not just navigation to another screen)
         if isBeingDismissed || isMovingFromParent {
+            print("[ReelsSDK-DEBUG]   🗑️ Cleaning up Flutter view controller")
             // Remove Flutter view controller as child
             flutterViewController.willMove(toParent: nil)
             flutterViewController.view.removeFromSuperview()
             flutterViewController.removeFromParent()
+        } else {
+            print("[ReelsSDK-DEBUG]   ℹ️ Keeping Flutter view controller in hierarchy")
         }
+
+        print("[ReelsSDK-DEBUG] 🔴 viewDidDisappear - END")
     }
 
     deinit {

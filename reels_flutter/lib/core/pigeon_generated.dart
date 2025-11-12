@@ -37,6 +37,7 @@ class CollectData {
     this.isLiked,
     this.isCollected,
     this.trackingTag,
+    this.userId,
     this.userName,
     this.userProfileImage,
     this.itemName,
@@ -62,6 +63,8 @@ class CollectData {
 
   String? trackingTag;
 
+  String? userId;
+
   String? userName;
 
   String? userProfileImage;
@@ -83,6 +86,7 @@ class CollectData {
       isLiked,
       isCollected,
       trackingTag,
+      userId,
       userName,
       userProfileImage,
       itemName,
@@ -103,11 +107,12 @@ class CollectData {
       isLiked: result[6] as bool?,
       isCollected: result[7] as bool?,
       trackingTag: result[8] as String?,
-      userName: result[9] as String?,
-      userProfileImage: result[10] as String?,
-      itemName: result[11] as String?,
-      itemImageUrl: result[12] as String?,
-      imageUrl: result[13] as String?,
+      userId: result[9] as String?,
+      userName: result[10] as String?,
+      userProfileImage: result[11] as String?,
+      itemName: result[12] as String?,
+      itemImageUrl: result[13] as String?,
+      imageUrl: result[14] as String?,
     );
   }
 }
@@ -614,8 +619,8 @@ abstract class ReelsFlutterStateApi {
 abstract class ReelsFlutterNavigationApi {
   static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
 
-  /// Called when user swipes left
-  void onSwipeLeft();
+  /// Called when user swipes left (to open My Room / user profile)
+  void onSwipeLeft(String userId, String userName);
 
   /// Called when user swipes right
   void onSwipeRight();
@@ -636,8 +641,17 @@ abstract class ReelsFlutterNavigationApi {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_userId = (args[0] as String?);
+          assert(arg_userId != null,
+              'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft was null, expected non-null String.');
+          final String? arg_userName = (args[1] as String?);
+          assert(arg_userName != null,
+              'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft was null, expected non-null String.');
           try {
-            api.onSwipeLeft();
+            api.onSwipeLeft(arg_userId!, arg_userName!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

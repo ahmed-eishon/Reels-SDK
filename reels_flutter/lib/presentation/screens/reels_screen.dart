@@ -27,9 +27,11 @@ class ReelsScreen extends StatefulWidget {
 
 class _ReelsScreenState extends State<ReelsScreen>
     with WidgetsBindingObserver, RouteAware {
-  late PageController _pageController;
+  PageController? _pageController;
   int _currentIndex = 0;
   bool _isScreenActive = true;
+  int _pageViewGeneration = 0;  // Increment to force complete PageView recreation
+  bool _isDisposingPageController = false;  // Track PageController disposal state
   late AnalyticsService _analyticsService;
   late StateEventsService _stateEventsService;
 
@@ -45,18 +47,56 @@ class _ReelsScreenState extends State<ReelsScreen>
     // Set up lifecycle callbacks to manage state and resources
     final lifecycleService = sl<LifecycleService>();
 
-    // Reset state callback - only used when native explicitly requests reset
+    // Reset state callback - triggered by native when screen is presented
+    // This ensures each screen presentation gets fresh collect data
     lifecycleService.setOnResetState(() {
       print('[ReelsSDK-Flutter] ReelsScreen: Resetting state via lifecycle callback');
-      context.read<VideoProvider>().reset();
+      final videoProvider = context.read<VideoProvider>();
+
+      // Reset to clear any stale data from previous screen
+      videoProvider.reset();
+
+      // Load fresh videos and collect data
+      videoProvider.loadVideos();
+
+      // Recreate PageController for fresh presentation after current frame completes
+      // This handles the case where pauseAll disposed it but resumeAll won't be called
+      if (mounted && !_isDisposingPageController) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_isDisposingPageController) {
+            setState(() {
+              _pageController?.dispose();
+              _pageController = PageController();
+              _currentIndex = 0;
+              _isScreenActive = true;
+              _pageViewGeneration++;
+              print('[ReelsSDK-Flutter] PageController recreated in resetState (generation: $_pageViewGeneration)');
+            });
+          }
+        });
+      }
+
+      print('[ReelsSDK-Flutter] ReelsScreen: Reset and reload triggered');
     });
 
     // Pause all resources when screen loses focus
     lifecycleService.setOnPauseAll(() {
       print('[ReelsSDK-Flutter] ReelsScreen: Pausing all resources');
       if (mounted) {
+        _isDisposingPageController = true;
+
+        // First, set inactive to stop video playback immediately
         setState(() {
-          _isScreenActive = false;  // This pauses video players
+          _isScreenActive = false;
+          _currentIndex = 0;  // Reset to first video for next session
+        });
+
+        // Dispose PageController after current frame to ensure videos have stopped
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _pageController?.dispose();
+          _pageController = null;
+          _isDisposingPageController = false;
+          print('[ReelsSDK-Flutter] PageController disposed to cleanup video players');
         });
       }
     });
@@ -64,9 +104,18 @@ class _ReelsScreenState extends State<ReelsScreen>
     // Resume all resources when screen gains focus
     lifecycleService.setOnResumeAll(() {
       print('[ReelsSDK-Flutter] ReelsScreen: Resuming all resources');
-      if (mounted) {
-        setState(() {
-          _isScreenActive = true;  // This resumes video players
+      if (mounted && !_isDisposingPageController) {
+        // Use post-frame callback to ensure previous disposal is complete
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted && !_isDisposingPageController) {
+            setState(() {
+              _isScreenActive = true;
+              _pageViewGeneration++;  // Increment generation to force PageView recreation
+              // Create new PageController starting from first video
+              _pageController = PageController(initialPage: 0);
+              print('[ReelsSDK-Flutter] New PageController created (generation: $_pageViewGeneration)');
+            });
+          }
         });
       }
     });
@@ -106,9 +155,17 @@ class _ReelsScreenState extends State<ReelsScreen>
 
   @override
   void dispose() {
+    print('[ReelsSDK-Flutter] ReelsScreen.dispose() called');
     routeObserver.unsubscribe(this);
     WidgetsBinding.instance.removeObserver(this);
-    _pageController.dispose();
+    _pageController?.dispose();
+
+    // Note: We don't clear lifecycle callbacks here because in navigation
+    // stack scenarios, multiple view controllers can exist simultaneously
+    // (e.g., when pushing to My Room and back). Clearing callbacks would
+    // break lifecycle management for screens still in the stack.
+    // The callbacks will be overwritten when a new screen sets them up.
+
     super.dispose();
   }
 
@@ -194,8 +251,8 @@ class _ReelsScreenState extends State<ReelsScreen>
   Future<void> _onRefresh() async {
     await context.read<VideoProvider>().refresh();
     // Reset to first video after refresh
-    if (_pageController.hasClients) {
-      _pageController.jumpToPage(0);
+    if (_pageController?.hasClients ?? false) {
+      _pageController!.jumpToPage(0);
     }
   }
 
@@ -279,18 +336,27 @@ class _ReelsScreenState extends State<ReelsScreen>
           }
 
           // Success state - display reels
+          // Show loading if PageController is being recreated or no videos yet
+          if (_pageController == null || !videoProvider.hasVideos) {
+            return const Center(
+              child: CircularProgressIndicator(color: Colors.white),
+            );
+          }
+
           return RefreshIndicator(
             onRefresh: _onRefresh,
             color: Colors.white,
             backgroundColor: Colors.black87,
             child: PageView.builder(
-              controller: _pageController,
+              key: ValueKey('pageview_gen_$_pageViewGeneration'),  // Unique key per generation
+              controller: _pageController!,
               scrollDirection: Axis.vertical,
               onPageChanged: _onPageChanged,
               itemCount: videoProvider.videos.length,
               itemBuilder: (context, index) {
                 final video = videoProvider.videos[index];
                 return VideoReelItem(
+                  key: ValueKey('video_${video.id}_gen_$_pageViewGeneration'),  // Unique key per video and generation
                   video: video,
                   onLike: () => videoProvider.toggleLike(video.id),
                   onShare: () => videoProvider.shareVideo(video.id),

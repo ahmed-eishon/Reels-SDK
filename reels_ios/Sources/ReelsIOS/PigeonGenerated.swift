@@ -81,6 +81,7 @@ struct CollectData {
   var isLiked: Bool? = nil
   var isCollected: Bool? = nil
   var trackingTag: String? = nil
+  var userId: String? = nil
   var userName: String? = nil
   var userProfileImage: String? = nil
   var itemName: String? = nil
@@ -99,11 +100,12 @@ struct CollectData {
     let isLiked: Bool? = nilOrValue(pigeonVar_list[6])
     let isCollected: Bool? = nilOrValue(pigeonVar_list[7])
     let trackingTag: String? = nilOrValue(pigeonVar_list[8])
-    let userName: String? = nilOrValue(pigeonVar_list[9])
-    let userProfileImage: String? = nilOrValue(pigeonVar_list[10])
-    let itemName: String? = nilOrValue(pigeonVar_list[11])
-    let itemImageUrl: String? = nilOrValue(pigeonVar_list[12])
-    let imageUrl: String? = nilOrValue(pigeonVar_list[13])
+    let userId: String? = nilOrValue(pigeonVar_list[9])
+    let userName: String? = nilOrValue(pigeonVar_list[10])
+    let userProfileImage: String? = nilOrValue(pigeonVar_list[11])
+    let itemName: String? = nilOrValue(pigeonVar_list[12])
+    let itemImageUrl: String? = nilOrValue(pigeonVar_list[13])
+    let imageUrl: String? = nilOrValue(pigeonVar_list[14])
 
     return CollectData(
       id: id,
@@ -115,6 +117,7 @@ struct CollectData {
       isLiked: isLiked,
       isCollected: isCollected,
       trackingTag: trackingTag,
+      userId: userId,
       userName: userName,
       userProfileImage: userProfileImage,
       itemName: itemName,
@@ -133,6 +136,7 @@ struct CollectData {
       isLiked,
       isCollected,
       trackingTag,
+      userId,
       userName,
       userProfileImage,
       itemName,
@@ -593,8 +597,8 @@ class ReelsFlutterStateApi: ReelsFlutterStateApiProtocol {
 ///
 /// Generated protocol from Pigeon that represents Flutter messages that can be called from Swift.
 protocol ReelsFlutterNavigationApiProtocol {
-  /// Called when user swipes left
-  func onSwipeLeft(completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Called when user swipes left (to open My Room / user profile)
+  func onSwipeLeft(userId userIdArg: String, userName userNameArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
   /// Called when user swipes right
   func onSwipeRight(completion: @escaping (Result<Void, PigeonError>) -> Void)
   /// Called when user clicks on profile/user image
@@ -612,11 +616,11 @@ class ReelsFlutterNavigationApi: ReelsFlutterNavigationApiProtocol {
   var codec: PigeonGeneratedPigeonCodec {
     return PigeonGeneratedPigeonCodec.shared
   }
-  /// Called when user swipes left
-  func onSwipeLeft(completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  /// Called when user swipes left (to open My Room / user profile)
+  func onSwipeLeft(userId userIdArg: String, userName userNameArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage(nil) { response in
+    channel.sendMessage([userIdArg, userNameArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

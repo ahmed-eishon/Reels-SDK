@@ -99,13 +99,9 @@ class _ReelsScreenState extends State<ReelsScreen>
     // Subscribe to route changes
     routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
 
-    // Reload videos to fetch any new collect data when dependencies change
-    // This ensures we get fresh data even if route observer doesn't fire
-    final videoProvider = context.read<VideoProvider>();
-    if (videoProvider.hasLoadedOnce) {
-      print('[ReelsSDK-Flutter] ReelsScreen: Dependencies changed, reloading videos');
-      videoProvider.loadVideos();
-    }
+    // Note: We don't reload videos here because initState() already handles
+    // resetting and loading fresh data. Reloading here would cause race conditions
+    // and potentially load with stale collect data before the reset completes.
   }
 
   @override

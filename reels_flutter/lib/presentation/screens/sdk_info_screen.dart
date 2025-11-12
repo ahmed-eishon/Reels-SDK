@@ -1,5 +1,8 @@
+import 'dart:async';
+import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter/scheduler.dart';
 import 'package:reels_flutter/core/pigeon_generated.dart';
 import 'package:reels_flutter/core/services/access_token_service.dart';
 import 'package:reels_flutter/core/di/injection_container.dart';
@@ -29,10 +32,27 @@ class _SdkInfoScreenState extends State<SdkInfoScreen> {
   String? _tokenError;
   bool _tokenTested = false;
 
+  // Performance tracking
+  double _currentFps = 0.0;
+  int _memoryUsageMB = 0;
+  Timer? _performanceTimer;
+  final List<Duration> _frameTimes = [];
+  int _frameCount = 0;
+
+  // Collect context expansion state
+  bool _isCollectExpanded = false;
+
   @override
   void initState() {
     super.initState();
     _loadAccessToken();
+    _startPerformanceTracking();
+  }
+
+  @override
+  void dispose() {
+    _performanceTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadAccessToken() async {
@@ -57,6 +77,50 @@ class _SdkInfoScreenState extends State<SdkInfoScreen> {
         _tokenTested = true;
       });
     }
+  }
+
+  void _startPerformanceTracking() {
+    // Track frame rendering for FPS calculation
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _onFrame();
+    });
+
+    // Update performance metrics every second
+    _performanceTimer = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+
+      setState(() {
+        // Calculate FPS from frame count
+        _currentFps = _frameCount.toDouble();
+        _frameCount = 0;
+
+        // Get memory usage (iOS only, approximate)
+        try {
+          final info = ProcessInfo.currentRss;
+          _memoryUsageMB = (info / (1024 * 1024)).round();
+        } catch (e) {
+          _memoryUsageMB = 0;
+        }
+      });
+    });
+  }
+
+  void _onFrame() {
+    if (!mounted) return;
+
+    _frameCount++;
+    final now = DateTime.now();
+    _frameTimes.add(Duration(milliseconds: now.millisecondsSinceEpoch));
+
+    // Keep only last 60 frames
+    if (_frameTimes.length > 60) {
+      _frameTimes.removeAt(0);
+    }
+
+    // Schedule next frame callback
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      _onFrame();
+    });
   }
 
   @override
@@ -94,6 +158,11 @@ class _SdkInfoScreenState extends State<SdkInfoScreen> {
           _buildCollectDataCard(),
           const SizedBox(height: 24),
 
+          // Performance Metrics Section
+          _buildSectionHeader('Performance Metrics', Icons.speed),
+          _buildPerformanceMetricsCard(),
+          const SizedBox(height: 24),
+
           // Platform Information Section
           _buildSectionHeader('Platform Information', Icons.phone_android),
           _buildPlatformInfoCard(),
@@ -124,121 +193,333 @@ class _SdkInfoScreenState extends State<SdkInfoScreen> {
 
 
   Widget _buildCollectDataCard() {
+    final hasData = widget.collectData != null;
+
+    return InkWell(
+      onTap: hasData
+          ? () {
+              setState(() {
+                _isCollectExpanded = !_isCollectExpanded;
+              });
+            }
+          : null,
+      borderRadius: BorderRadius.circular(12),
+      child: Container(
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: Colors.grey.shade900,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(
+            color: hasData ? Colors.green : Colors.grey.shade700,
+            width: 2,
+          ),
+        ),
+        child: !hasData
+            ? Column(
+                children: [
+                  Icon(
+                    Icons.inbox_outlined,
+                    size: 48,
+                    color: Colors.grey.shade700,
+                  ),
+                  const SizedBox(height: 12),
+                  Text(
+                    'No collect data available',
+                    style: TextStyle(
+                      color: Colors.grey.shade400,
+                      fontSize: 14,
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    'Open reels from a collect to see data',
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Collapsible header
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.check_circle,
+                            color: Colors.green,
+                            size: 20,
+                          ),
+                          const SizedBox(width: 8),
+                          const Text(
+                            'Collect Data Available',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 14,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ],
+                      ),
+                      Icon(
+                        _isCollectExpanded
+                            ? Icons.expand_less
+                            : Icons.expand_more,
+                        color: Colors.white,
+                        size: 24,
+                      ),
+                    ],
+                  ),
+
+                  // Collapsed state - show quick summary
+                  if (!_isCollectExpanded) ...[
+                    const SizedBox(height: 12),
+                    Text(
+                      'ID: ${widget.collectData!.id}',
+                      style: TextStyle(
+                        color: Colors.grey.shade400,
+                        fontSize: 13,
+                      ),
+                    ),
+                    if (widget.collectData!.name != null) ...[
+                      const SizedBox(height: 4),
+                      Text(
+                        'Name: ${widget.collectData!.name}',
+                        style: TextStyle(
+                          color: Colors.grey.shade400,
+                          fontSize: 13,
+                        ),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    const SizedBox(height: 12),
+                    Text(
+                      'Tap to view all details',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+
+                  // Expanded state - show all fields
+                  if (_isCollectExpanded) ...[
+                    const SizedBox(height: 16),
+                    _buildDataField('ID', widget.collectData!.id),
+                    if (widget.collectData!.name != null)
+                      _buildDataField('Name', widget.collectData!.name!),
+                    if (widget.collectData!.content != null)
+                      _buildDataField('Content', widget.collectData!.content!),
+                    if (widget.collectData!.userName != null)
+                      _buildDataField('User Name', widget.collectData!.userName!),
+                    if (widget.collectData!.likes != null)
+                      _buildDataField(
+                        'Likes',
+                        widget.collectData!.likes.toString(),
+                      ),
+                    if (widget.collectData!.comments != null)
+                      _buildDataField(
+                        'Comments',
+                        widget.collectData!.comments.toString(),
+                      ),
+                    if (widget.collectData!.recollects != null)
+                      _buildDataField(
+                        'Recollects',
+                        widget.collectData!.recollects.toString(),
+                      ),
+                    if (widget.collectData!.isLiked != null)
+                      _buildDataField(
+                        'Is Liked',
+                        widget.collectData!.isLiked! ? 'Yes' : 'No',
+                      ),
+                    if (widget.collectData!.isCollected != null)
+                      _buildDataField(
+                        'Is Collected',
+                        widget.collectData!.isCollected! ? 'Yes' : 'No',
+                      ),
+                    if (widget.collectData!.itemName != null)
+                      _buildDataField('Item Name', widget.collectData!.itemName!),
+                    if (widget.collectData!.trackingTag != null)
+                      _buildDataField(
+                        'Tracking Tag',
+                        widget.collectData!.trackingTag!,
+                      ),
+                    if (widget.collectData!.imageUrl != null)
+                      _buildDataField('Image URL', widget.collectData!.imageUrl!),
+                    if (widget.collectData!.itemImageUrl != null)
+                      _buildDataField(
+                        'Item Image URL',
+                        widget.collectData!.itemImageUrl!,
+                      ),
+                    if (widget.collectData!.userProfileImage != null)
+                      _buildDataField(
+                        'User Profile Image',
+                        widget.collectData!.userProfileImage!,
+                      ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Tap to collapse',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontSize: 11,
+                        fontStyle: FontStyle.italic,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+      ),
+    );
+  }
+
+  Widget _buildPerformanceMetricsCard() {
+    // Determine FPS health color
+    Color fpsColor = Colors.green;
+    if (_currentFps < 30) {
+      fpsColor = Colors.red;
+    } else if (_currentFps < 50) {
+      fpsColor = Colors.orange;
+    }
+
+    // Determine memory health color
+    Color memoryColor = Colors.green;
+    if (_memoryUsageMB > 500) {
+      memoryColor = Colors.red;
+    } else if (_memoryUsageMB > 300) {
+      memoryColor = Colors.orange;
+    }
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.grey.shade900,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-          color: widget.collectData != null ? Colors.green : Colors.grey.shade700,
-          width: 2,
-        ),
+        border: Border.all(color: Colors.grey.shade700, width: 2),
       ),
-      child: widget.collectData == null
-          ? Column(
-              children: [
-                Icon(
-                  Icons.inbox_outlined,
-                  size: 48,
-                  color: Colors.grey.shade700,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              const Text(
+                'Real-time Performance',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 14,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: 12),
-                Text(
-                  'No collect data available',
+              ),
+              Icon(
+                Icons.auto_graph,
+                color: Colors.blue,
+                size: 20,
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+
+          // FPS Meter
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'FPS',
                   style: TextStyle(
                     color: Colors.grey.shade400,
-                    fontSize: 14,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 4),
-                Text(
-                  'Open reels from a collect to see data',
-                  style: TextStyle(
-                    color: Colors.grey.shade600,
-                    fontSize: 12,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-              ],
-            )
-          : Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Header with copy button
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: Row(
                   children: [
-                    const Text(
-                      'Collect Data from Native',
+                    Text(
+                      _currentFps.toStringAsFixed(0),
                       style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 14,
+                        color: fpsColor,
+                        fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(
-                      Icons.check_circle,
-                      color: Colors.green,
-                      size: 20,
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(4),
+                        child: LinearProgressIndicator(
+                          value: (_currentFps / 60).clamp(0.0, 1.0),
+                          backgroundColor: Colors.grey.shade800,
+                          valueColor: AlwaysStoppedAnimation<Color>(fpsColor),
+                        ),
+                      ),
                     ),
                   ],
                 ),
-                const SizedBox(height: 16),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
 
-                // Collect data fields
-                _buildDataField('ID', widget.collectData!.id),
-                if (widget.collectData!.name != null)
-                  _buildDataField('Name', widget.collectData!.name!),
-                if (widget.collectData!.content != null)
-                  _buildDataField('Content', widget.collectData!.content!),
-                if (widget.collectData!.userName != null)
-                  _buildDataField('User Name', widget.collectData!.userName!),
-                if (widget.collectData!.likes != null)
-                  _buildDataField(
-                    'Likes',
-                    widget.collectData!.likes.toString(),
+          // Memory Usage
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Expanded(
+                flex: 2,
+                child: Text(
+                  'Memory',
+                  style: TextStyle(
+                    color: Colors.grey.shade400,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w500,
                   ),
-                if (widget.collectData!.comments != null)
-                  _buildDataField(
-                    'Comments',
-                    widget.collectData!.comments.toString(),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                flex: 3,
+                child: Text(
+                  _memoryUsageMB > 0 ? '${_memoryUsageMB} MB' : 'N/A',
+                  style: TextStyle(
+                    color: memoryColor,
+                    fontSize: 13,
+                    fontWeight: FontWeight.bold,
                   ),
-                if (widget.collectData!.recollects != null)
-                  _buildDataField(
-                    'Recollects',
-                    widget.collectData!.recollects.toString(),
-                  ),
-                if (widget.collectData!.isLiked != null)
-                  _buildDataField(
-                    'Is Liked',
-                    widget.collectData!.isLiked! ? 'Yes' : 'No',
-                  ),
-                if (widget.collectData!.isCollected != null)
-                  _buildDataField(
-                    'Is Collected',
-                    widget.collectData!.isCollected! ? 'Yes' : 'No',
-                  ),
-                if (widget.collectData!.itemName != null)
-                  _buildDataField('Item Name', widget.collectData!.itemName!),
-                if (widget.collectData!.trackingTag != null)
-                  _buildDataField(
-                    'Tracking Tag',
-                    widget.collectData!.trackingTag!,
-                  ),
-                if (widget.collectData!.imageUrl != null)
-                  _buildDataField('Image URL', widget.collectData!.imageUrl!),
-                if (widget.collectData!.itemImageUrl != null)
-                  _buildDataField(
-                    'Item Image URL',
-                    widget.collectData!.itemImageUrl!,
-                  ),
-                if (widget.collectData!.userProfileImage != null)
-                  _buildDataField(
-                    'User Profile Image',
-                    widget.collectData!.userProfileImage!,
-                  ),
-              ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
+
+          // Frame count
+          _buildDataField(
+            'Frame Count',
+            _frameTimes.length.toString(),
+          ),
+
+          const SizedBox(height: 12),
+          Text(
+            'Target: 60 FPS for smooth playback',
+            style: TextStyle(
+              color: Colors.grey.shade600,
+              fontSize: 11,
+              fontStyle: FontStyle.italic,
             ),
+          ),
+        ],
+      ),
     );
   }
 

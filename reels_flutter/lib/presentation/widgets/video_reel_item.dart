@@ -220,6 +220,7 @@ class _VideoReelItemState extends State<VideoReelItem>
                           child: VideoDescription(
                             video: widget.video,
                             isMuted: _isMuted,
+                            collectData: widget.collectData,
                             onToggleMute: () {
                               setState(() {
                                 _isMuted = !_isMuted;

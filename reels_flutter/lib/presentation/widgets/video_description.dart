@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:reels_flutter/core/pigeon_generated.dart';
 import 'package:reels_flutter/domain/entities/video_entity.dart';
 
 /// Bottom overlay with video description and user info
@@ -11,11 +12,13 @@ import 'package:reels_flutter/domain/entities/video_entity.dart';
 /// - Expandable description for long text
 /// - Audio mute/unmute control
 /// - User profile click handling
+/// - Uses collect data from native when available
 class VideoDescription extends StatefulWidget {
   final VideoEntity video;
   final bool isMuted;
   final VoidCallback onToggleMute;
   final VoidCallback? onUserProfileClick;
+  final CollectData? collectData;
 
   const VideoDescription({
     super.key,
@@ -23,6 +26,7 @@ class VideoDescription extends StatefulWidget {
     required this.isMuted,
     required this.onToggleMute,
     this.onUserProfileClick,
+    this.collectData,
   });
 
   @override
@@ -54,6 +58,10 @@ class _VideoDescriptionState extends State<VideoDescription> {
   }
 
   Widget _buildUsername() {
+    // Use collect data if available, otherwise fall back to video data
+    final userName = widget.collectData?.userName ?? widget.video.user.name;
+    final avatarUrl = widget.collectData?.userProfileImage ?? widget.video.user.avatarUrl;
+
     return GestureDetector(
       onTap: widget.onUserProfileClick,
       child: Row(
@@ -62,13 +70,18 @@ class _VideoDescriptionState extends State<VideoDescription> {
           // Avatar on the left
           CircleAvatar(
             radius: 16,
-            backgroundImage: NetworkImage(widget.video.user.avatarUrl),
+            backgroundImage: avatarUrl.isNotEmpty
+                ? NetworkImage(avatarUrl)
+                : null,
             backgroundColor: Colors.grey.shade800,
+            child: avatarUrl.isEmpty
+                ? Icon(Icons.person, color: Colors.white, size: 20)
+                : null,
           ),
           const SizedBox(width: 8),
           // Username
           Text(
-            '@${widget.video.user.name}',
+            '@$userName',
             style: TextStyle(
               color: Colors.white,
               fontSize: 16,
@@ -84,7 +97,24 @@ class _VideoDescriptionState extends State<VideoDescription> {
   }
 
   Widget _buildDescription() {
-    final description = widget.video.description;
+    // Build description from collect data if available, otherwise use video description
+    String description;
+    if (widget.collectData != null) {
+      final name = widget.collectData!.name ?? '';
+      final content = widget.collectData!.content ?? '';
+      if (name.isNotEmpty && content.isNotEmpty) {
+        description = '$name\n\n$content';
+      } else if (name.isNotEmpty) {
+        description = name;
+      } else if (content.isNotEmpty) {
+        description = content;
+      } else {
+        description = widget.video.description;
+      }
+    } else {
+      description = widget.video.description;
+    }
+
     final hasLongDescription = description.length > 100;
 
     return GestureDetector(

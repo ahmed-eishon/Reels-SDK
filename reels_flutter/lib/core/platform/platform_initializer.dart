@@ -150,17 +150,14 @@ class PlatformInitializer {
     // Create access token service with callback to native
     final accessTokenService = AccessTokenService(
       getTokenCallback: () async {
-        // Create a method channel for getting access token
-        const channel = BasicMessageChannel<Object?>(
-          'dev.flutter.pigeon.reels_flutter.ReelsFlutterTokenApi.getAccessToken',
-          StandardMessageCodec(),
-        );
-
+        // Use Pigeon-generated API for type-safe communication
+        final tokenApi = ReelsFlutterTokenApi();
         try {
-          final result = await channel.send(null);
-          return result as String?;
+          final result = await tokenApi.getAccessToken();
+          debugPrint('[AccessTokenService] getAccessToken result: ${result != null ? "token received" : "no token"}');
+          return result;
         } catch (e) {
-          debugPrint('Error getting access token: $e');
+          debugPrint('[AccessTokenService] Error getting access token: $e');
           return null;
         }
       },

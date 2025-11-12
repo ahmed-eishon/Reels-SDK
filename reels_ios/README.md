@@ -58,7 +58,7 @@ ReelsCoordinator.openReels(
 )
 ```
 
-**Option 2: Using ReelsModule with Collect Context**
+**Option 2: Using ReelsModule or ReelsCoordinator with Collect Data**
 
 ```swift
 import ReelsIOS
@@ -66,23 +66,33 @@ import ReelsIOS
 // Open reels without collect context (browse mode)
 ReelsModule.openReels(from: viewController)
 
-// Open reels WITH collect context (from a collect detail screen)
-// This passes the collect object to Flutter, which can display relevant videos
+// Open reels WITH collect context (from a collect/item detail screen)
+// This passes the collect data to Flutter for display in SDK Info screen
+let collectData: [String: Any?] = [
+    "id": collect.id,
+    "name": collect.name,
+    "content": collect.content,
+    "likes": Int64(collect.likeCount),
+    "comments": Int64(collect.commentCount),
+    "userName": collect.user?.name,
+    "userProfileImage": collect.user?.profileImageUrl
+]
+
 ReelsModule.openReels(
     from: viewController,
-    collect: myCollectObject,  // Any object with collect properties
+    initialRoute: "/",
+    collectData: collectData,
     animated: true,
     completion: {
         print("Reels opened with collect context")
     }
 )
 
-// Open with custom initial route
-ReelsModule.openReels(
+// Using ReelsCoordinator (simpler)
+ReelsCoordinator.openReels(
     from: viewController,
-    collect: nil,
-    initialRoute: "/reels",
-    animated: true
+    itemId: "12345",
+    collectData: collectData
 )
 
 // Or create a view controller for custom presentation
@@ -90,7 +100,22 @@ let flutterVC = ReelsModule.createViewController(initialRoute: "/")
 navigationController?.pushViewController(flutterVC, animated: true)
 ```
 
-**Note**: The `collect` parameter accepts any object with collect properties (id, name, content, user, item, etc.). The module uses reflection to extract these properties safely, so you don't need to import or depend on specific model types.
+**Collect Data Fields**:
+The `collectData` dictionary can include any of these optional fields:
+- `id` (String) - Collect ID
+- `name` (String) - Collect name/title
+- `content` (String) - Collect description
+- `likes` (Int64) - Like count
+- `comments` (Int64) - Comment count
+- `recollects` (Int64) - Recollect count
+- `isLiked` (Bool) - Whether current user has liked
+- `isCollected` (Bool) - Whether current user has collected
+- `trackingTag` (String) - Analytics tracking tag
+- `userName` (String) - Collect author name
+- `userProfileImage` (String) - Collect author profile image URL
+- `itemName` (String) - Associated item name
+- `itemImageUrl` (String) - Associated item image URL
+- `imageUrl` (String) - Collect cover image URL
 
 ### Set Event Listener
 
@@ -214,10 +239,11 @@ Simple wrapper for common use cases:
 // Initialize with async access token provider
 static func initialize(accessTokenProvider: ((@escaping (String?) -> Void) -> Void)?)
 
-// Open reels
+// Open reels with optional collect data
 static func openReels(
     from: UIViewController,
     itemId: String?,
+    collectData: [String: Any?]?,
     animated: Bool,
     completion: (() -> Void)?
 )
@@ -237,11 +263,11 @@ Full-featured API:
 // Initialize with async access token provider
 static func initialize(accessTokenProvider: ((@escaping (String?) -> Void) -> Void)?)
 
-// Open reels with collect context
+// Open reels with optional collect data
 static func openReels(
     from: UIViewController,
-    collect: Any?,
     initialRoute: String,
+    collectData: [String: Any?]?,
     animated: Bool,
     completion: (() -> Void)?
 )

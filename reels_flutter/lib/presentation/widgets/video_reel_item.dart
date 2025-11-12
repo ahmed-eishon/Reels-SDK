@@ -73,6 +73,8 @@ class _VideoReelItemState extends State<VideoReelItem>
     final userId = widget.collectData?.userId ?? widget.video.user.id;
     final userName = widget.collectData?.userName ?? widget.video.user.name;
 
+    print('[ReelsSDK-Flutter] SwipeLeft: collectData.userId=${widget.collectData?.userId}, video.user.id=${widget.video.user.id}, using userId=$userId');
+
     // Notify native platform about swipe left gesture with user info
     _navigationEventsService.notifySwipeLeft(
       userId: userId,
@@ -238,6 +240,8 @@ class _VideoReelItemState extends State<VideoReelItem>
                               // Prefer collect data if available
                               final userId = widget.collectData?.userId ?? widget.video.user.id;
                               final userName = widget.collectData?.userName ?? widget.video.user.name;
+
+                              print('[ReelsSDK-Flutter] ProfileClick: collectData.userId=${widget.collectData?.userId}, video.user.id=${widget.video.user.id}, using userId=$userId');
 
                               _navigationEventsService.notifyUserProfileClick(
                                 userId: userId,

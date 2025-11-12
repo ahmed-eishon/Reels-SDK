@@ -62,14 +62,9 @@ class _VideoDescriptionState extends State<VideoDescription> {
     final userName = widget.collectData?.userName ?? widget.video.user.name;
     final avatarUrl = widget.collectData?.userProfileImage ?? widget.video.user.avatarUrl;
 
-    print('[ReelsSDK-Flutter] VideoDescription._buildUsername()');
-    print('[ReelsSDK-Flutter] - collectData != null: ${widget.collectData != null}');
     if (widget.collectData != null) {
-      print('[ReelsSDK-Flutter] - collectData.userName: ${widget.collectData!.userName}');
-      print('[ReelsSDK-Flutter] - collectData.userProfileImage: ${widget.collectData!.userProfileImage}');
+      print('[ReelsSDK-Flutter] CollectData: id=${widget.collectData!.id}, userName=$userName');
     }
-    print('[ReelsSDK-Flutter] - Using userName: $userName');
-    print('[ReelsSDK-Flutter] - Using avatarUrl: $avatarUrl');
 
     return GestureDetector(
       onTap: widget.onUserProfileClick,
@@ -114,10 +109,6 @@ class _VideoDescriptionState extends State<VideoDescription> {
       final name = widget.collectData!.name ?? '';
       final content = widget.collectData!.content ?? '';
 
-      print('[ReelsSDK-Flutter] VideoDescription._buildDescription()');
-      print('[ReelsSDK-Flutter] - collectData.name: "$name"');
-      print('[ReelsSDK-Flutter] - collectData.content: "$content"');
-
       if (name.isNotEmpty && content.isNotEmpty) {
         description = '$name\n\n$content';
       } else if (name.isNotEmpty) {
@@ -127,10 +118,8 @@ class _VideoDescriptionState extends State<VideoDescription> {
       } else {
         description = widget.video.description;
       }
-      print('[ReelsSDK-Flutter] - Using description: "$description"');
     } else {
       description = widget.video.description;
-      print('[ReelsSDK-Flutter] VideoDescription._buildDescription() - No collectData, using video description');
     }
 
     final hasLongDescription = description.length > 100;

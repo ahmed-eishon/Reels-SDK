@@ -1,8 +1,10 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import '../pigeon_generated.dart';
 import '../services/access_token_service.dart';
 import '../services/analytics_service.dart';
 import '../services/button_events_service.dart';
+import '../services/collect_context_service.dart';
 import '../services/navigation_events_service.dart';
 import '../services/state_events_service.dart';
 
@@ -14,6 +16,7 @@ class PlatformServices {
     required this.buttonEventsService,
     required this.stateEventsService,
     required this.navigationEventsService,
+    required this.collectContextService,
   });
 
   final AccessTokenService accessTokenService;
@@ -21,6 +24,7 @@ class PlatformServices {
   final ButtonEventsService buttonEventsService;
   final StateEventsService stateEventsService;
   final NavigationEventsService navigationEventsService;
+  final CollectContextService collectContextService;
 }
 
 /// Implementation of ReelsFlutterAnalyticsApi that sends events to native
@@ -120,6 +124,15 @@ class _ReelsNavigationApiImpl extends ReelsFlutterNavigationApi {
     );
     channel.send(null);
   }
+
+  @override
+  void onUserProfileClick(String userId, String userName) {
+    const channel = BasicMessageChannel<Object?>(
+      'dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick',
+      _codec,
+    );
+    channel.send(<Object?>[userId, userName]);
+  }
 }
 
 /// Initializes platform communication channels
@@ -134,26 +147,20 @@ class PlatformInitializer {
   ///
   /// Returns [PlatformServices] with configured services.
   static PlatformServices initializePlatformAPIs() {
-    print('[ReelsFlutter] Initializing platform APIs...');
-
     // Create access token service with callback to native
     final accessTokenService = AccessTokenService(
       getTokenCallback: () async {
-        try {
-          // Call native platform directly via method channel
-          // This matches the Pigeon-generated channel name for ReelsFlutterTokenApi
-          const channel = BasicMessageChannel<Object?>(
-            'dev.flutter.pigeon.reels_flutter.ReelsFlutterTokenApi.getAccessToken',
-            StandardMessageCodec(),
-          );
+        // Create a method channel for getting access token
+        const channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.reels_flutter.ReelsFlutterTokenApi.getAccessToken',
+          StandardMessageCodec(),
+        );
 
+        try {
           final result = await channel.send(null);
-          print(
-            '[ReelsFlutter] Access token retrieved: ${result != null ? "yes" : "no"}',
-          );
           return result as String?;
         } catch (e) {
-          print('[ReelsFlutter] Error getting access token from native: $e');
+          debugPrint('Error getting access token: $e');
           return null;
         }
       },
@@ -179,9 +186,33 @@ class PlatformInitializer {
     final navigationEventsService = NavigationEventsService(
       api: navigationEventsApi,
     );
-    print('[ReelsFlutter] Navigation events service initialized');
-
-    print('[ReelsFlutter] Platform APIs initialization complete');
+    // Create collect context service with callback to native
+    final collectContextService = CollectContextService(
+      getCollectCallback: () async {
+        // Use Pigeon-generated API for type-safe communication
+        final contextApi = ReelsFlutterContextApi();
+        try {
+          final result = await contextApi.getInitialCollect();
+          debugPrint('[CollectContextService] getInitialCollect result: $result');
+          return result;
+        } catch (e) {
+          debugPrint('[CollectContextService] Error getting collect context: $e');
+          return null;
+        }
+      },
+      isDebugModeCallback: () async {
+        // Use Pigeon-generated API for type-safe communication
+        final contextApi = ReelsFlutterContextApi();
+        try {
+          final result = await contextApi.isDebugMode();
+          debugPrint('[CollectContextService] isDebugMode result: $result');
+          return result;
+        } catch (e) {
+          debugPrint('[CollectContextService] Error checking debug mode: $e');
+          return false;
+        }
+      },
+    );
 
     return PlatformServices(
       accessTokenService: accessTokenService,
@@ -189,6 +220,7 @@ class PlatformInitializer {
       buttonEventsService: buttonEventsService,
       stateEventsService: stateEventsService,
       navigationEventsService: navigationEventsService,
+      collectContextService: collectContextService,
     );
   }
 }

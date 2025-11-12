@@ -50,6 +50,67 @@ class FlutterError (
 ) : Throwable()
 
 /**
+ * Collect data model - represents a user's post/collection item
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class CollectData (
+  val id: String,
+  val content: String? = null,
+  val name: String? = null,
+  val likes: Long? = null,
+  val comments: Long? = null,
+  val recollects: Long? = null,
+  val isLiked: Boolean? = null,
+  val isCollected: Boolean? = null,
+  val trackingTag: String? = null,
+  val userName: String? = null,
+  val userProfileImage: String? = null,
+  val itemName: String? = null,
+  val itemImageUrl: String? = null,
+  val imageUrl: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): CollectData {
+      val id = pigeonVar_list[0] as String
+      val content = pigeonVar_list[1] as String?
+      val name = pigeonVar_list[2] as String?
+      val likes = pigeonVar_list[3] as Long?
+      val comments = pigeonVar_list[4] as Long?
+      val recollects = pigeonVar_list[5] as Long?
+      val isLiked = pigeonVar_list[6] as Boolean?
+      val isCollected = pigeonVar_list[7] as Boolean?
+      val trackingTag = pigeonVar_list[8] as String?
+      val userName = pigeonVar_list[9] as String?
+      val userProfileImage = pigeonVar_list[10] as String?
+      val itemName = pigeonVar_list[11] as String?
+      val itemImageUrl = pigeonVar_list[12] as String?
+      val imageUrl = pigeonVar_list[13] as String?
+      return CollectData(id, content, name, likes, comments, recollects, isLiked, isCollected, trackingTag, userName, userProfileImage, itemName, itemImageUrl, imageUrl)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      id,
+      content,
+      name,
+      likes,
+      comments,
+      recollects,
+      isLiked,
+      isCollected,
+      trackingTag,
+      userName,
+      userProfileImage,
+      itemName,
+      itemImageUrl,
+      imageUrl,
+    )
+  }
+}
+
+/**
  * Analytics event data
  *
  * Generated class from Pigeon that represents data sent in messages.
@@ -174,20 +235,25 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AnalyticsEvent.fromList(it)
+          CollectData.fromList(it)
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          ShareData.fromList(it)
+          AnalyticsEvent.fromList(it)
         }
       }
       131.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          ScreenStateData.fromList(it)
+          ShareData.fromList(it)
         }
       }
       132.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          ScreenStateData.fromList(it)
+        }
+      }
+      133.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
           VideoStateData.fromList(it)
         }
@@ -197,26 +263,31 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is AnalyticsEvent -> {
+      is CollectData -> {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is ShareData -> {
+      is AnalyticsEvent -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
-      is ScreenStateData -> {
+      is ShareData -> {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is VideoStateData -> {
+      is ScreenStateData -> {
         stream.write(132)
+        writeValue(stream, value.toList())
+      }
+      is VideoStateData -> {
+        stream.write(133)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
     }
   }
 }
+
 
 /**
  * API for accessing user authentication token from native
@@ -225,7 +296,7 @@ private open class PigeonGeneratedPigeonCodec : StandardMessageCodec() {
  */
 interface ReelsFlutterTokenApi {
   /** Get the current access token from native platform */
-  fun getAccessToken(): String?
+  fun getAccessToken(callback: (Result<String?>) -> Unit)
 
   companion object {
     /** The codec used by ReelsFlutterTokenApi. */
@@ -240,8 +311,71 @@ interface ReelsFlutterTokenApi {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterTokenApi.getAccessToken$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
+            api.getAccessToken{ result: Result<String?> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/**
+ * API for getting initial Collect data from native
+ *
+ * Generated interface from Pigeon that represents a handler of messages from Flutter.
+ */
+interface ReelsFlutterContextApi {
+  /**
+   * Get the Collect data that was used to open this screen
+   * @return CollectData object if opened from a Collect, null otherwise
+   * If null, Flutter will show "no videos" screen
+   */
+  fun getInitialCollect(): CollectData?
+  /**
+   * Check if debug mode is enabled
+   * @return true if debug mode is enabled, false otherwise
+   */
+  fun isDebugMode(): Boolean
+
+  companion object {
+    /** The codec used by ReelsFlutterContextApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      PigeonGeneratedPigeonCodec()
+    }
+    /** Sets up an instance of `ReelsFlutterContextApi` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: ReelsFlutterContextApi?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
-              listOf(api.getAccessToken())
+              listOf(api.getInitialCollect())
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.isDebugMode$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            val wrapped: List<Any?> = try {
+              listOf(api.isDebugMode())
             } catch (exception: Throwable) {
               wrapError(exception)
             }
@@ -438,6 +572,24 @@ class ReelsFlutterNavigationApi(private val binaryMessenger: BinaryMessenger, pr
     val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeRight$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(null) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+  /** Called when user clicks on profile/user image */
+  fun onUserProfileClick(userIdArg: String, userNameArg: String, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(userIdArg, userNameArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

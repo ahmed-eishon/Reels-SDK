@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
+import 'package:reels_flutter/core/pigeon_generated.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
 import 'package:reels_flutter/core/services/button_events_service.dart';
+import 'package:reels_flutter/core/services/collect_context_service.dart';
 import 'package:reels_flutter/domain/entities/video_entity.dart';
 import 'package:reels_flutter/domain/usecases/get_videos_usecase.dart';
 import 'package:reels_flutter/domain/usecases/increment_share_count_usecase.dart';
@@ -15,12 +17,14 @@ import 'package:reels_flutter/domain/usecases/toggle_like_usecase.dart';
 /// - Notifying UI of state changes
 /// - Tracking analytics events
 /// - Notifying native about button events
+/// - Checking collect context from native
 class VideoProvider with ChangeNotifier {
   final GetVideosUseCase getVideosUseCase;
   final ToggleLikeUseCase toggleLikeUseCase;
   final IncrementShareCountUseCase incrementShareCountUseCase;
   final AnalyticsService analyticsService;
   final ButtonEventsService buttonEventsService;
+  final CollectContextService collectContextService;
 
   VideoProvider({
     required this.getVideosUseCase,
@@ -28,6 +32,7 @@ class VideoProvider with ChangeNotifier {
     required this.incrementShareCountUseCase,
     required this.analyticsService,
     required this.buttonEventsService,
+    required this.collectContextService,
   });
 
   // State properties
@@ -35,6 +40,7 @@ class VideoProvider with ChangeNotifier {
   bool _isLoading = false;
   bool _hasLoadedOnce = false;
   String? _errorMessage;
+  CollectData? _collectData;
 
   // Getters for state
   List<VideoEntity> get videos => _videos;
@@ -43,9 +49,12 @@ class VideoProvider with ChangeNotifier {
   String? get errorMessage => _errorMessage;
   bool get hasError => _errorMessage != null;
   bool get hasVideos => _videos.isNotEmpty;
+  CollectData? get collectData => _collectData;
 
   /// Loads videos from the use case.
   ///
+  /// First checks if collect context exists from native.
+  /// If collect is null, shows "no videos" state.
   /// Sets loading state, fetches videos, and handles errors.
   /// Notifies listeners of state changes.
   Future<void> loadVideos() async {
@@ -54,6 +63,11 @@ class VideoProvider with ChangeNotifier {
     notifyListeners();
 
     try {
+      // Check if collect context exists from native (optional for now)
+      _collectData = await collectContextService.getInitialCollect();
+
+      // Load videos (collect context is optional for now)
+      // TODO: In future, can load videos from collect reference or recommended videos
       _videos = await getVideosUseCase();
       _isLoading = false;
       _hasLoadedOnce = true;

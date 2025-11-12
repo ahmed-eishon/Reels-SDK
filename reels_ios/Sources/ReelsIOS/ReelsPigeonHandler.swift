@@ -23,14 +23,68 @@ class ReelsPigeonHandler: NSObject {
         guard let engine = flutterEngine else { return }
         let messenger = engine.binaryMessenger
 
-        // Setup Host API - iOS methods that Flutter can call
+        // Setup Host APIs - iOS methods that Flutter can call
         ReelsFlutterTokenApiSetup.setUp(binaryMessenger: messenger, api: self)
+        ReelsFlutterContextApiSetup.setUp(binaryMessenger: messenger, api: self)
 
         // Setup Flutter APIs - Flutter methods that iOS can call
         analyticsApi = ReelsFlutterAnalyticsApi(binaryMessenger: messenger)
         buttonEventsApi = ReelsFlutterButtonEventsApi(binaryMessenger: messenger)
         stateApi = ReelsFlutterStateApi(binaryMessenger: messenger)
         navigationApi = ReelsFlutterNavigationApi(binaryMessenger: messenger)
+
+        // Setup navigation event listeners from Flutter
+        setupNavigationEventHandlers(messenger: messenger)
+    }
+
+    /// Setup handlers to receive navigation events from Flutter
+    private func setupNavigationEventHandlers(messenger: FlutterBinaryMessenger) {
+        let codec = FlutterStandardMessageCodec.sharedInstance()
+
+        // Handle swipe left events
+        let swipeLeftChannel = FlutterBasicMessageChannel(
+            name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft",
+            binaryMessenger: messenger,
+            codec: codec
+        )
+        swipeLeftChannel.setMessageHandler { message, reply in
+            print("[ReelsPigeonHandler] Received swipe left event")
+            ReelsModule.getListener()?.onSwipeLeft()
+            reply(nil)
+        }
+
+        // Handle swipe right events
+        let swipeRightChannel = FlutterBasicMessageChannel(
+            name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeRight",
+            binaryMessenger: messenger,
+            codec: codec
+        )
+        swipeRightChannel.setMessageHandler { message, reply in
+            print("[ReelsPigeonHandler] Received swipe right event")
+            ReelsModule.getListener()?.onSwipeRight()
+            reply(nil)
+        }
+
+        // Handle user profile click events
+        let userProfileClickChannel = FlutterBasicMessageChannel(
+            name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick",
+            binaryMessenger: messenger,
+            codec: codec
+        )
+        userProfileClickChannel.setMessageHandler { message, reply in
+            guard let args = message as? [Any],
+                  args.count >= 2,
+                  let userId = args[0] as? String,
+                  let userName = args[1] as? String else {
+                print("[ReelsPigeonHandler] Invalid user profile click arguments")
+                reply(nil)
+                return
+            }
+
+            print("[ReelsPigeonHandler] Received user profile click: userId=\(userId), userName=\(userName)")
+            ReelsModule.getListener()?.onUserProfileClick(userId: userId, userName: userName)
+            reply(nil)
+        }
     }
 
     // MARK: - Call Flutter Methods
@@ -127,7 +181,31 @@ class ReelsPigeonHandler: NSObject {
 
 extension ReelsPigeonHandler: ReelsFlutterTokenApi {
     /// Get the current access token from native
-    func getAccessToken() throws -> String? {
-        return ReelsModule.getAccessToken()
+    func getAccessToken(completion: @escaping (Result<String?, Error>) -> Void) {
+        ReelsModule.getAccessToken { token in
+            completion(.success(token))
+        }
+    }
+}
+
+// MARK: - ReelsFlutterContextApi Implementation
+
+extension ReelsPigeonHandler: ReelsFlutterContextApi {
+    /// Get the initial Collect data that was used to open this screen
+    func getInitialCollect() throws -> CollectData? {
+        let collectData = ReelsModule.getInitialCollect()
+        if let collect = collectData {
+            print("[ReelsPigeonHandler] Returning collect data: id=\(collect.id), name=\(collect.name ?? "nil")")
+        } else {
+            print("[ReelsPigeonHandler] No collect data available")
+        }
+        return collectData
+    }
+
+    /// Check if debug mode is enabled
+    func isDebugMode() throws -> Bool {
+        let debugMode = ReelsModule.isDebugMode()
+        print("[ReelsPigeonHandler] Debug mode: \(debugMode)")
+        return debugMode
     }
 }

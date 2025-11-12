@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:reels_flutter/core/di/injection_container.dart';
-import 'package:reels_flutter/core/services/access_token_service.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
 import 'package:reels_flutter/core/services/state_events_service.dart';
 import 'package:reels_flutter/main.dart';
@@ -30,7 +30,6 @@ class _ReelsScreenState extends State<ReelsScreen>
   bool _isScreenActive = true;
   late AnalyticsService _analyticsService;
   late StateEventsService _stateEventsService;
-  late AccessTokenService _accessTokenService;
 
   @override
   void initState() {
@@ -38,7 +37,6 @@ class _ReelsScreenState extends State<ReelsScreen>
     _pageController = PageController();
     _analyticsService = sl<AnalyticsService>();
     _stateEventsService = sl<StateEventsService>();
-    _accessTokenService = sl<AccessTokenService>();
     WidgetsBinding.instance.addObserver(this);
 
     // Load videos when screen initializes
@@ -153,64 +151,14 @@ class _ReelsScreenState extends State<ReelsScreen>
     }
   }
 
-  Future<void> _testAccessToken() async {
-    print('🧪 [Test] Testing Access Token...');
-    try {
-      final token = await _accessTokenService.getToken();
-
-      if (!mounted) return;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Access Token'),
-          content: SingleChildScrollView(
-            child: SelectableText(
-              token ?? 'No token received from native',
-              style: TextStyle(
-                fontFamily: 'monospace',
-                fontSize: 12,
-                color: token != null ? Colors.black : Colors.red,
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-
-      print('🧪 [Test] Access Token Result: ${token ?? "null"}');
-    } catch (e) {
-      print('🧪 [Test] Access Token Error: $e');
-
-      if (!mounted) return;
-
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: const Text('Error'),
-          content: Text('Failed to get access token:\n$e'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Close'),
-            ),
-          ],
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: Consumer<VideoProvider>(
-        builder: (context, videoProvider, child) {
+      body: Stack(
+        children: [
+          Consumer<VideoProvider>(
+            builder: (context, videoProvider, child) {
           // Loading state - show only when loading for the first time
           if (videoProvider.isLoading && !videoProvider.hasLoadedOnce) {
             return const Center(
@@ -298,13 +246,53 @@ class _ReelsScreenState extends State<ReelsScreen>
                   video: video,
                   onLike: () => videoProvider.toggleLike(video.id),
                   onShare: () => videoProvider.shareVideo(video.id),
-                  onTestAccessToken: _testAccessToken,
                   isActive: index == _currentIndex && _isScreenActive,
+                  collectData: videoProvider.collectData,
                 );
               },
             ),
           );
-        },
+            },
+          ),
+          // Back button positioned at top-left with safe area
+          SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  onTap: () async {
+                    // Call native method to dismiss the view controller
+                    try {
+                      await MethodChannel('reels_flutter/dismiss')
+                          .invokeMethod('dismiss');
+                    } catch (e) {
+                      debugPrint('Error dismissing: $e');
+                      // Fallback to Flutter navigation
+                      if (mounted) {
+                        Navigator.of(context).pop();
+                      }
+                    }
+                  },
+                  borderRadius: BorderRadius.circular(30),
+                  child: Container(
+                    width: 40,
+                    height: 40,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.5),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 24,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }

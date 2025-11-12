@@ -15,14 +15,29 @@ import com.rakuten.room.reels.flutter.ReelsListener
  * Provides a clean API for the main app to interact with Flutter reels functionality.
  */
 object ReelsModule {
-    
+
+    /**
+     * Debug mode flag
+     */
+    private var debugMode: Boolean = false
+
     /**
      * Initialize the Reels module. Call this once in your Application class.
      * @param context Application context
      * @param accessTokenProvider Optional provider for user access token
+     * @param debug Enable debug mode to show SDK info screen (default: false)
      */
-    fun initialize(context: Context, accessTokenProvider: (() -> String?)? = null) {
+    fun initialize(context: Context, accessTokenProvider: (() -> String?)? = null, debug: Boolean = false) {
+        this.debugMode = debug
         FlutterEngineManager.getInstance().initializeFlutterEngine(context, accessTokenProvider)
+    }
+
+    /**
+     * Check if debug mode is enabled
+     * @return true if debug mode is enabled, false otherwise
+     */
+    internal fun isDebugMode(): Boolean {
+        return debugMode
     }
     
     /**

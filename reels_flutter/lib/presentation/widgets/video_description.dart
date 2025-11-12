@@ -10,16 +10,19 @@ import 'package:reels_flutter/domain/entities/video_entity.dart';
 /// - Audio/music info
 /// - Expandable description for long text
 /// - Audio mute/unmute control
+/// - User profile click handling
 class VideoDescription extends StatefulWidget {
   final VideoEntity video;
   final bool isMuted;
   final VoidCallback onToggleMute;
+  final VoidCallback? onUserProfileClick;
 
   const VideoDescription({
     super.key,
     required this.video,
     required this.isMuted,
     required this.onToggleMute,
+    this.onUserProfileClick,
   });
 
   @override
@@ -51,28 +54,32 @@ class _VideoDescriptionState extends State<VideoDescription> {
   }
 
   Widget _buildUsername() {
-    return Row(
-      children: [
-        // Avatar on the left
-        CircleAvatar(
-          radius: 16,
-          backgroundImage: NetworkImage(widget.video.user.avatarUrl),
-          backgroundColor: Colors.grey.shade800,
-        ),
-        const SizedBox(width: 8),
-        // Username
-        Text(
-          '@${widget.video.user.name}',
-          style: TextStyle(
-            color: Colors.white,
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
-            shadows: [
-              Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 8),
-            ],
+    return GestureDetector(
+      onTap: widget.onUserProfileClick,
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Avatar on the left
+          CircleAvatar(
+            radius: 16,
+            backgroundImage: NetworkImage(widget.video.user.avatarUrl),
+            backgroundColor: Colors.grey.shade800,
           ),
-        ),
-      ],
+          const SizedBox(width: 8),
+          // Username
+          Text(
+            '@${widget.video.user.name}',
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              shadows: [
+                Shadow(color: Colors.black.withOpacity(0.5), blurRadius: 8),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 

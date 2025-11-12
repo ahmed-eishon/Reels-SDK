@@ -6,8 +6,9 @@ import Flutter
 public class ReelsCoordinator {
 
     /// Initialize the Flutter engine (call this once during app startup for better performance)
-    /// - Parameter accessTokenProvider: Optional provider for user access token
-    public static func initialize(accessTokenProvider: (() -> String?)? = nil) {
+    /// - Parameter accessTokenProvider: Optional async provider for user access token
+    ///   The provider receives a completion handler and should call it with the token (or nil)
+    public static func initialize(accessTokenProvider: ((@escaping (String?) -> Void) -> Void)? = nil) {
         ReelsModule.initialize(accessTokenProvider: accessTokenProvider)
     }
 

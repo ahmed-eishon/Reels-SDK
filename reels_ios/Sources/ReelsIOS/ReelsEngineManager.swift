@@ -1,6 +1,5 @@
 import Flutter
 import Foundation
-import FlutterPluginRegistrant
 
 /// Manages Flutter engine lifecycle and communication
 class ReelsEngineManager {
@@ -35,7 +34,8 @@ class ReelsEngineManager {
 
         // Register Flutter plugins (including video_player)
         // This is critical for Add-to-App scenarios where plugins need explicit registration
-        GeneratedPluginRegistrant.register(with: engine)
+        // TODO: Fix plugin registration - GeneratedPluginRegistrant not accessible from ReelsIOS module
+        // GeneratedPluginRegistrant.register(with: engine)
 
         // Setup Pigeon handler
         let handler = ReelsPigeonHandler(flutterEngine: engine)
@@ -69,7 +69,30 @@ class ReelsEngineManager {
             bundle: nil
         )
 
+        // Setup dismiss channel
+        setupDismissChannel(for: viewController, engine: engine)
+
         return viewController
+    }
+
+    /// Setup method channel to handle dismiss requests from Flutter
+    private func setupDismissChannel(for viewController: FlutterViewController, engine: FlutterEngine) {
+        let channel = FlutterMethodChannel(
+            name: "reels_flutter/dismiss",
+            binaryMessenger: engine.binaryMessenger
+        )
+
+        channel.setMethodCallHandler { [weak viewController] (call, result) in
+            if call.method == "dismiss" {
+                // Dismiss the view controller on the main thread
+                DispatchQueue.main.async {
+                    viewController?.dismiss(animated: true, completion: nil)
+                    result(nil)
+                }
+            } else {
+                result(FlutterMethodNotImplemented)
+            }
+        }
     }
 
     /// Destroy the Flutter engine

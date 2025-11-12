@@ -68,6 +68,80 @@ private func nilOrValue<T>(_ value: Any?) -> T? {
   return value as! T?
 }
 
+/// Collect data model - represents a user's post/collection item
+///
+/// Generated class from Pigeon that represents data sent in messages.
+struct CollectData {
+  var id: String
+  var content: String? = nil
+  var name: String? = nil
+  var likes: Int64? = nil
+  var comments: Int64? = nil
+  var recollects: Int64? = nil
+  var isLiked: Bool? = nil
+  var isCollected: Bool? = nil
+  var trackingTag: String? = nil
+  var userName: String? = nil
+  var userProfileImage: String? = nil
+  var itemName: String? = nil
+  var itemImageUrl: String? = nil
+  var imageUrl: String? = nil
+
+
+  // swift-format-ignore: AlwaysUseLowerCamelCase
+  static func fromList(_ pigeonVar_list: [Any?]) -> CollectData? {
+    let id = pigeonVar_list[0] as! String
+    let content: String? = nilOrValue(pigeonVar_list[1])
+    let name: String? = nilOrValue(pigeonVar_list[2])
+    let likes: Int64? = nilOrValue(pigeonVar_list[3])
+    let comments: Int64? = nilOrValue(pigeonVar_list[4])
+    let recollects: Int64? = nilOrValue(pigeonVar_list[5])
+    let isLiked: Bool? = nilOrValue(pigeonVar_list[6])
+    let isCollected: Bool? = nilOrValue(pigeonVar_list[7])
+    let trackingTag: String? = nilOrValue(pigeonVar_list[8])
+    let userName: String? = nilOrValue(pigeonVar_list[9])
+    let userProfileImage: String? = nilOrValue(pigeonVar_list[10])
+    let itemName: String? = nilOrValue(pigeonVar_list[11])
+    let itemImageUrl: String? = nilOrValue(pigeonVar_list[12])
+    let imageUrl: String? = nilOrValue(pigeonVar_list[13])
+
+    return CollectData(
+      id: id,
+      content: content,
+      name: name,
+      likes: likes,
+      comments: comments,
+      recollects: recollects,
+      isLiked: isLiked,
+      isCollected: isCollected,
+      trackingTag: trackingTag,
+      userName: userName,
+      userProfileImage: userProfileImage,
+      itemName: itemName,
+      itemImageUrl: itemImageUrl,
+      imageUrl: imageUrl
+    )
+  }
+  func toList() -> [Any?] {
+    return [
+      id,
+      content,
+      name,
+      likes,
+      comments,
+      recollects,
+      isLiked,
+      isCollected,
+      trackingTag,
+      userName,
+      userProfileImage,
+      itemName,
+      itemImageUrl,
+      imageUrl,
+    ]
+  }
+}
+
 /// Analytics event data
 ///
 /// Generated class from Pigeon that represents data sent in messages.
@@ -204,12 +278,14 @@ private class PigeonGeneratedPigeonCodecReader: FlutterStandardReader {
   override func readValue(ofType type: UInt8) -> Any? {
     switch type {
     case 129:
-      return AnalyticsEvent.fromList(self.readValue() as! [Any?])
+      return CollectData.fromList(self.readValue() as! [Any?])
     case 130:
-      return ShareData.fromList(self.readValue() as! [Any?])
+      return AnalyticsEvent.fromList(self.readValue() as! [Any?])
     case 131:
-      return ScreenStateData.fromList(self.readValue() as! [Any?])
+      return ShareData.fromList(self.readValue() as! [Any?])
     case 132:
+      return ScreenStateData.fromList(self.readValue() as! [Any?])
+    case 133:
       return VideoStateData.fromList(self.readValue() as! [Any?])
     default:
       return super.readValue(ofType: type)
@@ -219,17 +295,20 @@ private class PigeonGeneratedPigeonCodecReader: FlutterStandardReader {
 
 private class PigeonGeneratedPigeonCodecWriter: FlutterStandardWriter {
   override func writeValue(_ value: Any) {
-    if let value = value as? AnalyticsEvent {
+    if let value = value as? CollectData {
       super.writeByte(129)
       super.writeValue(value.toList())
-    } else if let value = value as? ShareData {
+    } else if let value = value as? AnalyticsEvent {
       super.writeByte(130)
       super.writeValue(value.toList())
-    } else if let value = value as? ScreenStateData {
+    } else if let value = value as? ShareData {
       super.writeByte(131)
       super.writeValue(value.toList())
-    } else if let value = value as? VideoStateData {
+    } else if let value = value as? ScreenStateData {
       super.writeByte(132)
+      super.writeValue(value.toList())
+    } else if let value = value as? VideoStateData {
+      super.writeByte(133)
       super.writeValue(value.toList())
     } else {
       super.writeValue(value)
@@ -251,12 +330,13 @@ class PigeonGeneratedPigeonCodec: FlutterStandardMessageCodec, @unchecked Sendab
   static let shared = PigeonGeneratedPigeonCodec(readerWriter: PigeonGeneratedPigeonCodecReaderWriter())
 }
 
+
 /// API for accessing user authentication token from native
 ///
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol ReelsFlutterTokenApi {
   /// Get the current access token from native platform
-  func getAccessToken() throws -> String?
+  func getAccessToken(completion: @escaping (Result<String?, Error>) -> Void)
 }
 
 /// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
@@ -269,15 +349,69 @@ class ReelsFlutterTokenApiSetup {
     let getAccessTokenChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterTokenApi.getAccessToken\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
       getAccessTokenChannel.setMessageHandler { _, reply in
+        api.getAccessToken { result in
+          switch result {
+          case .success(let res):
+            reply(wrapResult(res))
+          case .failure(let error):
+            reply(wrapError(error))
+          }
+        }
+      }
+    } else {
+      getAccessTokenChannel.setMessageHandler(nil)
+    }
+  }
+}
+/// API for getting initial Collect data from native
+///
+/// Generated protocol from Pigeon that represents a handler of messages from Flutter.
+protocol ReelsFlutterContextApi {
+  /// Get the Collect data that was used to open this screen
+  /// @return CollectData object if opened from a Collect, null otherwise
+  /// If null, Flutter will show "no videos" screen
+  func getInitialCollect() throws -> CollectData?
+  /// Check if debug mode is enabled
+  /// @return true if debug mode is enabled, false otherwise
+  func isDebugMode() throws -> Bool
+}
+
+/// Generated setup class from Pigeon to handle messages through the `binaryMessenger`.
+class ReelsFlutterContextApiSetup {
+  static var codec: FlutterStandardMessageCodec { PigeonGeneratedPigeonCodec.shared }
+  /// Sets up an instance of `ReelsFlutterContextApi` to handle messages through the `binaryMessenger`.
+  static func setUp(binaryMessenger: FlutterBinaryMessenger, api: ReelsFlutterContextApi?, messageChannelSuffix: String = "") {
+    let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
+    /// Get the Collect data that was used to open this screen
+    /// @return CollectData object if opened from a Collect, null otherwise
+    /// If null, Flutter will show "no videos" screen
+    let getInitialCollectChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getInitialCollectChannel.setMessageHandler { _, reply in
         do {
-          let result = try api.getAccessToken()
+          let result = try api.getInitialCollect()
           reply(wrapResult(result))
         } catch {
           reply(wrapError(error))
         }
       }
     } else {
-      getAccessTokenChannel.setMessageHandler(nil)
+      getInitialCollectChannel.setMessageHandler(nil)
+    }
+    /// Check if debug mode is enabled
+    /// @return true if debug mode is enabled, false otherwise
+    let isDebugModeChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.isDebugMode\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      isDebugModeChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.isDebugMode()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      isDebugModeChannel.setMessageHandler(nil)
     }
   }
 }
@@ -463,6 +597,8 @@ protocol ReelsFlutterNavigationApiProtocol {
   func onSwipeLeft(completion: @escaping (Result<Void, PigeonError>) -> Void)
   /// Called when user swipes right
   func onSwipeRight(completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// Called when user clicks on profile/user image
+  func onUserProfileClick(userId userIdArg: String, userName userNameArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class ReelsFlutterNavigationApi: ReelsFlutterNavigationApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -498,6 +634,25 @@ class ReelsFlutterNavigationApi: ReelsFlutterNavigationApiProtocol {
     let channelName: String = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeRight\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
     channel.sendMessage(nil) { response in
+      guard let listResponse = response as? [Any?] else {
+        completion(.failure(createConnectionError(withChannelName: channelName)))
+        return
+      }
+      if listResponse.count > 1 {
+        let code: String = listResponse[0] as! String
+        let message: String? = nilOrValue(listResponse[1])
+        let details: String? = nilOrValue(listResponse[2])
+        completion(.failure(PigeonError(code: code, message: message, details: details)))
+      } else {
+        completion(.success(Void()))
+      }
+    }
+  }
+  /// Called when user clicks on profile/user image
+  func onUserProfileClick(userId userIdArg: String, userName userNameArg: String, completion: @escaping (Result<Void, PigeonError>) -> Void) {
+    let channelName: String = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick\(messageChannelSuffix)"
+    let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
+    channel.sendMessage([userIdArg, userNameArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

@@ -18,6 +18,42 @@ import 'package:pigeon/pigeon.dart';
 // ============================================================================
 // DATA MODELS
 // ============================================================================
+
+/// Collect data model - represents a user's post/collection item
+class CollectData {
+  const CollectData({
+    required this.id,
+    this.content,
+    this.name,
+    this.likes,
+    this.comments,
+    this.recollects,
+    this.isLiked,
+    this.isCollected,
+    this.trackingTag,
+    this.userName,
+    this.userProfileImage,
+    this.itemName,
+    this.itemImageUrl,
+    this.imageUrl,
+  });
+
+  final String id;
+  final String? content;           // Collect text content
+  final String? name;               // Collect title/name
+  final int? likes;                 // Like count
+  final int? comments;              // Comment count
+  final int? recollects;            // Recollect count
+  final bool? isLiked;              // Is liked by current user
+  final bool? isCollected;          // Is collected by current user
+  final String? trackingTag;        // For analytics tracking
+  final String? userName;           // User who created the collect
+  final String? userProfileImage;   // User's profile image URL
+  final String? itemName;           // Associated item name
+  final String? itemImageUrl;       // Associated item image URL
+  final String? imageUrl;           // Main collect image URL
+}
+
 /// Analytics event data
 class AnalyticsEvent {
   const AnalyticsEvent({
@@ -84,7 +120,21 @@ class VideoStateData {
 @HostApi()
 abstract class ReelsFlutterTokenApi {
   /// Get the current access token from native platform
+  @async
   String? getAccessToken();
+}
+
+/// API for getting initial Collect data from native
+@HostApi()
+abstract class ReelsFlutterContextApi {
+  /// Get the Collect data that was used to open this screen
+  /// @return CollectData object if opened from a Collect, null otherwise
+  /// If null, Flutter will show "no videos" screen
+  CollectData? getInitialCollect();
+
+  /// Check if debug mode is enabled
+  /// @return true if debug mode is enabled, false otherwise
+  bool isDebugMode();
 }
 
 /// API for sending analytics events to native analytics SDK
@@ -125,4 +175,7 @@ abstract class ReelsFlutterNavigationApi {
 
   /// Called when user swipes right
   void onSwipeRight();
+
+  /// Called when user clicks on profile/user image
+  void onUserProfileClick(String userId, String userName);
 }

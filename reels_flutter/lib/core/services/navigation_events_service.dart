@@ -37,4 +37,19 @@ class NavigationEventsService {
   void notifySwipeRight({int? currentIndex}) {
     onSwipeRight();
   }
+
+  /// Called when user clicks on profile/user image
+  void onUserProfileClick(String userId, String userName) {
+    try {
+      api.onUserProfileClick(userId, userName);
+      print('[ReelsFlutter] User profile click - userId: $userId, userName: $userName');
+    } catch (e) {
+      print('[ReelsFlutter] Error on user profile click: $e');
+    }
+  }
+
+  /// Notify user profile click (method name for clarity)
+  void notifyUserProfileClick({required String userId, required String userName}) {
+    onUserProfileClick(userId, userName);
+  }
 }

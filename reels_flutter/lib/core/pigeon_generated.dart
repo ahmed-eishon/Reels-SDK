@@ -25,6 +25,93 @@ List<Object?> wrapResponse({Object? result, PlatformException? error, bool empty
   return <Object?>[error.code, error.message, error.details];
 }
 
+/// Collect data model - represents a user's post/collection item
+class CollectData {
+  CollectData({
+    required this.id,
+    this.content,
+    this.name,
+    this.likes,
+    this.comments,
+    this.recollects,
+    this.isLiked,
+    this.isCollected,
+    this.trackingTag,
+    this.userName,
+    this.userProfileImage,
+    this.itemName,
+    this.itemImageUrl,
+    this.imageUrl,
+  });
+
+  String id;
+
+  String? content;
+
+  String? name;
+
+  int? likes;
+
+  int? comments;
+
+  int? recollects;
+
+  bool? isLiked;
+
+  bool? isCollected;
+
+  String? trackingTag;
+
+  String? userName;
+
+  String? userProfileImage;
+
+  String? itemName;
+
+  String? itemImageUrl;
+
+  String? imageUrl;
+
+  Object encode() {
+    return <Object?>[
+      id,
+      content,
+      name,
+      likes,
+      comments,
+      recollects,
+      isLiked,
+      isCollected,
+      trackingTag,
+      userName,
+      userProfileImage,
+      itemName,
+      itemImageUrl,
+      imageUrl,
+    ];
+  }
+
+  static CollectData decode(Object result) {
+    result as List<Object?>;
+    return CollectData(
+      id: result[0]! as String,
+      content: result[1] as String?,
+      name: result[2] as String?,
+      likes: result[3] as int?,
+      comments: result[4] as int?,
+      recollects: result[5] as int?,
+      isLiked: result[6] as bool?,
+      isCollected: result[7] as bool?,
+      trackingTag: result[8] as String?,
+      userName: result[9] as String?,
+      userProfileImage: result[10] as String?,
+      itemName: result[11] as String?,
+      itemImageUrl: result[12] as String?,
+      imageUrl: result[13] as String?,
+    );
+  }
+}
+
 /// Analytics event data
 class AnalyticsEvent {
   AnalyticsEvent({
@@ -176,17 +263,20 @@ class _PigeonCodec extends StandardMessageCodec {
     if (value is int) {
       buffer.putUint8(4);
       buffer.putInt64(value);
-    }    else if (value is AnalyticsEvent) {
+    }    else if (value is CollectData) {
       buffer.putUint8(129);
       writeValue(buffer, value.encode());
-    }    else if (value is ShareData) {
+    }    else if (value is AnalyticsEvent) {
       buffer.putUint8(130);
       writeValue(buffer, value.encode());
-    }    else if (value is ScreenStateData) {
+    }    else if (value is ShareData) {
       buffer.putUint8(131);
       writeValue(buffer, value.encode());
-    }    else if (value is VideoStateData) {
+    }    else if (value is ScreenStateData) {
       buffer.putUint8(132);
+      writeValue(buffer, value.encode());
+    }    else if (value is VideoStateData) {
+      buffer.putUint8(133);
       writeValue(buffer, value.encode());
     } else {
       super.writeValue(buffer, value);
@@ -197,12 +287,14 @@ class _PigeonCodec extends StandardMessageCodec {
   Object? readValueOfType(int type, ReadBuffer buffer) {
     switch (type) {
       case 129: 
-        return AnalyticsEvent.decode(readValue(buffer)!);
+        return CollectData.decode(readValue(buffer)!);
       case 130: 
-        return ShareData.decode(readValue(buffer)!);
+        return AnalyticsEvent.decode(readValue(buffer)!);
       case 131: 
-        return ScreenStateData.decode(readValue(buffer)!);
+        return ShareData.decode(readValue(buffer)!);
       case 132: 
+        return ScreenStateData.decode(readValue(buffer)!);
+      case 133: 
         return VideoStateData.decode(readValue(buffer)!);
       default:
         return super.readValueOfType(type, buffer);
@@ -244,6 +336,75 @@ class ReelsFlutterTokenApi {
       );
     } else {
       return (pigeonVar_replyList[0] as String?);
+    }
+  }
+}
+
+/// API for getting initial Collect data from native
+class ReelsFlutterContextApi {
+  /// Constructor for [ReelsFlutterContextApi].  The [binaryMessenger] named argument is
+  /// available for dependency injection.  If it is left null, the default
+  /// BinaryMessenger will be used which routes to the host platform.
+  ReelsFlutterContextApi({BinaryMessenger? binaryMessenger, String messageChannelSuffix = ''})
+      : pigeonVar_binaryMessenger = binaryMessenger,
+        pigeonVar_messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
+  final BinaryMessenger? pigeonVar_binaryMessenger;
+
+  static const MessageCodec<Object?> pigeonChannelCodec = _PigeonCodec();
+
+  final String pigeonVar_messageChannelSuffix;
+
+  /// Get the Collect data that was used to open this screen
+  /// @return CollectData object if opened from a Collect, null otherwise
+  /// If null, Flutter will show "no videos" screen
+  Future<CollectData?> getInitialCollect() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return (pigeonVar_replyList[0] as CollectData?);
+    }
+  }
+
+  /// Check if debug mode is enabled
+  /// @return true if debug mode is enabled, false otherwise
+  Future<bool> isDebugMode() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.isDebugMode$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(null) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
+    } else {
+      return (pigeonVar_replyList[0] as bool?)!;
     }
   }
 }
@@ -459,6 +620,9 @@ abstract class ReelsFlutterNavigationApi {
   /// Called when user swipes right
   void onSwipeRight();
 
+  /// Called when user clicks on profile/user image
+  void onUserProfileClick(String userId, String userName);
+
   static void setUp(ReelsFlutterNavigationApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
@@ -490,6 +654,34 @@ abstract class ReelsFlutterNavigationApi {
         pigeonVar_channel.setMessageHandler((Object? message) async {
           try {
             api.onSwipeRight();
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final String? arg_userId = (args[0] as String?);
+          assert(arg_userId != null,
+              'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick was null, expected non-null String.');
+          final String? arg_userName = (args[1] as String?);
+          assert(arg_userName != null,
+              'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick was null, expected non-null String.');
+          try {
+            api.onUserProfileClick(arg_userId!, arg_userName!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

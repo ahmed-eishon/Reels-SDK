@@ -1,5 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:reels_flutter/core/di/injection_container.dart';
+import 'package:reels_flutter/core/pigeon_generated.dart';
+import 'package:reels_flutter/core/services/collect_context_service.dart';
 import 'package:reels_flutter/domain/entities/video_entity.dart';
+import 'package:reels_flutter/presentation/screens/sdk_info_screen.dart';
 
 /// Vertical engagement buttons column (right side of screen)
 ///
@@ -13,14 +17,14 @@ class EngagementButtons extends StatefulWidget {
   final VideoEntity video;
   final VoidCallback onLike;
   final VoidCallback onShare;
-  final VoidCallback onTestAccessToken;
+  final CollectData? collectData;
 
   const EngagementButtons({
     super.key,
     required this.video,
     required this.onLike,
     required this.onShare,
-    required this.onTestAccessToken,
+    this.collectData,
   });
 
   @override
@@ -31,6 +35,7 @@ class _EngagementButtonsState extends State<EngagementButtons>
     with SingleTickerProviderStateMixin {
   late AnimationController _likeAnimationController;
   late Animation<double> _likeAnimation;
+  bool _isDebugMode = false;
 
   @override
   void initState() {
@@ -55,6 +60,19 @@ class _EngagementButtonsState extends State<EngagementButtons>
         weight: 50,
       ),
     ]).animate(_likeAnimationController);
+
+    // Check if debug mode is enabled
+    _loadDebugMode();
+  }
+
+  Future<void> _loadDebugMode() async {
+    final contextService = sl<CollectContextService>();
+    final debugMode = await contextService.isDebugMode();
+    if (mounted) {
+      setState(() {
+        _isDebugMode = debugMode;
+      });
+    }
   }
 
   @override
@@ -300,20 +318,38 @@ class _EngagementButtonsState extends State<EngagementButtons>
                 },
               ),
 
-              // Test Access Token option (for debugging)
-              ListTile(
-                leading: const Icon(Icons.vpn_key, color: Colors.white70),
-                title: const Text(
-                  'Test Access Token',
-                  style: TextStyle(color: Colors.white),
-                ),
-                onTap: () {
-                  Navigator.pop(context);
-                  widget.onTestAccessToken();
-                },
-              ),
+              // Conditionally show debug options if debug mode is enabled
+              if (_isDebugMode) ...[
+                // Divider before debug options
+                Divider(color: Colors.grey.shade700, height: 1),
+                const SizedBox(height: 8),
 
-              const SizedBox(height: 8),
+                // SDK Info & Debug option (consolidated)
+                ListTile(
+                  leading: const Icon(Icons.developer_mode, color: Colors.amber),
+                  title: const Text(
+                    'SDK Info & Debug',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  subtitle: Text(
+                    'View access token, collect data, and SDK info',
+                    style: TextStyle(color: Colors.grey.shade500, fontSize: 11),
+                  ),
+                  onTap: () {
+                    Navigator.pop(context);
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => SdkInfoScreen(
+                          collectData: widget.collectData,
+                        ),
+                      ),
+                    );
+                  },
+                ),
+
+                const SizedBox(height: 8),
+              ],
             ],
           ),
         );

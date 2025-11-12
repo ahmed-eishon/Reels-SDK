@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:reels_flutter/core/di/injection_container.dart';
+import 'package:reels_flutter/core/pigeon_generated.dart';
 import 'package:reels_flutter/core/services/navigation_events_service.dart';
 import 'package:reels_flutter/domain/entities/video_entity.dart';
 import 'package:reels_flutter/presentation/widgets/engagement_buttons.dart';
@@ -18,16 +19,16 @@ class VideoReelItem extends StatefulWidget {
   final VideoEntity video;
   final VoidCallback onLike;
   final VoidCallback onShare;
-  final VoidCallback onTestAccessToken;
   final bool isActive;
+  final CollectData? collectData;
 
   const VideoReelItem({
     super.key,
     required this.video,
     required this.onLike,
     required this.onShare,
-    required this.onTestAccessToken,
     this.isActive = false,
+    this.collectData,
   });
 
   @override
@@ -224,6 +225,13 @@ class _VideoReelItemState extends State<VideoReelItem>
                                 _isMuted = !_isMuted;
                               });
                             },
+                            onUserProfileClick: () {
+                              // Notify native platform about user profile click with actual user ID
+                              _navigationEventsService.notifyUserProfileClick(
+                                userId: widget.video.user.id,
+                                userName: widget.video.user.name,
+                              );
+                            },
                           ),
                         ),
                         const SizedBox(width: 12),
@@ -232,7 +240,7 @@ class _VideoReelItemState extends State<VideoReelItem>
                           video: widget.video,
                           onLike: widget.onLike,
                           onShare: widget.onShare,
-                          onTestAccessToken: widget.onTestAccessToken,
+                          collectData: widget.collectData,
                         ),
                       ],
                     ),

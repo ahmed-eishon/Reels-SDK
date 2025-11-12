@@ -22,18 +22,33 @@ public class ReelsModule {
     /// Shared instance of the engine manager
     private static let engineManager = ReelsEngineManager.shared
 
-    /// Access token provider closure
-    private static var accessTokenProvider: (() -> String?)?
+    /// Access token provider closure (async)
+    private static var accessTokenProvider: ((@escaping (String?) -> Void) -> Void)?
 
     /// Reels event listener
     private static weak var listener: ReelsListener?
 
+    /// Presenting view controller (used for navigation from Flutter)
+    private static weak var presentingViewController: UIViewController?
+
+    /// Flutter's navigation controller (created when wrapping Flutter VC)
+    private static weak var flutterNavigationController: UINavigationController?
+
+    /// Debug mode flag
+    private static var debugMode: Bool = false
+
     // MARK: - Initialization
 
     /// Initialize the Reels module. Call this once in your AppDelegate.
-    /// - Parameter accessTokenProvider: Optional provider for user access token
-    public static func initialize(accessTokenProvider: (() -> String?)? = nil) {
+    /// - Parameters:
+    ///   - accessTokenProvider: Optional async provider for user access token
+    ///   - debug: Enable debug mode to show SDK info screen (default: false)
+    public static func initialize(
+        accessTokenProvider: ((@escaping (String?) -> Void) -> Void)? = nil,
+        debug: Bool = false
+    ) {
         self.accessTokenProvider = accessTokenProvider
+        self.debugMode = debug
         engineManager.initializeFlutterEngine()
     }
 
@@ -51,10 +66,20 @@ public class ReelsModule {
         animated: Bool = true,
         completion: (() -> Void)? = nil
     ) {
-        let flutterViewController = engineManager.createFlutterViewController(initialRoute: initialRoute)
-        flutterViewController.modalPresentationStyle = .fullScreen
+        // Store the presenting view controller for navigation
+        presentingViewController = viewController
 
-        viewController.present(flutterViewController, animated: animated, completion: completion)
+        let flutterViewController = engineManager.createFlutterViewController(initialRoute: initialRoute)
+
+        // Wrap Flutter in a navigation controller to enable native screen stacking
+        let navigationController = UINavigationController(rootViewController: flutterViewController)
+        navigationController.modalPresentationStyle = .fullScreen
+        navigationController.setNavigationBarHidden(true, animated: false)
+
+        // Store reference to Flutter's navigation controller
+        flutterNavigationController = navigationController
+
+        viewController.present(navigationController, animated: animated, completion: completion)
     }
 
     /// Create a Flutter view controller for custom presentation
@@ -78,11 +103,48 @@ public class ReelsModule {
         return listener
     }
 
+    /// Get the presenting view controller
+    public static func getPresentingViewController() -> UIViewController? {
+        return presentingViewController
+    }
+
+    /// Get the Flutter navigation controller for pushing native screens
+    public static func getFlutterNavigationController() -> UINavigationController? {
+        return flutterNavigationController
+    }
+
     // MARK: - Token Provider
 
-    /// Get access token from provider
-    internal static func getAccessToken() -> String? {
-        return accessTokenProvider?()
+    /// Get access token from provider (async)
+    /// This method is called by Pigeon with a completion handler
+    internal static func getAccessToken(completion: @escaping (String?) -> Void) {
+        guard let provider = accessTokenProvider else {
+            completion(nil)
+            return
+        }
+
+        // Call the async provider and forward the result to completion
+        provider { token in
+            completion(token)
+        }
+    }
+
+    // MARK: - Context Data
+
+    /// Get the initial collect data (stub - returns nil for now)
+    /// This will be implemented when collect context is added
+    internal static func getInitialCollect() -> CollectData? {
+        return nil
+    }
+
+    /// Check if debug mode is enabled
+    internal static func isDebugMode() -> Bool {
+        return debugMode
+    }
+
+    /// Get the Flutter engine instance (for advanced use cases like plugin registration)
+    public static func getEngine() -> FlutterEngine? {
+        return ReelsEngineManager.shared.getEngine()
     }
 
     // MARK: - Analytics
@@ -152,6 +214,12 @@ public protocol ReelsListener: AnyObject {
     /// Called when user swipes right
     func onSwipeRight()
 
+    /// Called when user clicks on profile/user image
+    /// - Parameters:
+    ///   - userId: User ID
+    ///   - userName: User name
+    func onUserProfileClick(userId: String, userName: String)
+
     /// Called when analytics event is tracked
     /// - Parameters:
     ///   - eventName: Event name
@@ -167,5 +235,6 @@ public extension ReelsListener {
     func onVideoStateChanged(videoId: String, state: String, position: Int?, duration: Int?) {}
     func onSwipeLeft() {}
     func onSwipeRight() {}
+    func onUserProfileClick(userId: String, userName: String) {}
     func onAnalyticsEvent(eventName: String, properties: [String: String]) {}
 }

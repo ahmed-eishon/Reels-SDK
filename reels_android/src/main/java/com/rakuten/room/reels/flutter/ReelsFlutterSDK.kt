@@ -67,7 +67,23 @@ class ReelsFlutterSDK private constructor() {
                     return token
                 }
             })
-            
+
+            // Host API: Provide context data to Flutter (Flutter calls, Android implements)
+            ReelsFlutterContextApi.setUp(binaryMessenger, object : ReelsFlutterContextApi {
+                override fun getInitialCollect(): CollectData? {
+                    // Stub - returns null for now
+                    // This will be implemented when collect context is added
+                    Log.d(TAG, "Initial collect data requested: null")
+                    return null
+                }
+
+                override fun isDebugMode(): Boolean {
+                    val debugMode = com.rakuten.room.reels.ReelsModule.isDebugMode()
+                    Log.d(TAG, "Debug mode requested: $debugMode")
+                    return debugMode
+                }
+            })
+
             // Flutter APIs: Android calls Flutter methods
             analyticsApi = ReelsFlutterAnalyticsApi(binaryMessenger)
             buttonEventsApi = ReelsFlutterButtonEventsApi(binaryMessenger)

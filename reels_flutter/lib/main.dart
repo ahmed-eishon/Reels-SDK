@@ -57,6 +57,7 @@ class ReelsFlutterApp extends StatelessWidget {
             incrementShareCountUseCase: sl(),
             analyticsService: sl(),
             buttonEventsService: sl(),
+            collectContextService: sl(),
           ),
         ),
       ],

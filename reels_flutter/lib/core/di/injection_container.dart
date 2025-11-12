@@ -2,6 +2,7 @@ import 'package:reels_flutter/core/platform/platform_initializer.dart';
 import 'package:reels_flutter/core/services/access_token_service.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
 import 'package:reels_flutter/core/services/button_events_service.dart';
+import 'package:reels_flutter/core/services/collect_context_service.dart';
 import 'package:reels_flutter/core/services/navigation_events_service.dart';
 import 'package:reels_flutter/core/services/state_events_service.dart';
 import 'package:reels_flutter/data/datasources/video_local_data_source.dart';
@@ -50,6 +51,9 @@ Future<void> initializeDependencies() async {
   sl.registerSingleton<StateEventsService>(platformServices.stateEventsService);
   sl.registerSingleton<NavigationEventsService>(
     platformServices.navigationEventsService,
+  );
+  sl.registerSingleton<CollectContextService>(
+    platformServices.collectContextService,
   );
 
   // Data sources

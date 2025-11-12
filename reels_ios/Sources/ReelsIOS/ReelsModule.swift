@@ -97,8 +97,11 @@ public class ReelsModule {
 
         let flutterViewController = engineManager.createFlutterViewController(initialRoute: initialRoute)
 
+        // Wrap Flutter VC to handle navigation bar visibility
+        let wrapper = FlutterViewControllerWrapper(flutterViewController: flutterViewController)
+
         // Wrap Flutter in a navigation controller to enable native screen stacking
-        let navigationController = UINavigationController(rootViewController: flutterViewController)
+        let navigationController = UINavigationController(rootViewController: wrapper)
         navigationController.modalPresentationStyle = .fullScreen
         navigationController.setNavigationBarHidden(true, animated: false)
 
@@ -187,8 +190,20 @@ public class ReelsModule {
 
     // MARK: - Cleanup
 
-    /// Clean up resources when the app is destroyed
+    /// Clear references when reels screen is dismissed
+    internal static func clearReferences() {
+        presentingViewController = nil
+        flutterNavigationController = nil
+        listener = nil
+        initialCollectData = nil
+        // Also clear ReelsCoordinator references
+        ReelsCoordinator.clearReferences()
+        print("[ReelsSDK] All references cleared")
+    }
+
+    /// Clean up resources when the app is destroyed (call this only when destroying the engine)
     public static func cleanup() {
+        clearReferences()
         engineManager.destroyFlutterEngine()
     }
 
@@ -288,4 +303,54 @@ public extension ReelsListener {
     func onSwipeRight() {}
     func onUserProfileClick(userId: String, userName: String) {}
     func onAnalyticsEvent(eventName: String, properties: [String: String]) {}
+}
+
+/// Wrapper view controller that ensures navigation bar is hidden when Flutter screen appears
+private class FlutterViewControllerWrapper: UIViewController {
+
+    private let flutterViewController: FlutterViewController
+
+    init(flutterViewController: FlutterViewController) {
+        self.flutterViewController = flutterViewController
+        super.init(nibName: nil, bundle: nil)
+    }
+
+    required init?(coder: NSCoder) {
+        fatalError("init(coder:) has not been implemented")
+    }
+
+    override func viewDidLoad() {
+        super.viewDidLoad()
+
+        // Add Flutter view controller as child
+        addChild(flutterViewController)
+        view.addSubview(flutterViewController.view)
+        flutterViewController.view.frame = view.bounds
+        flutterViewController.view.autoresizingMask = [.flexibleWidth, .flexibleHeight]
+        flutterViewController.didMove(toParent: self)
+    }
+
+    override func viewWillAppear(_ animated: Bool) {
+        super.viewWillAppear(animated)
+
+        // Always hide navigation bar when Flutter screen appears
+        // This ensures the bar is hidden even when navigating back from native screens
+        navigationController?.setNavigationBarHidden(true, animated: animated)
+    }
+
+    override func viewDidDisappear(_ animated: Bool) {
+        super.viewDidDisappear(animated)
+
+        // If this is the final dismissal (not just navigation to another screen)
+        if isBeingDismissed || isMovingFromParent {
+            // Remove Flutter view controller as child
+            flutterViewController.willMove(toParent: nil)
+            flutterViewController.view.removeFromSuperview()
+            flutterViewController.removeFromParent()
+        }
+    }
+
+    deinit {
+        print("[ReelsSDK] FlutterViewControllerWrapper deallocated")
+    }
 }

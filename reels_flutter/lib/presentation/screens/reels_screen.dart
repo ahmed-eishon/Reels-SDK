@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:reels_flutter/core/di/injection_container.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
+import 'package:reels_flutter/core/services/navigation_events_service.dart';
 import 'package:reels_flutter/core/services/state_events_service.dart';
 import 'package:reels_flutter/main.dart';
 import 'package:reels_flutter/presentation/providers/video_provider.dart';
@@ -34,13 +35,16 @@ class _ReelsScreenState extends State<ReelsScreen>
   @override
   void initState() {
     super.initState();
+    print('[ReelsSDK-Flutter] ReelsScreen.initState() called');
     _pageController = PageController();
     _analyticsService = sl<AnalyticsService>();
     _stateEventsService = sl<StateEventsService>();
     WidgetsBinding.instance.addObserver(this);
 
-    // Load videos when screen initializes
+    // Always load videos when screen initializes
+    // This ensures we fetch fresh collect data even if the provider is reused
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      print('[ReelsSDK-Flutter] ReelsScreen.initState: Loading videos');
       context.read<VideoProvider>().loadVideos();
 
       // Track page view
@@ -79,12 +83,19 @@ class _ReelsScreenState extends State<ReelsScreen>
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     super.didChangeAppLifecycleState(state);
+    print('[ReelsSDK-Flutter] ReelsScreen.didChangeAppLifecycleState: $state');
+
     setState(() {
       _isScreenActive = state == AppLifecycleState.resumed;
     });
 
-    // Notify native of screen focus state based on app lifecycle
+    // Reload videos when app resumes to fetch any new collect data
     if (state == AppLifecycleState.resumed) {
+      final videoProvider = context.read<VideoProvider>();
+      if (videoProvider.hasLoadedOnce) {
+        print('[ReelsSDK-Flutter] ReelsScreen: App resumed, reloading videos to fetch new collect data');
+        videoProvider.loadVideos();
+      }
       _stateEventsService.notifyScreenFocused(screenName: 'reels_screen');
     } else if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.inactive) {
@@ -273,30 +284,22 @@ class _ReelsScreenState extends State<ReelsScreen>
           );
             },
           ),
-          // Back button positioned at top-left with safe area
+          // Close button overlay
           SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Material(
-                color: Colors.transparent,
-                child: InkWell(
-                  onTap: () async {
-                    // Call native method to dismiss the view controller
-                    try {
-                      await MethodChannel('reels_flutter/dismiss')
-                          .invokeMethod('dismiss');
-                    } catch (e) {
-                      debugPrint('Error dismissing: $e');
-                      // Fallback to Flutter navigation
-                      if (mounted) {
-                        Navigator.of(context).pop();
-                      }
-                    }
+            child: Align(
+              alignment: Alignment.topLeft,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: GestureDetector(
+                  onTap: () {
+                    // Call native to dismiss the modal presentation
+                    // This triggers cleanup on iOS side
+                    final navigationService = sl<NavigationEventsService>();
+                    navigationService.dismissReels();
                   },
-                  borderRadius: BorderRadius.circular(30),
                   child: Container(
-                    width: 40,
-                    height: 40,
+                    width: 36,
+                    height: 36,
                     decoration: BoxDecoration(
                       color: Colors.black.withOpacity(0.5),
                       shape: BoxShape.circle,
@@ -304,7 +307,7 @@ class _ReelsScreenState extends State<ReelsScreen>
                     child: const Icon(
                       Icons.close,
                       color: Colors.white,
-                      size: 24,
+                      size: 20,
                     ),
                   ),
                 ),

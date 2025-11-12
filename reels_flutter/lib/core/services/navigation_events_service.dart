@@ -52,4 +52,14 @@ class NavigationEventsService {
   void notifyUserProfileClick({required String userId, required String userName}) {
     onUserProfileClick(userId, userName);
   }
+
+  /// Called when user wants to dismiss/close the reels screen
+  void dismissReels() {
+    try {
+      api.dismissReels();
+      print('[ReelsSDK-Flutter] Dismiss reels requested');
+    } catch (e) {
+      print('[ReelsSDK-Flutter] Error dismissing reels: $e');
+    }
+  }
 }

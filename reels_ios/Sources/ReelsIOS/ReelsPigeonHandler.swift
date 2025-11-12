@@ -85,6 +85,27 @@ class ReelsPigeonHandler: NSObject {
             ReelsModule.getListener()?.onUserProfileClick(userId: userId, userName: userName)
             reply(nil)
         }
+
+        // Handle dismiss reels events
+        let dismissReelsChannel = FlutterBasicMessageChannel(
+            name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.dismissReels",
+            binaryMessenger: messenger,
+            codec: codec
+        )
+        dismissReelsChannel.setMessageHandler { message, reply in
+            print("[ReelsSDK-iOS] Received dismiss reels request")
+
+            // Dismiss the modal presentation and cleanup
+            DispatchQueue.main.async {
+                if let navController = ReelsModule.getFlutterNavigationController() {
+                    navController.presentingViewController?.dismiss(animated: true) {
+                        ReelsModule.clearReferences()
+                    }
+                }
+            }
+
+            reply(nil)
+        }
     }
 
     // MARK: - Call Flutter Methods

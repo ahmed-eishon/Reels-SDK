@@ -16,10 +16,13 @@ class CollectContextService {
   /// Get the initial Collect data that was used to open this screen
   /// Returns null if screen was not opened from a Collect
   Future<CollectData?> getInitialCollect() async {
+    print('[ReelsSDK-Flutter] CollectContextService.getInitialCollect() called');
     try {
       final result = await getCollectCallback();
+      print('[ReelsSDK-Flutter] - getCollectCallback returned: ${result != null ? "CollectData(id: ${result.id})" : "null"}');
       return result;
     } catch (e) {
+      print('[ReelsSDK-Flutter] - getCollectCallback ERROR: $e');
       return null;
     }
   }

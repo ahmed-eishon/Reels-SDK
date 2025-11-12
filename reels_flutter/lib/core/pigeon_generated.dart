@@ -623,6 +623,9 @@ abstract class ReelsFlutterNavigationApi {
   /// Called when user clicks on profile/user image
   void onUserProfileClick(String userId, String userName);
 
+  /// Called when user wants to dismiss/close the reels screen
+  void dismissReels();
+
   static void setUp(ReelsFlutterNavigationApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
     {
@@ -682,6 +685,25 @@ abstract class ReelsFlutterNavigationApi {
               'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick was null, expected non-null String.');
           try {
             api.onUserProfileClick(arg_userId!, arg_userName!);
+            return wrapResponse(empty: true);
+          } on PlatformException catch (e) {
+            return wrapResponse(error: e);
+          }          catch (e) {
+            return wrapResponse(error: PlatformException(code: 'error', message: e.toString()));
+          }
+        });
+      }
+    }
+    {
+      final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+          'dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.dismissReels$messageChannelSuffix', pigeonChannelCodec,
+          binaryMessenger: binaryMessenger);
+      if (api == null) {
+        pigeonVar_channel.setMessageHandler(null);
+      } else {
+        pigeonVar_channel.setMessageHandler((Object? message) async {
+          try {
+            api.dismissReels();
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

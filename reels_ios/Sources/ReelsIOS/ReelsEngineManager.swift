@@ -69,30 +69,9 @@ class ReelsEngineManager {
             bundle: nil
         )
 
-        // Setup dismiss channel
-        setupDismissChannel(for: viewController, engine: engine)
+        // Note: Flutter close button uses Navigator.pop() which triggers viewDidDisappear cleanup
 
         return viewController
-    }
-
-    /// Setup method channel to handle dismiss requests from Flutter
-    private func setupDismissChannel(for viewController: FlutterViewController, engine: FlutterEngine) {
-        let channel = FlutterMethodChannel(
-            name: "reels_flutter/dismiss",
-            binaryMessenger: engine.binaryMessenger
-        )
-
-        channel.setMethodCallHandler { [weak viewController] (call, result) in
-            if call.method == "dismiss" {
-                // Dismiss the view controller on the main thread
-                DispatchQueue.main.async {
-                    viewController?.dismiss(animated: true, completion: nil)
-                    result(nil)
-                }
-            } else {
-                result(FlutterMethodNotImplemented)
-            }
-        }
     }
 
     /// Destroy the Flutter engine

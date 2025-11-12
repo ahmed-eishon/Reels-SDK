@@ -58,6 +58,7 @@ class VideoProvider with ChangeNotifier {
   /// Sets loading state, fetches videos, and handles errors.
   /// Notifies listeners of state changes.
   Future<void> loadVideos() async {
+    print('[ReelsSDK-Flutter] VideoProvider.loadVideos() called');
     _isLoading = true;
     _errorMessage = null;
     notifyListeners();
@@ -65,6 +66,7 @@ class VideoProvider with ChangeNotifier {
     try {
       // Check if collect context exists from native (optional for now)
       _collectData = await collectContextService.getInitialCollect();
+      print('[ReelsSDK-Flutter] VideoProvider: collectData received: ${_collectData != null ? "CollectData(id: ${_collectData!.id})" : "null"}');
 
       // Load videos (collect context is optional for now)
       // TODO: In future, can load videos from collect reference or recommended videos

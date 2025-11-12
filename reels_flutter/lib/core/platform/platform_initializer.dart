@@ -133,6 +133,15 @@ class _ReelsNavigationApiImpl extends ReelsFlutterNavigationApi {
     );
     channel.send(<Object?>[userId, userName]);
   }
+
+  @override
+  void dismissReels() {
+    const channel = BasicMessageChannel<Object?>(
+      'dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.dismissReels',
+      _codec,
+    );
+    channel.send(null);
+  }
 }
 
 /// Initializes platform communication channels

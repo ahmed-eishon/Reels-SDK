@@ -178,4 +178,7 @@ abstract class ReelsFlutterNavigationApi {
 
   /// Called when user clicks on profile/user image
   void onUserProfileClick(String userId, String userName);
+
+  /// Called when user wants to dismiss/close the reels screen
+  void dismissReels();
 }

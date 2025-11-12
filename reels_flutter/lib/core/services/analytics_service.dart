@@ -18,9 +18,9 @@ class AnalyticsService {
         eventProperties: properties,
       );
       api.trackEvent(event);
-      print('[ReelsFlutter] Analytics: $type - $data');
+      print('[ReelsSDK-Flutter] Analytics: $type - $data');
     } catch (e) {
-      print('[ReelsFlutter] Error tracking event: $e');
+      print('[ReelsSDK-Flutter] Error tracking event: $e');
     }
   }
 

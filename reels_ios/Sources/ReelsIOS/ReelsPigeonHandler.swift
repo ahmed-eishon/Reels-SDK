@@ -48,7 +48,7 @@ class ReelsPigeonHandler: NSObject {
             codec: codec
         )
         swipeLeftChannel.setMessageHandler { message, reply in
-            print("[ReelsPigeonHandler] Received swipe left event")
+            print("[ReelsSDK-iOS] Received swipe left event")
             ReelsModule.getListener()?.onSwipeLeft()
             reply(nil)
         }
@@ -60,7 +60,7 @@ class ReelsPigeonHandler: NSObject {
             codec: codec
         )
         swipeRightChannel.setMessageHandler { message, reply in
-            print("[ReelsPigeonHandler] Received swipe right event")
+            print("[ReelsSDK-iOS] Received swipe right event")
             ReelsModule.getListener()?.onSwipeRight()
             reply(nil)
         }
@@ -76,12 +76,12 @@ class ReelsPigeonHandler: NSObject {
                   args.count >= 2,
                   let userId = args[0] as? String,
                   let userName = args[1] as? String else {
-                print("[ReelsPigeonHandler] Invalid user profile click arguments")
+                print("[ReelsSDK-iOS] Invalid user profile click arguments")
                 reply(nil)
                 return
             }
 
-            print("[ReelsPigeonHandler] Received user profile click: userId=\(userId), userName=\(userName)")
+            print("[ReelsSDK-iOS] Received user profile click: userId=\(userId), userName=\(userName)")
             ReelsModule.getListener()?.onUserProfileClick(userId: userId, userName: userName)
             reply(nil)
         }
@@ -195,9 +195,9 @@ extension ReelsPigeonHandler: ReelsFlutterContextApi {
     func getInitialCollect() throws -> CollectData? {
         let collectData = ReelsModule.getInitialCollect()
         if let collect = collectData {
-            print("[ReelsPigeonHandler] Returning collect data: id=\(collect.id), name=\(collect.name ?? "nil")")
+            print("[ReelsSDK-iOS] Returning collect data: id=\(collect.id), name=\(collect.name ?? "nil")")
         } else {
-            print("[ReelsPigeonHandler] No collect data available")
+            print("[ReelsSDK-iOS] No collect data available")
         }
         return collectData
     }
@@ -205,7 +205,7 @@ extension ReelsPigeonHandler: ReelsFlutterContextApi {
     /// Check if debug mode is enabled
     func isDebugMode() throws -> Bool {
         let debugMode = ReelsModule.isDebugMode()
-        print("[ReelsPigeonHandler] Debug mode: \(debugMode)")
+        print("[ReelsSDK-iOS] Debug mode: \(debugMode)")
         return debugMode
     }
 }

@@ -154,10 +154,10 @@ class PlatformInitializer {
         final tokenApi = ReelsFlutterTokenApi();
         try {
           final result = await tokenApi.getAccessToken();
-          debugPrint('[AccessTokenService] getAccessToken result: ${result != null ? "token received" : "no token"}');
+          debugPrint('[ReelsSDK-Flutter] getAccessToken result: ${result != null ? "token received" : "no token"}');
           return result;
         } catch (e) {
-          debugPrint('[AccessTokenService] Error getting access token: $e');
+          debugPrint('[ReelsSDK-Flutter] Error getting access token: $e');
           return null;
         }
       },
@@ -166,17 +166,17 @@ class PlatformInitializer {
     // Create analytics service
     final analyticsApi = _ReelsAnalyticsApiImpl();
     final analyticsService = AnalyticsService(api: analyticsApi);
-    print('[ReelsFlutter] Analytics service initialized');
+    print('[ReelsSDK-Flutter] Analytics service initialized');
 
     // Create button events service
     final buttonEventsApi = _ReelsButtonEventsApiImpl();
     final buttonEventsService = ButtonEventsService(api: buttonEventsApi);
-    print('[ReelsFlutter] Button events service initialized');
+    print('[ReelsSDK-Flutter] Button events service initialized');
 
     // Create state events service
     final stateEventsApi = _ReelsStateApiImpl();
     final stateEventsService = StateEventsService(api: stateEventsApi);
-    print('[ReelsFlutter] State events service initialized');
+    print('[ReelsSDK-Flutter] State events service initialized');
 
     // Create navigation events service
     final navigationEventsApi = _ReelsNavigationApiImpl();
@@ -190,10 +190,10 @@ class PlatformInitializer {
         final contextApi = ReelsFlutterContextApi();
         try {
           final result = await contextApi.getInitialCollect();
-          debugPrint('[CollectContextService] getInitialCollect result: $result');
+          debugPrint('[ReelsSDK-Flutter] getInitialCollect result: $result');
           return result;
         } catch (e) {
-          debugPrint('[CollectContextService] Error getting collect context: $e');
+          debugPrint('[ReelsSDK-Flutter] Error getting collect context: $e');
           return null;
         }
       },
@@ -202,10 +202,10 @@ class PlatformInitializer {
         final contextApi = ReelsFlutterContextApi();
         try {
           final result = await contextApi.isDebugMode();
-          debugPrint('[CollectContextService] isDebugMode result: $result');
+          debugPrint('[ReelsSDK-Flutter] isDebugMode result: $result');
           return result;
         } catch (e) {
-          debugPrint('[CollectContextService] Error checking debug mode: $e');
+          debugPrint('[ReelsSDK-Flutter] Error checking debug mode: $e');
           return false;
         }
       },

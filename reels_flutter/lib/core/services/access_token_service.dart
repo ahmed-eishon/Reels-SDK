@@ -10,7 +10,7 @@ class AccessTokenService {
     try {
       return await getTokenCallback();
     } catch (e) {
-      print('[ReelsFlutter] Error getting access token: $e');
+      print('[ReelsSDK-Flutter] Error getting access token: $e');
       return null;
     }
   }

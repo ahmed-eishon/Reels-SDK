@@ -10,9 +10,9 @@ class ButtonEventsService {
   void onBeforeLikeButtonClick(String videoId) {
     try {
       api.onBeforeLikeButtonClick(videoId);
-      print('[ReelsFlutter] Before like button clicked: $videoId');
+      print('[ReelsSDK-Flutter] Before like button clicked: $videoId');
     } catch (e) {
-      print('[ReelsFlutter] Error on before like: $e');
+      print('[ReelsSDK-Flutter] Error on before like: $e');
     }
   }
 
@@ -21,10 +21,10 @@ class ButtonEventsService {
     try {
       api.onAfterLikeButtonClick(videoId, isLiked, likeCount);
       print(
-        '[ReelsFlutter] After like button clicked: $videoId, liked: $isLiked, count: $likeCount',
+        '[ReelsSDK-Flutter] After like button clicked: $videoId, liked: $isLiked, count: $likeCount',
       );
     } catch (e) {
-      print('[ReelsFlutter] Error on after like: $e');
+      print('[ReelsSDK-Flutter] Error on after like: $e');
     }
   }
 
@@ -45,9 +45,9 @@ class ButtonEventsService {
         thumbnailUrl: thumbnailUrl,
       );
       api.onShareButtonClick(shareData);
-      print('[ReelsFlutter] Share button clicked: $videoId');
+      print('[ReelsSDK-Flutter] Share button clicked: $videoId');
     } catch (e) {
-      print('[ReelsFlutter] Error on share: $e');
+      print('[ReelsSDK-Flutter] Error on share: $e');
     }
   }
 

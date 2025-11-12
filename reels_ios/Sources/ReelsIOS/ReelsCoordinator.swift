@@ -16,11 +16,13 @@ public class ReelsCoordinator {
     /// - Parameters:
     ///   - from: The view controller to present from
     ///   - itemId: Optional item ID to display (can be passed via initial route)
+    ///   - collectData: Optional collect data as dictionary to pass to Flutter
     ///   - animated: Whether to animate the presentation
     ///   - completion: Completion handler called after presentation
     public static func openReels(
         from viewController: UIViewController,
         itemId: String? = nil,
+        collectData: [String: Any?]? = nil,
         animated: Bool = true,
         completion: (() -> Void)? = nil
     ) {
@@ -35,6 +37,7 @@ public class ReelsCoordinator {
         ReelsModule.openReels(
             from: viewController,
             initialRoute: initialRoute,
+            collectData: collectData,
             animated: animated,
             completion: completion
         )

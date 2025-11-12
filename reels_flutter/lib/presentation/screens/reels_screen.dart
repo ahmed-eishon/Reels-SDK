@@ -54,8 +54,18 @@ class _ReelsScreenState extends State<ReelsScreen>
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
+    print('[ReelsSDK-Flutter] ReelsScreen.didChangeDependencies() called');
+
     // Subscribe to route changes
     routeObserver.subscribe(this, ModalRoute.of(context) as PageRoute);
+
+    // Reload videos to fetch any new collect data when dependencies change
+    // This ensures we get fresh data even if route observer doesn't fire
+    final videoProvider = context.read<VideoProvider>();
+    if (videoProvider.hasLoadedOnce) {
+      print('[ReelsSDK-Flutter] ReelsScreen: Dependencies changed, reloading videos');
+      videoProvider.loadVideos();
+    }
   }
 
   @override
@@ -85,9 +95,18 @@ class _ReelsScreenState extends State<ReelsScreen>
   @override
   void didPush() {
     // Called when this route has been pushed
+    print('[ReelsSDK-Flutter] ReelsScreen.didPush() called');
     setState(() {
       _isScreenActive = true;
     });
+
+    // Reload videos to fetch any new collect data when screen is shown again
+    // Skip if this is the initial load (handled by initState)
+    final videoProvider = context.read<VideoProvider>();
+    if (videoProvider.hasLoadedOnce) {
+      print('[ReelsSDK-Flutter] ReelsScreen: Reloading videos to fetch new collect data');
+      videoProvider.loadVideos();
+    }
 
     // Notify native that screen gained focus
     _stateEventsService.notifyScreenFocused(screenName: 'reels_screen');

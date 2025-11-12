@@ -14,6 +14,18 @@ import Flutter
 /// // Launch reels screen
 /// ReelsModule.openReels(from: viewController, initialRoute: "/")
 ///
+/// // Launch reels screen with collect data
+/// let collectData: [String: Any?] = [
+///     "id": collect.id,
+///     "name": collect.name,
+///     "content": collect.content,
+///     "likes": Int64(collect.likeCount),
+///     "comments": Int64(collect.commentCount),
+///     "userName": collect.user?.name,
+///     "userProfileImage": collect.user?.profileImageUrl
+/// ]
+/// ReelsModule.openReels(from: viewController, collectData: collectData)
+///
 /// // Set listener for events
 /// ReelsModule.setListener(self)
 /// ```
@@ -37,6 +49,9 @@ public class ReelsModule {
     /// Debug mode flag
     private static var debugMode: Bool = false
 
+    /// Stored collect data to pass to Flutter
+    private static var initialCollectData: CollectData?
+
     // MARK: - Initialization
 
     /// Initialize the Reels module. Call this once in your AppDelegate.
@@ -58,16 +73,27 @@ public class ReelsModule {
     /// - Parameters:
     ///   - viewController: The view controller to present from
     ///   - initialRoute: Flutter route to navigate to (default: "/")
+    ///   - collectData: Optional collect data as dictionary to pass to Flutter
     ///   - animated: Whether to animate the presentation
     ///   - completion: Completion handler called after presentation
     public static func openReels(
         from viewController: UIViewController,
         initialRoute: String = "/",
+        collectData: [String: Any?]? = nil,
         animated: Bool = true,
         completion: (() -> Void)? = nil
     ) {
         // Store the presenting view controller for navigation
         presentingViewController = viewController
+
+        // Store collect data if provided
+        if let data = collectData {
+            initialCollectData = convertDictionaryToCollectData(data)
+            print("[ReelsSDK-iOS] Stored collect data: id=\(initialCollectData?.id ?? "nil")")
+        } else {
+            initialCollectData = nil
+            print("[ReelsSDK-iOS] No collect data provided")
+        }
 
         let flutterViewController = engineManager.createFlutterViewController(initialRoute: initialRoute)
 
@@ -131,10 +157,11 @@ public class ReelsModule {
 
     // MARK: - Context Data
 
-    /// Get the initial collect data (stub - returns nil for now)
-    /// This will be implemented when collect context is added
+    /// Get the initial collect data that was passed when opening reels
+    /// Returns the collect data if provided, nil otherwise
     internal static func getInitialCollect() -> CollectData? {
-        return nil
+        print("[ReelsSDK-iOS] getInitialCollect called, returning: \(initialCollectData?.id ?? "nil")")
+        return initialCollectData
     }
 
     /// Check if debug mode is enabled
@@ -172,6 +199,30 @@ public class ReelsModule {
         public static let home = "/"
         public static let reels = "/reels"
         public static let profile = "/profile"
+    }
+
+    // MARK: - Helper Methods
+
+    /// Convert dictionary to CollectData
+    /// - Parameter dict: Dictionary containing collect data
+    /// - Returns: CollectData instance
+    private static func convertDictionaryToCollectData(_ dict: [String: Any?]) -> CollectData {
+        return CollectData(
+            id: dict["id"] as? String ?? "",
+            content: dict["content"] as? String,
+            name: dict["name"] as? String,
+            likes: dict["likes"] as? Int64,
+            comments: dict["comments"] as? Int64,
+            recollects: dict["recollects"] as? Int64,
+            isLiked: dict["isLiked"] as? Bool,
+            isCollected: dict["isCollected"] as? Bool,
+            trackingTag: dict["trackingTag"] as? String,
+            userName: dict["userName"] as? String,
+            userProfileImage: dict["userProfileImage"] as? String,
+            itemName: dict["itemName"] as? String,
+            itemImageUrl: dict["itemImageUrl"] as? String,
+            imageUrl: dict["imageUrl"] as? String
+        )
     }
 }
 

@@ -10,9 +10,9 @@ class NavigationEventsService {
   void onSwipeLeft() {
     try {
       api.onSwipeLeft();
-      print('[ReelsFlutter] Swipe left detected - navigating back');
+      print('[ReelsSDK-Flutter] Swipe left detected - navigating back');
     } catch (e) {
-      print('[ReelsFlutter] Error on swipe left: $e');
+      print('[ReelsSDK-Flutter] Error on swipe left: $e');
     }
   }
 
@@ -20,9 +20,9 @@ class NavigationEventsService {
   void onSwipeRight() {
     try {
       api.onSwipeRight();
-      print('[ReelsFlutter] Swipe right detected - opening detail');
+      print('[ReelsSDK-Flutter] Swipe right detected - opening detail');
     } catch (e) {
-      print('[ReelsFlutter] Error on swipe right: $e');
+      print('[ReelsSDK-Flutter] Error on swipe right: $e');
     }
   }
 
@@ -42,9 +42,9 @@ class NavigationEventsService {
   void onUserProfileClick(String userId, String userName) {
     try {
       api.onUserProfileClick(userId, userName);
-      print('[ReelsFlutter] User profile click - userId: $userId, userName: $userName');
+      print('[ReelsSDK-Flutter] User profile click - userId: $userId, userName: $userName');
     } catch (e) {
-      print('[ReelsFlutter] Error on user profile click: $e');
+      print('[ReelsSDK-Flutter] Error on user profile click: $e');
     }
   }
 

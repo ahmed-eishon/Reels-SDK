@@ -19,9 +19,9 @@ class StateEventsService {
         timestamp: timestamp,
       );
       api.onScreenStateChanged(stateData);
-      print('[ReelsFlutter] Screen state changed: $screenName - $state');
+      print('[ReelsSDK-Flutter] Screen state changed: $screenName - $state');
     } catch (e) {
-      print('[ReelsFlutter] Error on screen state change: $e');
+      print('[ReelsSDK-Flutter] Error on screen state change: $e');
     }
   }
 
@@ -40,9 +40,9 @@ class StateEventsService {
         duration: duration?.toInt(),
       );
       api.onVideoStateChanged(stateData);
-      print('[ReelsFlutter] Video state changed: $videoId - $state');
+      print('[ReelsSDK-Flutter] Video state changed: $videoId - $state');
     } catch (e) {
-      print('[ReelsFlutter] Error on video state change: $e');
+      print('[ReelsSDK-Flutter] Error on video state change: $e');
     }
   }
 

@@ -40,6 +40,7 @@ reels_flutter/.android/
 reels_ios/.ios/
 reels_ios/.symlinks/
 reels_ios/build/
+reels_ios/Frameworks/
 
 # Android
 reels_android/build/

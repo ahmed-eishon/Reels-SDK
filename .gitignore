@@ -36,6 +36,11 @@ reels_flutter/.ios/Flutter/Flutter.podspec
 reels_flutter/.ios/
 reels_flutter/.android/
 
+# iOS wrapper build artifacts
+reels_ios/.ios/
+reels_ios/.symlinks/
+reels_ios/build/
+
 # Android
 reels_android/build/
 reels_android/.gradle/

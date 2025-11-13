@@ -101,15 +101,27 @@ class ReelsPigeonHandler: NSObject {
             binaryMessenger: messenger,
             codec: codec
         )
-        dismissReelsChannel.setMessageHandler { message, reply in
+        dismissReelsChannel.setMessageHandler { [weak self] message, reply in
             print("[ReelsSDK-iOS] Received dismiss reels request")
 
             // Dismiss the modal presentation and cleanup
             DispatchQueue.main.async {
-                if let navController = ReelsModule.getFlutterNavigationController() {
-                    navController.presentingViewController?.dismiss(animated: true) {
-                        ReelsModule.clearReferences()
-                    }
+                // CRITICAL FIX FOR NESTED MODALS:
+                // Instead of using the shared static reference (which becomes stale),
+                // find the current navigation controller from the engine's attached view controller
+                guard let strongSelf = self,
+                      let engine = strongSelf.flutterEngine,
+                      let flutterVC = engine.viewController,
+                      let navController = flutterVC.navigationController,
+                      let presentingVC = navController.presentingViewController else {
+                    print("[ReelsSDK-iOS] ⚠️ Cannot find required components to dismiss")
+                    return
+                }
+
+                print("[ReelsSDK-iOS] ✅ Dismissing modal presentation...")
+                presentingVC.dismiss(animated: true) {
+                    print("[ReelsSDK-iOS] ✅ Modal dismissed successfully")
+                    ReelsModule.clearReferences()
                 }
             }
 

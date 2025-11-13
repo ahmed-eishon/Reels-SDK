@@ -31,7 +31,6 @@ class _ReelsScreenState extends State<ReelsScreen>
   int _currentIndex = 0;
   bool _isScreenActive = true;
   int _pageViewGeneration = 0;  // Increment to force complete PageView recreation
-  bool _isDisposingPageController = false;  // Track PageController disposal state
   late AnalyticsService _analyticsService;
   late StateEventsService _stateEventsService;
 
@@ -59,11 +58,10 @@ class _ReelsScreenState extends State<ReelsScreen>
       // Load fresh videos and collect data
       videoProvider.loadVideos();
 
-      // Recreate PageController for fresh presentation after current frame completes
-      // This handles the case where pauseAll disposed it but resumeAll won't be called
-      if (mounted && !_isDisposingPageController) {
+      // Recreate PageController for fresh presentation
+      if (mounted) {
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && !_isDisposingPageController) {
+          if (mounted) {
             setState(() {
               _pageController?.dispose();
               _pageController = PageController();
@@ -83,39 +81,39 @@ class _ReelsScreenState extends State<ReelsScreen>
     lifecycleService.setOnPauseAll(() {
       print('[ReelsSDK-Flutter] ReelsScreen: Pausing all resources');
       if (mounted) {
-        _isDisposingPageController = true;
-
-        // First, set inactive to stop video playback immediately
+        // Set inactive to stop video playback immediately
         setState(() {
           _isScreenActive = false;
           _currentIndex = 0;  // Reset to first video for next session
         });
 
-        // Dispose PageController after current frame to ensure videos have stopped
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          _pageController?.dispose();
-          _pageController = null;
-          _isDisposingPageController = false;
-          print('[ReelsSDK-Flutter] PageController disposed to cleanup video players');
-        });
+        // Dispose PageController synchronously to prevent race conditions
+        // This ensures old video players are fully released before any resume call
+        _pageController?.dispose();
+        _pageController = null;
+        print('[ReelsSDK-Flutter] PageController disposed synchronously to cleanup video players');
       }
     });
 
     // Resume all resources when screen gains focus
     lifecycleService.setOnResumeAll(() {
       print('[ReelsSDK-Flutter] ReelsScreen: Resuming all resources');
-      if (mounted && !_isDisposingPageController) {
-        // Use post-frame callback to ensure previous disposal is complete
+      if (mounted) {
+        // Wait for current frame to complete disposal
         WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted && !_isDisposingPageController) {
-            setState(() {
-              _isScreenActive = true;
-              _pageViewGeneration++;  // Increment generation to force PageView recreation
-              // Create new PageController starting from first video
-              _pageController = PageController(initialPage: 0);
-              print('[ReelsSDK-Flutter] New PageController created (generation: $_pageViewGeneration)');
-            });
-          }
+          // Then wait ONE MORE frame to ensure widget tree cleanup is complete
+          // This prevents creating new video players before old ones are fully disposed
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (mounted) {
+              setState(() {
+                _isScreenActive = true;
+                _pageViewGeneration++;  // Increment generation to force PageView recreation
+                // Create new PageController starting from first video
+                _pageController = PageController(initialPage: 0);
+                print('[ReelsSDK-Flutter] New PageController created after full cleanup (generation: $_pageViewGeneration)');
+              });
+            }
+          });
         });
       }
     });
@@ -262,112 +260,114 @@ class _ReelsScreenState extends State<ReelsScreen>
       backgroundColor: Colors.black,
       body: Stack(
         children: [
+          // Video player with full reels functionality
           Consumer<VideoProvider>(
             builder: (context, videoProvider, child) {
-          // Loading state - show only when loading for the first time
-          if (videoProvider.isLoading && !videoProvider.hasLoadedOnce) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
-
-          // Error state - show only after loading is complete
-          if (videoProvider.hasError) {
-            return Center(
-              child: Padding(
-                padding: const EdgeInsets.all(32.0),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(
-                      Icons.error_outline,
-                      size: 64,
-                      color: Colors.white54,
-                    ),
-                    const SizedBox(height: 16),
-                    Text(
-                      videoProvider.errorMessage ?? 'Something went wrong',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(color: Colors.white, fontSize: 16),
-                    ),
-                    const SizedBox(height: 24),
-                    ElevatedButton.icon(
-                      onPressed: () => videoProvider.loadVideos(),
-                      icon: const Icon(Icons.refresh),
-                      label: const Text('Try Again'),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 32,
-                          vertical: 16,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          }
-
-          // Empty state - show only after loading is complete and no videos
-          if (!videoProvider.hasVideos && videoProvider.hasLoadedOnce) {
-            return Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Icon(
-                    Icons.video_library_outlined,
-                    size: 64,
-                    color: Colors.white54,
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'No videos available',
-                    style: TextStyle(color: Colors.white, fontSize: 16),
-                  ),
-                  const SizedBox(height: 24),
-                  ElevatedButton.icon(
-                    onPressed: _onRefresh,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
-                  ),
-                ],
-              ),
-            );
-          }
-
-          // Success state - display reels
-          // Show loading if PageController is being recreated or no videos yet
-          if (_pageController == null || !videoProvider.hasVideos) {
-            return const Center(
-              child: CircularProgressIndicator(color: Colors.white),
-            );
-          }
-
-          return RefreshIndicator(
-            onRefresh: _onRefresh,
-            color: Colors.white,
-            backgroundColor: Colors.black87,
-            child: PageView.builder(
-              key: ValueKey('pageview_gen_$_pageViewGeneration'),  // Unique key per generation
-              controller: _pageController!,
-              scrollDirection: Axis.vertical,
-              onPageChanged: _onPageChanged,
-              itemCount: videoProvider.videos.length,
-              itemBuilder: (context, index) {
-                final video = videoProvider.videos[index];
-                return VideoReelItem(
-                  key: ValueKey('video_${video.id}_gen_$_pageViewGeneration'),  // Unique key per video and generation
-                  video: video,
-                  onLike: () => videoProvider.toggleLike(video.id),
-                  onShare: () => videoProvider.shareVideo(video.id),
-                  isActive: index == _currentIndex && _isScreenActive,
-                  collectData: videoProvider.collectData,
+              // Loading state - show only when loading for the first time
+              if (videoProvider.isLoading && !videoProvider.hasLoadedOnce) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
                 );
-              },
-            ),
-          );
+              }
+
+              // Error state - show only after loading is complete
+              if (videoProvider.hasError) {
+                return Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(32.0),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(
+                          Icons.error_outline,
+                          size: 64,
+                          color: Colors.white54,
+                        ),
+                        const SizedBox(height: 16),
+                        Text(
+                          videoProvider.errorMessage ?? 'Something went wrong',
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                        const SizedBox(height: 24),
+                        ElevatedButton.icon(
+                          onPressed: () => videoProvider.loadVideos(),
+                          icon: const Icon(Icons.refresh),
+                          label: const Text('Try Again'),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 32,
+                              vertical: 16,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                );
+              }
+
+              // Empty state - show only after loading is complete and no videos
+              if (!videoProvider.hasVideos && videoProvider.hasLoadedOnce) {
+                return Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(
+                        Icons.video_library_outlined,
+                        size: 64,
+                        color: Colors.white54,
+                      ),
+                      const SizedBox(height: 16),
+                      const Text(
+                        'No videos available',
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                      const SizedBox(height: 24),
+                      ElevatedButton.icon(
+                        onPressed: _onRefresh,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Refresh'),
+                      ),
+                    ],
+                  ),
+                );
+              }
+
+              // Success state - display reels
+              // Show loading if PageController is being recreated or no videos yet
+              if (_pageController == null || !videoProvider.hasVideos) {
+                return const Center(
+                  child: CircularProgressIndicator(color: Colors.white),
+                );
+              }
+
+              return RefreshIndicator(
+                onRefresh: _onRefresh,
+                color: Colors.white,
+                backgroundColor: Colors.black87,
+                child: PageView.builder(
+                  key: ValueKey('pageview_gen_$_pageViewGeneration'),  // Unique key per generation
+                  controller: _pageController!,
+                  scrollDirection: Axis.vertical,
+                  onPageChanged: _onPageChanged,
+                  itemCount: videoProvider.videos.length,
+                  itemBuilder: (context, index) {
+                    final video = videoProvider.videos[index];
+                    return VideoReelItem(
+                      key: ValueKey('video_${video.id}_gen_$_pageViewGeneration'),  // Unique key per video and generation
+                      video: video,
+                      onLike: () => videoProvider.toggleLike(video.id),
+                      onShare: () => videoProvider.shareVideo(video.id),
+                      isActive: index == _currentIndex && _isScreenActive,
+                      collectData: videoProvider.collectData,
+                    );
+                  },
+                ),
+              );
             },
           ),
+
           // Close button overlay
           SafeArea(
             child: Align(
@@ -376,6 +376,7 @@ class _ReelsScreenState extends State<ReelsScreen>
                 padding: const EdgeInsets.all(16.0),
                 child: GestureDetector(
                   onTap: () {
+                    print('[ReelsSDK-Flutter] 🔴 Close button tapped');
                     // Call native to dismiss the modal presentation
                     // This triggers cleanup on iOS side
                     final navigationService = sl<NavigationEventsService>();

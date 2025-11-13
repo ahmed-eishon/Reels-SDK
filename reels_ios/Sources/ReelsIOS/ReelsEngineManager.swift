@@ -76,9 +76,9 @@ class ReelsEngineManager {
             bundle: nil
         )
 
-        // Explicitly trigger state reset for fresh screen presentation
-        // This ensures collect data is fetched fresh each time
-        print("[ReelsSDK-iOS] Triggering Flutter state reset for fresh presentation")
+        // ALWAYS reset state for stateless behavior
+        // Each screen presentation gets fresh data based on initial collectData
+        print("[ReelsSDK-iOS] Triggering Flutter state reset for stateless presentation")
         let lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger: engine.binaryMessenger)
         lifecycleApi.resetState { result in
             switch result {

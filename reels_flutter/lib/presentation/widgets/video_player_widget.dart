@@ -28,6 +28,9 @@ class VideoPlayerWidget extends StatefulWidget {
 }
 
 class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
+  // Static counter to track total active video player instances
+  static int _instanceCount = 0;
+
   VideoPlayerController? _videoPlayerController;
   ChewieController? _chewieController;
   bool _isInitialized = false;
@@ -40,6 +43,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   @override
   void initState() {
     super.initState();
+    _instanceCount++;
+    print('[VideoPlayer] 🎬 CREATED - Total active instances: $_instanceCount');
     _safeSetState(() {
       _isInitializing = true;
     });
@@ -288,6 +293,8 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
 
   @override
   void dispose() {
+    _instanceCount--;
+    print('[VideoPlayer] 🗑️  DISPOSED - Remaining active instances: $_instanceCount');
     _isDisposed = true;
 
     // Dispose video controller only if it was created

@@ -197,6 +197,7 @@ public class ReelsModule {
         flutterNavigationController = nil
         listener = nil
         initialCollectData = nil
+
         // Also clear ReelsCoordinator references
         ReelsCoordinator.clearReferences()
         print("[ReelsSDK] All references cleared")
@@ -357,6 +358,10 @@ private class FlutterViewControllerWrapper: UIViewController {
 
     private let flutterViewController: FlutterViewController
 
+    /// Track if this view controller instance has been initialized with resetState
+    /// Only call resumeAll if we've been initialized, otherwise we have no state to resume
+    private var hasBeenInitialized = false
+
     init(flutterViewController: FlutterViewController) {
         self.flutterViewController = flutterViewController
         super.init(nibName: nil, bundle: nil)
@@ -390,6 +395,19 @@ private class FlutterViewControllerWrapper: UIViewController {
         // This ensures the bar is hidden even when navigating back from native screens
         navigationController?.setNavigationBarHidden(true, animated: animated)
 
+        // CRITICAL FIX FOR NESTED MODALS:
+        // Re-attach this view controller to the engine if it was detached
+        // This happens when another Reels modal was opened on top of this one
+        // Each engine can only have one active view controller, so we must re-attach
+        // when coming back to this view controller in the stack
+        let engine = ReelsEngineManager.shared.getEngine()
+        if engine?.viewController !== flutterViewController {
+            print("[ReelsSDK-DEBUG]   🔗 Re-attaching view controller to engine (was detached by nested modal)")
+            engine?.viewController = flutterViewController
+        } else {
+            print("[ReelsSDK-DEBUG]   ✅ View controller already attached to engine")
+        }
+
         // Ensure Flutter view frame is correct when coming back
         // This fixes layout corruption after multiple navigation cycles
         flutterViewController.view.frame = view.bounds
@@ -397,9 +415,14 @@ private class FlutterViewControllerWrapper: UIViewController {
 
         // Resume Flutter resources when navigating back
         // Check if we're appearing after being pushed off the stack
+        // IMPORTANT: Only resume if this view has been initialized, otherwise we have no state to resume
         if isMovingToParent == false && isBeingPresented == false {
-            print("[ReelsSDK-DEBUG]   🔄 Will resume Flutter resources")
-            ReelsModule.resumeFlutter()
+            if hasBeenInitialized {
+                print("[ReelsSDK-DEBUG]   🔄 Will resume Flutter resources (view was initialized)")
+                ReelsModule.resumeFlutter()
+            } else {
+                print("[ReelsSDK-DEBUG]   ⏭️ Skipping resume - view not yet initialized")
+            }
         }
 
         print("[ReelsSDK-DEBUG] 🟢 viewWillAppear - END")
@@ -412,6 +435,11 @@ private class FlutterViewControllerWrapper: UIViewController {
         print("[ReelsSDK-DEBUG]   view.frame: \(view.frame)")
         print("[ReelsSDK-DEBUG]   flutterView.frame: \(flutterViewController.view.frame)")
         print("[ReelsSDK-DEBUG]   navigationController: \(String(describing: navigationController))")
+
+        // Mark view as initialized after it has appeared
+        // This ensures resetState has been called and the view is ready
+        hasBeenInitialized = true
+        print("[ReelsSDK-DEBUG]   ✅ View controller marked as initialized")
 
         // Child view controller automatically receives lifecycle callbacks
         // No need to call manually
@@ -443,7 +471,9 @@ private class FlutterViewControllerWrapper: UIViewController {
             print("[ReelsSDK-DEBUG]   ⏸️ Will pause Flutter resources")
             ReelsModule.pauseFlutter()
         } else {
-            print("[ReelsSDK-DEBUG]   ⏹️ Skipping pause (being dismissed or moving from parent)")
+            print("[ReelsSDK-DEBUG]   🗑️ Final dismissal - resetting initialization flag")
+            // Reset the flag so next presentation will NOT call resumeAll inappropriately
+            hasBeenInitialized = false
         }
 
         print("[ReelsSDK-DEBUG] 🔴 viewWillDisappear - END")
@@ -472,5 +502,6 @@ private class FlutterViewControllerWrapper: UIViewController {
 
     deinit {
         print("[ReelsSDK] FlutterViewControllerWrapper deallocated")
+        // Note: Flag is reset in viewWillDisappear, not here, to ensure proper timing
     }
 }

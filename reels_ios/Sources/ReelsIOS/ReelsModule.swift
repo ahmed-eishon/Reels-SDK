@@ -52,6 +52,24 @@ public class ReelsModule {
     /// Stored collect data to pass to Flutter
     private static var initialCollectData: CollectData?
 
+    // MARK: - SDK Info
+
+    /// SDK version
+    public static let sdkVersion = "1.0.0"
+
+    /// SDK generation number - increments each time reels screen is opened
+    /// Used to track lifecycle across nested modal presentations
+    private static var generationNumber: Int = 0
+
+    /// Get current SDK info
+    public static func getSDKInfo() -> SDKInfo {
+        return SDKInfo(
+            version: sdkVersion,
+            generation: generationNumber,
+            debugMode: debugMode
+        )
+    }
+
     // MARK: - Initialization
 
     /// Initialize the Reels module. Call this once in your AppDelegate.
@@ -83,6 +101,10 @@ public class ReelsModule {
         animated: Bool = true,
         completion: (() -> Void)? = nil
     ) {
+        // Increment generation number for each new presentation
+        generationNumber += 1
+        print("[ReelsSDK-iOS] 🎬 Opening Reels - Generation #\(generationNumber) | Version: \(sdkVersion)")
+
         // Store the presenting view controller for navigation
         presentingViewController = viewController
 
@@ -503,5 +525,25 @@ private class FlutterViewControllerWrapper: UIViewController {
     deinit {
         print("[ReelsSDK] FlutterViewControllerWrapper deallocated")
         // Note: Flag is reset in viewWillDisappear, not here, to ensure proper timing
+    }
+}
+
+// MARK: - SDK Info
+
+/// SDK information struct
+public struct SDKInfo {
+    /// SDK version
+    public let version: String
+
+    /// Generation number - increments each time reels screen is opened
+    /// Useful for tracking lifecycle across nested modal presentations
+    public let generation: Int
+
+    /// Debug mode flag
+    public let debugMode: Bool
+
+    /// Human-readable description
+    public var description: String {
+        return "ReelsSDK v\(version) (Generation #\(generation)) - Debug: \(debugMode ? "ON" : "OFF")"
     }
 }

@@ -146,8 +146,8 @@ Pod::Spec.new do |spec|
   # Consumer's Podfile must set FLUTTER_BUILD_MODE build setting to select correct variant
   spec.vendored_frameworks = ['Frameworks/Debug/*.xcframework', 'Frameworks/Release/*.xcframework']
 
-  # Preserve Flutter source for reference
-  spec.preserve_paths = 'reels_flutter/**/*'
+  # Preserve Flutter source for reference and VERSION file for prepare_command
+  spec.preserve_paths = ['reels_flutter/**/*', 'VERSION']
 
   # Exclude build artifacts and development files
   spec.exclude_files = [

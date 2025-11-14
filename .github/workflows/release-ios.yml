@@ -99,10 +99,10 @@ jobs:
           echo "Generated: $(date)" >> RELEASE_MANIFEST.txt
           echo "" >> RELEASE_MANIFEST.txt
           echo "=== Debug Frameworks ===" >> RELEASE_MANIFEST.txt
-          cat FRAMEWORK_MANIFEST_Debug.txt | grep -A 100 "Frameworks:" >> RELEASE_MANIFEST.txt
+          cat FRAMEWORK_MANIFEST_Debug.txt | grep -A 100 "Frameworks" >> RELEASE_MANIFEST.txt
           echo "" >> RELEASE_MANIFEST.txt
           echo "=== Release Frameworks ===" >> RELEASE_MANIFEST.txt
-          cat FRAMEWORK_MANIFEST_Release.txt | grep -A 100 "Frameworks:" >> RELEASE_MANIFEST.txt
+          cat FRAMEWORK_MANIFEST_Release.txt | grep -A 100 "Frameworks" >> RELEASE_MANIFEST.txt
 
       - name: Calculate checksums
         run: |

@@ -58,3 +58,6 @@ local.properties
 # Logs
 *.log
 *.tmp
+
+# Script logs
+scripts/logs/*.log

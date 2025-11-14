@@ -142,9 +142,10 @@ Pod::Spec.new do |spec|
 
   # Vendored frameworks
   # In local dev: uses reels_flutter/.ios/Flutter/Debug (built by dev scripts)
-  # In distribution: uses Frameworks/Debug and Frameworks/Release (downloaded by prepare_command)
-  # Consumer's Podfile must set FLUTTER_BUILD_MODE build setting to select correct variant
-  spec.vendored_frameworks = ['Frameworks/Debug/*.xcframework', 'Frameworks/Release/*.xcframework']
+  # Vendor Release frameworks by default
+  # Both Debug and Release are preserved and available in Frameworks/ directory
+  # Podfile xcframework script will swap to Debug frameworks when needed based on FLUTTER_BUILD_MODE
+  spec.vendored_frameworks = 'Frameworks/Release/*.xcframework'
 
   # Preserve Flutter source for reference and VERSION file for prepare_command
   spec.preserve_paths = ['reels_flutter/**/*', 'VERSION']

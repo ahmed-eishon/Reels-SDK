@@ -141,11 +141,14 @@ Pod::Spec.new do |spec|
   CMD
 
   # Vendored frameworks
+  # Frameworks are renamed with _Debug/_Release suffix to avoid CocoaPods conflicts
   # In local dev: uses reels_flutter/.ios/Flutter/Debug (built by dev scripts)
-  # Vendor Release frameworks by default
-  # Both Debug and Release are preserved and available in Frameworks/ directory
-  # Podfile xcframework script will swap to Debug frameworks when needed based on FLUTTER_BUILD_MODE
-  spec.vendored_frameworks = 'Frameworks/Release/*.xcframework'
+  # Vendor both Debug and Release frameworks with unique names:
+  #   - Debug: App_Debug.xcframework, Flutter_Debug.xcframework, etc.
+  #   - Release: App_Release.xcframework, Flutter_Release.xcframework, etc.
+  # The build phase script (set up in Podfile post_install) creates symlinks with
+  # original names (App.xcframework → App_Debug.xcframework) based on build configuration
+  spec.vendored_frameworks = ['Frameworks/Debug/*.xcframework', 'Frameworks/Release/*.xcframework']
 
   # Preserve Flutter source for reference and VERSION file for prepare_command
   spec.preserve_paths = ['reels_flutter/**/*', 'VERSION']

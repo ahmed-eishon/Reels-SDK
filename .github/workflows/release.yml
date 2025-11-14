@@ -33,6 +33,17 @@ jobs:
         with:
           flutter-version: '3.35.6'
           channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            reels_flutter/.dart_tool
+          key: ${{ runner.os }}-flutter-${{ hashFiles('reels_flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
 
       - name: Flutter doctor
         run: flutter doctor -v

@@ -360,10 +360,35 @@ class ReelsFlutterContextApi {
   final String pigeonVar_messageChannelSuffix;
 
   /// Get the Collect data that was used to open this screen
+  /// @param generation The generation number of the screen instance
   /// @return CollectData object if opened from a Collect, null otherwise
   /// If null, Flutter will show "no videos" screen
-  Future<CollectData?> getInitialCollect() async {
+  Future<CollectData?> getInitialCollect(int generation) async {
     final String pigeonVar_channelName = 'dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect$pigeonVar_messageChannelSuffix';
+    final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
+      pigeonVar_channelName,
+      pigeonChannelCodec,
+      binaryMessenger: pigeonVar_binaryMessenger,
+    );
+    final List<Object?>? pigeonVar_replyList =
+        await pigeonVar_channel.send(<Object?>[generation]) as List<Object?>?;
+    if (pigeonVar_replyList == null) {
+      throw _createConnectionError(pigeonVar_channelName);
+    } else if (pigeonVar_replyList.length > 1) {
+      throw PlatformException(
+        code: pigeonVar_replyList[0]! as String,
+        message: pigeonVar_replyList[1] as String?,
+        details: pigeonVar_replyList[2],
+      );
+    } else {
+      return (pigeonVar_replyList[0] as CollectData?);
+    }
+  }
+
+  /// Get the current generation number from native
+  /// @return Current generation number
+  Future<int> getCurrentGeneration() async {
+    final String pigeonVar_channelName = 'dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getCurrentGeneration$pigeonVar_messageChannelSuffix';
     final BasicMessageChannel<Object?> pigeonVar_channel = BasicMessageChannel<Object?>(
       pigeonVar_channelName,
       pigeonChannelCodec,
@@ -379,8 +404,13 @@ class ReelsFlutterContextApi {
         message: pigeonVar_replyList[1] as String?,
         details: pigeonVar_replyList[2],
       );
+    } else if (pigeonVar_replyList[0] == null) {
+      throw PlatformException(
+        code: 'null-error',
+        message: 'Host platform returned null value for non-null return value.',
+      );
     } else {
-      return (pigeonVar_replyList[0] as CollectData?);
+      return (pigeonVar_replyList[0] as int?)!;
     }
   }
 
@@ -745,7 +775,8 @@ abstract class ReelsFlutterLifecycleApi {
 
   /// Resume all resources when screen gains focus
   /// Called when screen returns to foreground or top of stack
-  void resumeAll();
+  /// @param generation The generation number of the screen being resumed
+  void resumeAll(int generation);
 
   static void setUp(ReelsFlutterLifecycleApi? api, {BinaryMessenger? binaryMessenger, String messageChannelSuffix = '',}) {
     messageChannelSuffix = messageChannelSuffix.isNotEmpty ? '.$messageChannelSuffix' : '';
@@ -795,8 +826,14 @@ abstract class ReelsFlutterLifecycleApi {
         pigeonVar_channel.setMessageHandler(null);
       } else {
         pigeonVar_channel.setMessageHandler((Object? message) async {
+          assert(message != null,
+          'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.resumeAll was null.');
+          final List<Object?> args = (message as List<Object?>?)!;
+          final int? arg_generation = (args[0] as int?);
+          assert(arg_generation != null,
+              'Argument for dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.resumeAll was null, expected non-null int.');
           try {
-            api.resumeAll();
+            api.resumeAll(arg_generation!);
             return wrapResponse(empty: true);
           } on PlatformException catch (e) {
             return wrapResponse(error: e);

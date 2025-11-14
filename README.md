@@ -429,6 +429,36 @@ These verification scripts check:
 - Pigeon generated files
 - Build configurations
 
+### iOS Development Build Scripts
+
+For iOS development and testing:
+
+```bash
+# Clean install: Regenerate all artifacts
+./scripts/clean-install-ios.sh
+
+# Quick incremental build (for room-ios)
+./scripts/build-room-ios.sh
+
+# Complete clean build (for room-ios)
+./scripts/clean-build-room-ios.sh
+```
+
+**Auto-detection:** Build scripts automatically detect `room-ios` if it's a sibling directory:
+```
+~/workspace/
+  ├── reels-sdk/
+  └── room-ios/ROOM/
+```
+
+**Manual configuration:**
+```bash
+export ROOM_IOS_DIR=/path/to/room-ios/ROOM
+./scripts/build-room-ios.sh
+```
+
+See the iOS Integration Guide for detailed script documentation.
+
 ### Regenerating Pigeon Code
 
 When modifying platform communication APIs:

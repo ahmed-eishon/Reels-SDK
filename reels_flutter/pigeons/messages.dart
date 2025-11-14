@@ -130,9 +130,14 @@ abstract class ReelsFlutterTokenApi {
 @HostApi()
 abstract class ReelsFlutterContextApi {
   /// Get the Collect data that was used to open this screen
+  /// @param generation The generation number of the screen instance
   /// @return CollectData object if opened from a Collect, null otherwise
   /// If null, Flutter will show "no videos" screen
-  CollectData? getInitialCollect();
+  CollectData? getInitialCollect(int generation);
+
+  /// Get the current generation number from native
+  /// @return Current generation number
+  int getCurrentGeneration();
 
   /// Check if debug mode is enabled
   /// @return true if debug mode is enabled, false otherwise
@@ -199,5 +204,6 @@ abstract class ReelsFlutterLifecycleApi {
 
   /// Resume all resources when screen gains focus
   /// Called when screen returns to foreground or top of stack
-  void resumeAll();
+  /// @param generation The generation number of the screen being resumed
+  void resumeAll(int generation);
 }

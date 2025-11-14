@@ -49,8 +49,9 @@ public class ReelsModule {
     /// Debug mode flag
     private static var debugMode: Bool = false
 
-    /// Stored collect data to pass to Flutter
-    private static var initialCollectData: CollectData?
+    /// Stored collect data by generation number to support nested modals
+    /// Each screen instance has its own collect data keyed by generation
+    private static var collectDataByGeneration: [Int: CollectData] = [:]
 
     // MARK: - SDK Info
 
@@ -108,20 +109,22 @@ public class ReelsModule {
         // Store the presenting view controller for navigation
         presentingViewController = viewController
 
-        // Store collect data if provided
+        // Store collect data by generation number to support nested modals
         if let data = collectData {
-            initialCollectData = convertDictionaryToCollectData(data)
-            print("[ReelsSDK-iOS] ✅ Stored collect data: id=\(initialCollectData?.id ?? "nil"), name=\(initialCollectData?.name ?? "nil")")
+            let collectDataObj = convertDictionaryToCollectData(data)
+            collectDataByGeneration[generationNumber] = collectDataObj
+            print("[ReelsSDK-iOS] ✅ Stored collect data for generation #\(generationNumber): id=\(collectDataObj.id), name=\(collectDataObj.name ?? "nil")")
         } else {
-            initialCollectData = nil
-            print("[ReelsSDK-iOS] ⚠️ No collect data provided - initialCollectData set to nil")
+            collectDataByGeneration[generationNumber] = nil
+            print("[ReelsSDK-iOS] ⚠️ No collect data provided for generation #\(generationNumber)")
         }
-        print("[ReelsSDK-iOS] Current initialCollectData state: \(initialCollectData != nil ? "HAS DATA" : "NIL")")
+        print("[ReelsSDK-iOS] Total stored collect data entries: \(collectDataByGeneration.count)")
 
         let flutterViewController = engineManager.createFlutterViewController(initialRoute: initialRoute)
 
         // Wrap Flutter VC to handle navigation bar visibility
-        let wrapper = FlutterViewControllerWrapper(flutterViewController: flutterViewController)
+        // Pass the generation number so wrapper knows which screen instance it represents
+        let wrapper = FlutterViewControllerWrapper(flutterViewController: flutterViewController, generation: generationNumber)
 
         // Wrap Flutter in a navigation controller to enable native screen stacking
         let navigationController = UINavigationController(rootViewController: wrapper)
@@ -183,11 +186,19 @@ public class ReelsModule {
 
     // MARK: - Context Data
 
-    /// Get the initial collect data that was passed when opening reels
-    /// Returns the collect data if provided, nil otherwise
-    internal static func getInitialCollect() -> CollectData? {
-        print("[ReelsSDK-iOS] getInitialCollect called, returning: \(initialCollectData?.id ?? "nil")")
-        return initialCollectData
+    /// Get the initial collect data for a specific generation
+    /// - Parameter generation: The generation number of the screen instance
+    /// - Returns: CollectData for the specified generation, or nil if not found
+    internal static func getInitialCollect(generation: Int) -> CollectData? {
+        let collectData = collectDataByGeneration[generation]
+        print("[ReelsSDK-iOS] getInitialCollect(generation: \(generation)) called, returning: \(collectData?.id ?? "nil")")
+        return collectData
+    }
+
+    /// Get the current generation number
+    /// - Returns: Current generation number
+    internal static func getCurrentGeneration() -> Int {
+        return generationNumber
     }
 
     /// Check if debug mode is enabled
@@ -218,7 +229,9 @@ public class ReelsModule {
         presentingViewController = nil
         flutterNavigationController = nil
         listener = nil
-        initialCollectData = nil
+        // Note: We don't clear collectDataByGeneration here because multiple
+        // nested modals may exist simultaneously. Each generation's data is
+        // managed independently and will be cleared when no longer needed.
 
         // Also clear ReelsCoordinator references
         ReelsCoordinator.clearReferences()
@@ -253,20 +266,21 @@ public class ReelsModule {
     }
 
     /// Resume Flutter resources (videos, network) when screen gains focus
-    internal static func resumeFlutter() {
-        print("[ReelsSDK-DEBUG] ▶️ resumeFlutter() called")
+    /// - Parameter generation: The generation number of the screen being resumed
+    internal static func resumeFlutter(generation: Int) {
+        print("[ReelsSDK-DEBUG] ▶️ resumeFlutter(generation: \(generation)) called")
 
         guard let engine = engineManager.getEngine() else {
             print("[ReelsSDK-DEBUG] ❌ Cannot resume - no Flutter engine")
             return
         }
 
-        print("[ReelsSDK-DEBUG] 📞 Calling Flutter resumeAll API")
+        print("[ReelsSDK-DEBUG] 📞 Calling Flutter resumeAll(\(generation)) API")
         let lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger: engine.binaryMessenger)
-        lifecycleApi.resumeAll { result in
+        lifecycleApi.resumeAll(generation: Int64(generation)) { result in
             switch result {
             case .success:
-                print("[ReelsSDK-DEBUG] ✅ Flutter resources resumed successfully")
+                print("[ReelsSDK-DEBUG] ✅ Flutter resources resumed successfully for generation \(generation)")
             case .failure(let error):
                 print("[ReelsSDK-DEBUG] ❌ Error resuming Flutter resources: \(error)")
             }
@@ -380,12 +394,17 @@ private class FlutterViewControllerWrapper: UIViewController {
 
     private let flutterViewController: FlutterViewController
 
+    /// The generation number of this specific screen instance
+    /// Each modal presentation gets a unique generation number
+    private let generation: Int
+
     /// Track if this view controller instance has been initialized with resetState
     /// Only call resumeAll if we've been initialized, otherwise we have no state to resume
     private var hasBeenInitialized = false
 
-    init(flutterViewController: FlutterViewController) {
+    init(flutterViewController: FlutterViewController, generation: Int) {
         self.flutterViewController = flutterViewController
+        self.generation = generation
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -440,8 +459,8 @@ private class FlutterViewControllerWrapper: UIViewController {
         // IMPORTANT: Only resume if this view has been initialized, otherwise we have no state to resume
         if isMovingToParent == false && isBeingPresented == false {
             if hasBeenInitialized {
-                print("[ReelsSDK-DEBUG]   🔄 Will resume Flutter resources (view was initialized)")
-                ReelsModule.resumeFlutter()
+                print("[ReelsSDK-DEBUG]   🔄 Will resume Flutter resources for generation \(generation)")
+                ReelsModule.resumeFlutter(generation: generation)
             } else {
                 print("[ReelsSDK-DEBUG]   ⏭️ Skipping resume - view not yet initialized")
             }

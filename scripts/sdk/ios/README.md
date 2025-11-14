@@ -93,6 +93,77 @@ Pure SDK operations with no app dependencies. These scripts work directly with t
 - When platform channels are out of sync
 - After updating Pigeon version
 
+---
+
+### `package-frameworks.sh`
+**Purpose:** Package Flutter frameworks for distribution
+
+**Usage:**
+```bash
+./package-frameworks.sh [Debug|Release]
+```
+
+**Options:**
+- `Debug` - Package Debug frameworks
+- `Release` - Package Release frameworks (default)
+
+**What it does:**
+- Verifies frameworks exist
+- Creates zip archive
+- Generates checksum and manifest
+- Ready for GitHub release upload
+
+**When to use:**
+- Before creating a release
+- Manual framework distribution
+- Testing release packages
+
+**Examples:**
+```bash
+# Package Release frameworks (default)
+./package-frameworks.sh
+
+# Package Debug frameworks
+./package-frameworks.sh Debug
+```
+
+---
+
+### `prepare-release.sh`
+**Purpose:** Create new SDK release with GitHub Actions automation
+
+**Usage:**
+```bash
+./prepare-release.sh [VERSION]
+```
+
+**What it does:**
+1. Verifies git status and SDK integrity
+2. Validates podspec
+3. Creates git tag
+4. Pushes tag to GitHub
+5. Triggers GitHub Actions to build and release
+
+**When to use:**
+- Creating a new release
+- After updating VERSION file
+
+**Examples:**
+```bash
+# Use VERSION file
+./prepare-release.sh
+
+# Specify version
+./prepare-release.sh 1.0.0
+```
+
+**What happens after:**
+- GitHub Actions builds Debug + Release frameworks
+- Packages them into zip files
+- Creates GitHub Release automatically
+- Uploads framework zips as assets
+- Users can install via CocoaPods (no Flutter required!)
+
 ## Common Workflows
 
 ### Initial SDK Setup
@@ -110,13 +181,36 @@ Pure SDK operations with no app dependencies. These scripts work directly with t
 ./verify.sh
 ```
 
-### Before Release
+### Creating a Release
+```bash
+# 1. Update VERSION file
+echo "1.0.0" > ../../../VERSION
+
+# 2. Commit changes
+git add .
+git commit -m "Prepare release v1.0.0"
+git push
+
+# 3. Prepare and push release
+./prepare-release.sh 1.0.0
+
+# GitHub Actions will automatically:
+#  - Build Debug + Release frameworks
+#  - Package into zips
+#  - Create GitHub Release
+#  - Upload framework assets
+```
+
+### Before Release (Manual Check)
 ```bash
 # Verify SDK integrity
 ./verify.sh
 
 # If issues found, run setup
 ./setup.sh
+
+# Package frameworks locally (optional)
+./package-frameworks.sh Release
 ```
 
 ### Building Frameworks Only

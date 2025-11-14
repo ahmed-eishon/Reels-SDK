@@ -234,14 +234,24 @@ extension ReelsPigeonHandler: ReelsFlutterTokenApi {
 
 extension ReelsPigeonHandler: ReelsFlutterContextApi {
     /// Get the initial Collect data that was used to open this screen
-    func getInitialCollect() throws -> CollectData? {
-        let collectData = ReelsModule.getInitialCollect()
+    /// - Parameter generation: The generation number of the screen instance
+    /// - Returns: CollectData for the specified generation, or nil if not found
+    func getInitialCollect(generation: Int64) throws -> CollectData? {
+        let collectData = ReelsModule.getInitialCollect(generation: Int(generation))
         if let collect = collectData {
-            print("[ReelsSDK-iOS] Returning collect data: id=\(collect.id), name=\(collect.name ?? "nil")")
+            print("[ReelsSDK-iOS] Returning collect data for generation #\(generation): id=\(collect.id), name=\(collect.name ?? "nil")")
         } else {
-            print("[ReelsSDK-iOS] No collect data available")
+            print("[ReelsSDK-iOS] No collect data available for generation #\(generation)")
         }
         return collectData
+    }
+
+    /// Get the current generation number
+    /// - Returns: Current generation number
+    func getCurrentGeneration() throws -> Int64 {
+        let generation = ReelsModule.getCurrentGeneration()
+        print("[ReelsSDK-iOS] Current generation: \(generation)")
+        return Int64(generation)
     }
 
     /// Check if debug mode is enabled

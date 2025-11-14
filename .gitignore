@@ -61,3 +61,11 @@ local.properties
 
 # Script logs
 scripts/logs/*.log
+
+# SDK Distribution
+.reelsdk-dev                    # Local development mode marker
+Frameworks/                     # Pre-built frameworks directory
+*.zip                           # Framework distribution zips
+FRAMEWORK_MANIFEST_*.txt        # Framework manifests
+CHECKSUMS.txt                   # Checksum files
+RELEASE_MANIFEST.txt            # Release manifests

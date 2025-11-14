@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:reels_flutter/core/config/reels_config.dart';
 import 'package:reels_flutter/core/di/injection_container.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
+import 'package:reels_flutter/core/services/collect_context_service.dart';
 import 'package:reels_flutter/core/services/lifecycle_service.dart';
 import 'package:reels_flutter/core/services/navigation_events_service.dart';
 import 'package:reels_flutter/core/services/state_events_service.dart';
@@ -31,6 +33,7 @@ class _ReelsScreenState extends State<ReelsScreen>
   int _currentIndex = 0;
   bool _isScreenActive = true;
   int _pageViewGeneration = 0;  // Increment to force complete PageView recreation
+  int? _screenGeneration;  // THIS screen's generation number (set once on resetState)
   late AnalyticsService _analyticsService;
   late StateEventsService _stateEventsService;
 
@@ -48,15 +51,22 @@ class _ReelsScreenState extends State<ReelsScreen>
 
     // Reset state callback - triggered by native when screen is presented
     // This ensures each screen presentation gets fresh collect data
-    lifecycleService.setOnResetState(() {
+    lifecycleService.setOnResetState(() async {
       print('[ReelsSDK-Flutter] ReelsScreen: Resetting state via lifecycle callback');
+
+      // Fetch and store THIS screen's generation number
+      final collectContextService = sl<CollectContextService>();
+      final generation = await collectContextService.getCurrentGeneration();
+      _screenGeneration = generation;
+      print('[ReelsSDK-Flutter] ReelsScreen: Stored screen generation: $_screenGeneration');
+
       final videoProvider = context.read<VideoProvider>();
 
       // Reset to clear any stale data from previous screen
       videoProvider.reset();
 
-      // Load fresh videos and collect data
-      videoProvider.loadVideos();
+      // Load fresh videos and collect data for THIS screen's generation
+      videoProvider.loadVideos(generation: _screenGeneration);
 
       // Recreate PageController for fresh presentation
       if (mounted) {
@@ -96,9 +106,20 @@ class _ReelsScreenState extends State<ReelsScreen>
     });
 
     // Resume all resources when screen gains focus
-    lifecycleService.setOnResumeAll(() {
-      print('[ReelsSDK-Flutter] ReelsScreen: Resuming all resources');
+    // iOS passes the generation of the specific screen being resumed
+    lifecycleService.setOnResumeAll((int generation) async {
+      print('[ReelsSDK-Flutter] ReelsScreen: Resuming all resources for generation: $generation');
       if (mounted) {
+        final videoProvider = context.read<VideoProvider>();
+
+        // Reload videos using the generation passed from iOS
+        // This may use cached state for instant resume
+        await videoProvider.loadVideos(generation: generation);
+
+        // Get saved position for this generation
+        final savedIndex = videoProvider.getCurrentIndex();
+        print('[ReelsSDK-Flutter] ReelsScreen: Restoring to index $savedIndex');
+
         // Wait for current frame to complete disposal
         WidgetsBinding.instance.addPostFrameCallback((_) {
           // Then wait ONE MORE frame to ensure widget tree cleanup is complete
@@ -107,10 +128,11 @@ class _ReelsScreenState extends State<ReelsScreen>
             if (mounted) {
               setState(() {
                 _isScreenActive = true;
+                _currentIndex = savedIndex;  // Restore saved position
                 _pageViewGeneration++;  // Increment generation to force PageView recreation
-                // Create new PageController starting from first video
-                _pageController = PageController(initialPage: 0);
-                print('[ReelsSDK-Flutter] New PageController created after full cleanup (generation: $_pageViewGeneration)');
+                // Create new PageController at saved position
+                _pageController = PageController(initialPage: savedIndex);
+                print('[ReelsSDK-Flutter] New PageController created at index $savedIndex (generation: $_pageViewGeneration)');
               });
             }
           });
@@ -120,15 +142,22 @@ class _ReelsScreenState extends State<ReelsScreen>
 
     // Reset provider state for fresh screen presentation
     // This ensures collect data is fetched fresh each time
-    WidgetsBinding.instance.addPostFrameCallback((_) {
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
       print('[ReelsSDK-Flutter] ReelsScreen.initState: Resetting and loading videos');
+
+      // Fetch and store THIS screen's generation number on initial load
+      final collectContextService = sl<CollectContextService>();
+      final generation = await collectContextService.getCurrentGeneration();
+      _screenGeneration = generation;
+      print('[ReelsSDK-Flutter] ReelsScreen.initState: Stored screen generation: $_screenGeneration');
+
       final videoProvider = context.read<VideoProvider>();
 
       // Reset to clear any stale data from previous screen
       videoProvider.reset();
 
-      // Load fresh videos and collect data
-      videoProvider.loadVideos();
+      // Load fresh videos and collect data for THIS screen's generation
+      videoProvider.loadVideos(generation: _screenGeneration);
 
       // Track page view
       _analyticsService.trackPageView('reels_screen');
@@ -234,8 +263,11 @@ class _ReelsScreenState extends State<ReelsScreen>
       _currentIndex = index;
     });
 
-    // Track video appear event
+    // Update VideoProvider with new position (this triggers cache update)
     final videoProvider = context.read<VideoProvider>();
+    videoProvider.updateCurrentIndex(index);
+
+    // Track video appear event
     if (index < videoProvider.videos.length) {
       final video = videoProvider.videos[index];
       _analyticsService.trackVideoAppear(
@@ -354,12 +386,19 @@ class _ReelsScreenState extends State<ReelsScreen>
                   itemCount: videoProvider.videos.length,
                   itemBuilder: (context, index) {
                     final video = videoProvider.videos[index];
+
+                    // Calculate viewport range for lazy player initialization
+                    // Keep players initialized for ±N pages from current
+                    final distanceFromCurrent = (index - _currentIndex).abs();
+                    final isInViewport = distanceFromCurrent <= ReelsConfig.viewportBuffer;
+
                     return VideoReelItem(
                       key: ValueKey('video_${video.id}_gen_$_pageViewGeneration'),  // Unique key per video and generation
                       video: video,
                       onLike: () => videoProvider.toggleLike(video.id),
                       onShare: () => videoProvider.shareVideo(video.id),
                       isActive: index == _currentIndex && _isScreenActive,
+                      isInViewport: isInViewport,  // Control player initialization
                       collectData: videoProvider.collectData,
                     );
                   },

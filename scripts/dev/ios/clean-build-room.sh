@@ -72,6 +72,9 @@ SDK_ROOT=$(get_sdk_root "$0")
 FLUTTER_DIR=$(get_flutter_module_dir "$SDK_ROOT")
 ROOM_IOS_DIR=$(get_room_ios_dir "$SDK_ROOT")
 
+# Mark as local development mode (for pod install)
+touch "$SDK_ROOT/.reelsdk-dev"
+
 log_info "SDK Root: $SDK_ROOT"
 log_info "Flutter Module: $FLUTTER_DIR"
 log_info "Room-iOS: $ROOM_IOS_DIR"

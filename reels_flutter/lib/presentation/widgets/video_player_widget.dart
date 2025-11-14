@@ -11,16 +11,19 @@ import 'package:video_player/video_player.dart';
 /// - Tap to pause/play
 /// - Loading indicator
 /// - Volume control
+/// - Viewport-aware lazy initialization (only creates player when in viewport)
 class VideoPlayerWidget extends StatefulWidget {
   final String videoUrl;
   final bool isActive;
   final bool isMuted;
+  final bool isInViewport;
 
   const VideoPlayerWidget({
     super.key,
     required this.videoUrl,
     required this.isActive,
     this.isMuted = false,
+    this.isInViewport = true, // Default to true for backward compatibility
   });
 
   @override
@@ -44,11 +47,17 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void initState() {
     super.initState();
     _instanceCount++;
-    print('[VideoPlayer] 🎬 CREATED - Total active instances: $_instanceCount');
-    _safeSetState(() {
-      _isInitializing = true;
-    });
-    _initializePlayer();
+    print('[VideoPlayer] 🎬 CREATED (viewport: ${widget.isInViewport}) - Total active instances: $_instanceCount');
+
+    // Only initialize player if in viewport (lazy initialization)
+    if (widget.isInViewport) {
+      _safeSetState(() {
+        _isInitializing = true;
+      });
+      _initializePlayer();
+    } else {
+      print('[VideoPlayer] ⏸️  Skipping initialization - outside viewport');
+    }
   }
 
   /// Safe setState that checks if widget is still mounted and not disposed
@@ -110,7 +119,26 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
   void didUpdateWidget(VideoPlayerWidget oldWidget) {
     super.didUpdateWidget(oldWidget);
 
-    // Handle visibility changes
+    // Handle viewport transitions (entering/leaving viewport)
+    if (oldWidget.isInViewport != widget.isInViewport) {
+      if (widget.isInViewport && !oldWidget.isInViewport) {
+        // Entered viewport - initialize player
+        print('[VideoPlayer] ▶️  Entered viewport, initializing player');
+        if (!_isInitializing && _videoPlayerController == null) {
+          _safeSetState(() {
+            _isInitializing = true;
+            _hasError = false;
+          });
+          _initializePlayer();
+        }
+      } else if (!widget.isInViewport && oldWidget.isInViewport) {
+        // Left viewport - dispose player to free memory
+        print('[VideoPlayer] ⏸️  Left viewport, disposing player');
+        _disposePlayer();
+      }
+    }
+
+    // Handle visibility changes (only if player is initialized)
     if (oldWidget.isActive != widget.isActive &&
         !_isDisposed &&
         _videoPlayerController != null) {
@@ -127,7 +155,7 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       }
     }
 
-    // Handle mute state changes
+    // Handle mute state changes (only if player is initialized)
     if (oldWidget.isMuted != widget.isMuted && _videoPlayerController != null) {
       _videoPlayerController!.setVolume(widget.isMuted ? 0.0 : 1.0);
     }
@@ -291,35 +319,48 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
     }
   }
 
+  /// Dispose the player (called when leaving viewport)
+  void _disposePlayer() {
+    print('[VideoPlayer] 🗑️  Disposing player (left viewport)');
+
+    // Dispose video controller
+    if (_videoPlayerController != null) {
+      try {
+        _videoPlayerController!.dispose();
+        _videoPlayerController = null;
+        print('VideoPlayerWidget: Video controller disposed successfully');
+      } catch (e) {
+        print('VideoPlayerWidget: Error disposing video controller: $e');
+      }
+    }
+
+    // Dispose chewie controller
+    if (_chewieController != null) {
+      try {
+        _chewieController!.dispose();
+        _chewieController = null;
+        print('VideoPlayerWidget: Chewie controller disposed successfully');
+      } catch (e) {
+        print('VideoPlayerWidget: Error disposing chewie controller: $e');
+      }
+    }
+
+    _safeSetState(() {
+      _isInitialized = false;
+      _isInitializing = false;
+      _hasError = false;
+      _showPlayButton = false;
+    });
+  }
+
   @override
   void dispose() {
     _instanceCount--;
     print('[VideoPlayer] 🗑️  DISPOSED - Remaining active instances: $_instanceCount');
     _isDisposed = true;
 
-    // Dispose video controller only if it was created
-    if (_videoPlayerController != null) {
-      try {
-        _videoPlayerController!.dispose();
-        print('VideoPlayerWidget: Video controller disposed successfully');
-      } catch (e) {
-        print('VideoPlayerWidget: Error disposing video controller: $e');
-      }
-    } else {
-      print(
-        'VideoPlayerWidget: Video controller was never initialized, skipping disposal',
-      );
-    }
-
-    // Dispose chewie controller if it exists
-    if (_chewieController != null) {
-      try {
-        _chewieController!.dispose();
-        print('VideoPlayerWidget: Chewie controller disposed successfully');
-      } catch (e) {
-        print('VideoPlayerWidget: Error disposing chewie controller: $e');
-      }
-    }
+    // Dispose player resources
+    _disposePlayer();
 
     super.dispose();
   }

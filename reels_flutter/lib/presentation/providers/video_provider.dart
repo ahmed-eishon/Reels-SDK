@@ -1,4 +1,5 @@
 import 'package:flutter/foundation.dart';
+import 'package:reels_flutter/core/config/reels_config.dart';
 import 'package:reels_flutter/core/pigeon_generated.dart';
 import 'package:reels_flutter/core/services/analytics_service.dart';
 import 'package:reels_flutter/core/services/button_events_service.dart';
@@ -7,6 +8,32 @@ import 'package:reels_flutter/domain/entities/video_entity.dart';
 import 'package:reels_flutter/domain/usecases/get_videos_usecase.dart';
 import 'package:reels_flutter/domain/usecases/increment_share_count_usecase.dart';
 import 'package:reels_flutter/domain/usecases/toggle_like_usecase.dart';
+
+/// Cached screen state for a specific generation
+///
+/// Stores everything needed to restore a screen's state:
+/// - Video list (with pagination)
+/// - Collect data
+/// - Current scroll position
+/// - Cache timestamp for expiration
+class CachedScreenState {
+  final List<VideoEntity> videos;
+  final CollectData? collectData;
+  final int currentIndex;
+  final DateTime cachedAt;
+
+  CachedScreenState({
+    required this.videos,
+    required this.collectData,
+    required this.currentIndex,
+    required this.cachedAt,
+  });
+
+  /// Check if this cached state has expired
+  bool isExpired() {
+    return DateTime.now().difference(cachedAt) > ReelsConfig.cacheExpiry;
+  }
+}
 
 /// Provider for managing video state using Provider package with ChangeNotifier.
 ///
@@ -42,6 +69,11 @@ class VideoProvider with ChangeNotifier {
   String? _errorMessage;
   CollectData? _collectData;
 
+  // Generation-based state caching
+  final Map<int, CachedScreenState> _stateCache = {};
+  int? _currentGeneration;
+  int _currentIndex = 0;
+
   // Getters for state
   List<VideoEntity> get videos => _videos;
   bool get isLoading => _isLoading;
@@ -53,17 +85,40 @@ class VideoProvider with ChangeNotifier {
 
   /// Loads videos from the use case.
   ///
-  /// First checks if collect context exists from native.
-  /// If collect is null, shows "no videos" state.
-  /// Sets loading state, fetches videos, and handles errors.
-  /// Notifies listeners of state changes.
-  Future<void> loadVideos() async {
-    print('[ReelsSDK-Flutter] VideoProvider.loadVideos() called');
+  /// First checks cache for existing state to enable instant resume.
+  /// If cache hit and not expired, restores state without network call.
+  /// Otherwise, fetches fresh data and caches it.
+  ///
+  /// [generation] - Optional generation number to fetch collect data for a specific screen instance.
+  ///                If null, fetches collect data for the current generation.
+  Future<void> loadVideos({int? generation}) async {
+    print('[ReelsSDK-Flutter] VideoProvider.loadVideos(generation: $generation) called');
 
     // Prevent multiple simultaneous load calls
     if (_isLoading) {
       print('[ReelsSDK-Flutter] VideoProvider: Already loading, skipping');
       return;
+    }
+
+    _currentGeneration = generation;
+
+    // Try cache first for instant resume
+    if (generation != null) {
+      final cached = _stateCache[generation];
+      if (cached != null && !cached.isExpired()) {
+        print('[ReelsSDK-Flutter] ✅ Cache HIT for generation $generation (index: ${cached.currentIndex}, videos: ${cached.videos.length})');
+        _videos = cached.videos;
+        _collectData = cached.collectData;
+        _currentIndex = cached.currentIndex;
+        _hasLoadedOnce = true;
+        _isLoading = false;
+        notifyListeners();
+        return; // Skip network call!
+      } else if (cached != null) {
+        print('[ReelsSDK-Flutter] ⏰ Cache EXPIRED for generation $generation, reloading fresh data');
+      } else {
+        print('[ReelsSDK-Flutter] ❌ Cache MISS for generation $generation, loading fresh data');
+      }
     }
 
     _isLoading = true;
@@ -72,14 +127,26 @@ class VideoProvider with ChangeNotifier {
 
     try {
       // Check if collect context exists from native (optional for now)
-      _collectData = await collectContextService.getInitialCollect();
-      print('[ReelsSDK-Flutter] VideoProvider: collectData received: ${_collectData != null ? "CollectData(id: ${_collectData!.id})" : "null"}');
+      // If generation is provided, use it. Otherwise fetch current generation.
+      if (generation != null) {
+        _collectData = await collectContextService.getCollectForGeneration(generation);
+        print('[ReelsSDK-Flutter] VideoProvider: collectData for generation $generation: ${_collectData != null ? "CollectData(id: ${_collectData!.id})" : "null"}');
+      } else {
+        _collectData = await collectContextService.getInitialCollect();
+        print('[ReelsSDK-Flutter] VideoProvider: collectData received: ${_collectData != null ? "CollectData(id: ${_collectData!.id})" : "null"}');
+      }
 
       // Load videos (collect context is optional for now)
       // TODO: In future, can load videos from collect reference or recommended videos
       _videos = await getVideosUseCase();
       _isLoading = false;
       _hasLoadedOnce = true;
+
+      // Cache the fresh state
+      if (generation != null) {
+        _cacheState(generation);
+      }
+
       notifyListeners();
     } catch (e) {
       _isLoading = false;
@@ -200,6 +267,58 @@ class VideoProvider with ChangeNotifier {
     _hasLoadedOnce = false;
     _errorMessage = null;
     _collectData = null;
+    _currentIndex = 0;
+    // Note: Don't clear _stateCache here - we want to preserve it for resume
     notifyListeners();
+  }
+
+  /// Update the current video index and cache it
+  void updateCurrentIndex(int index) {
+    _currentIndex = index;
+    // Update cache with new position
+    if (_currentGeneration != null) {
+      _cacheState(_currentGeneration!);
+    }
+  }
+
+  /// Get the current video index
+  int getCurrentIndex() => _currentIndex;
+
+  /// Cache the current state for a generation
+  void _cacheState(int generation) {
+    _stateCache[generation] = CachedScreenState(
+      videos: List.from(_videos), // Create copy to avoid reference issues
+      collectData: _collectData,
+      currentIndex: _currentIndex,
+      cachedAt: DateTime.now(),
+    );
+
+    print('[ReelsSDK-Flutter] 💾 Cached state for generation $generation (index: $_currentIndex, videos: ${_videos.length})');
+
+    // Cleanup old generations (keep only last N)
+    if (_stateCache.length > ReelsConfig.maxCachedGenerations) {
+      // Remove oldest cached generation
+      final oldestKey = _stateCache.keys.first;
+      _stateCache.remove(oldestKey);
+      print('[ReelsSDK-Flutter] 🗑️ Removed cached state for generation $oldestKey (cache limit reached)');
+    }
+  }
+
+  /// Get cache information for debug screen
+  Map<String, dynamic> getCacheInfo() {
+    return {
+      'cachedGenerations': _stateCache.length,
+      'currentGeneration': _currentGeneration,
+      'currentIndex': _currentIndex,
+      'cacheDetails': _stateCache.entries.map((e) {
+        return {
+          'generation': e.key,
+          'videos': e.value.videos.length,
+          'currentIndex': e.value.currentIndex,
+          'expired': e.value.isExpired(),
+          'cachedAt': e.value.cachedAt.toIso8601String(),
+        };
+      }).toList(),
+    };
   }
 }

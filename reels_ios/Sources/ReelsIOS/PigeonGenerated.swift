@@ -372,9 +372,13 @@ class ReelsFlutterTokenApiSetup {
 /// Generated protocol from Pigeon that represents a handler of messages from Flutter.
 protocol ReelsFlutterContextApi {
   /// Get the Collect data that was used to open this screen
+  /// @param generation The generation number of the screen instance
   /// @return CollectData object if opened from a Collect, null otherwise
   /// If null, Flutter will show "no videos" screen
-  func getInitialCollect() throws -> CollectData?
+  func getInitialCollect(generation: Int64) throws -> CollectData?
+  /// Get the current generation number from native
+  /// @return Current generation number
+  func getCurrentGeneration() throws -> Int64
   /// Check if debug mode is enabled
   /// @return true if debug mode is enabled, false otherwise
   func isDebugMode() throws -> Bool
@@ -387,13 +391,16 @@ class ReelsFlutterContextApiSetup {
   static func setUp(binaryMessenger: FlutterBinaryMessenger, api: ReelsFlutterContextApi?, messageChannelSuffix: String = "") {
     let channelSuffix = messageChannelSuffix.count > 0 ? ".\(messageChannelSuffix)" : ""
     /// Get the Collect data that was used to open this screen
+    /// @param generation The generation number of the screen instance
     /// @return CollectData object if opened from a Collect, null otherwise
     /// If null, Flutter will show "no videos" screen
     let getInitialCollectChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
     if let api = api {
-      getInitialCollectChannel.setMessageHandler { _, reply in
+      getInitialCollectChannel.setMessageHandler { message, reply in
+        let args = message as! [Any?]
+        let generationArg = args[0] as! Int64
         do {
-          let result = try api.getInitialCollect()
+          let result = try api.getInitialCollect(generation: generationArg)
           reply(wrapResult(result))
         } catch {
           reply(wrapError(error))
@@ -401,6 +408,21 @@ class ReelsFlutterContextApiSetup {
       }
     } else {
       getInitialCollectChannel.setMessageHandler(nil)
+    }
+    /// Get the current generation number from native
+    /// @return Current generation number
+    let getCurrentGenerationChannel = FlutterBasicMessageChannel(name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getCurrentGeneration\(channelSuffix)", binaryMessenger: binaryMessenger, codec: codec)
+    if let api = api {
+      getCurrentGenerationChannel.setMessageHandler { _, reply in
+        do {
+          let result = try api.getCurrentGeneration()
+          reply(wrapResult(result))
+        } catch {
+          reply(wrapError(error))
+        }
+      }
+    } else {
+      getCurrentGenerationChannel.setMessageHandler(nil)
     }
     /// Check if debug mode is enabled
     /// @return true if debug mode is enabled, false otherwise
@@ -706,7 +728,8 @@ protocol ReelsFlutterLifecycleApiProtocol {
   func pauseAll(completion: @escaping (Result<Void, PigeonError>) -> Void)
   /// Resume all resources when screen gains focus
   /// Called when screen returns to foreground or top of stack
-  func resumeAll(completion: @escaping (Result<Void, PigeonError>) -> Void)
+  /// @param generation The generation number of the screen being resumed
+  func resumeAll(generation generationArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void)
 }
 class ReelsFlutterLifecycleApi: ReelsFlutterLifecycleApiProtocol {
   private let binaryMessenger: FlutterBinaryMessenger
@@ -760,10 +783,11 @@ class ReelsFlutterLifecycleApi: ReelsFlutterLifecycleApiProtocol {
   }
   /// Resume all resources when screen gains focus
   /// Called when screen returns to foreground or top of stack
-  func resumeAll(completion: @escaping (Result<Void, PigeonError>) -> Void) {
+  /// @param generation The generation number of the screen being resumed
+  func resumeAll(generation generationArg: Int64, completion: @escaping (Result<Void, PigeonError>) -> Void) {
     let channelName: String = "dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.resumeAll\(messageChannelSuffix)"
     let channel = FlutterBasicMessageChannel(name: channelName, binaryMessenger: binaryMessenger, codec: codec)
-    channel.sendMessage(nil) { response in
+    channel.sendMessage([generationArg] as [Any?]) { response in
       guard let listResponse = response as? [Any?] else {
         completion(.failure(createConnectionError(withChannelName: channelName)))
         return

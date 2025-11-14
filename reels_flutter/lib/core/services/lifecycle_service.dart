@@ -15,7 +15,7 @@ class LifecycleService {
   // Callbacks for lifecycle events
   VoidCallback? _onResetState;
   VoidCallback? _onPauseAll;
-  VoidCallback? _onResumeAll;
+  void Function(int generation)? _onResumeAll;
 
   /// Register callback for reset state event
   void setOnResetState(VoidCallback? callback) {
@@ -28,7 +28,8 @@ class LifecycleService {
   }
 
   /// Register callback for resume all event
-  void setOnResumeAll(VoidCallback? callback) {
+  /// The callback receives the generation number of the screen being resumed
+  void setOnResumeAll(void Function(int generation)? callback) {
     _onResumeAll = callback;
   }
 
@@ -51,9 +52,10 @@ class LifecycleService {
     _onPauseAll?.call();
   }
 
-  /// Called by native to resume all resources
-  void resumeAll() {
-    debugPrint('[ReelsSDK-Flutter] LifecycleService: resumeAll called');
-    _onResumeAll?.call();
+  /// Called by native to resume all resources for a specific screen generation
+  /// @param generation The generation number of the screen being resumed
+  void resumeAll(int generation) {
+    debugPrint('[ReelsSDK-Flutter] LifecycleService: resumeAll($generation) called');
+    _onResumeAll?.call(generation);
   }
 }

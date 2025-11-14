@@ -195,18 +195,30 @@ class PlatformInitializer {
     final navigationEventsService = NavigationEventsService(
       api: navigationEventsApi,
     );
-    // Create collect context service with callback to native
+    // Create collect context service with callbacks to native
     final collectContextService = CollectContextService(
-      getCollectCallback: () async {
+      getCollectByGenerationCallback: (int generation) async {
         // Use Pigeon-generated API for type-safe communication
         final contextApi = ReelsFlutterContextApi();
         try {
-          final result = await contextApi.getInitialCollect();
-          debugPrint('[ReelsSDK-Flutter] getInitialCollect result: $result');
+          final result = await contextApi.getInitialCollect(generation);
+          debugPrint('[ReelsSDK-Flutter] getInitialCollect(generation: $generation) result: $result');
           return result;
         } catch (e) {
-          debugPrint('[ReelsSDK-Flutter] Error getting collect context: $e');
+          debugPrint('[ReelsSDK-Flutter] Error getting collect context for generation $generation: $e');
           return null;
+        }
+      },
+      getCurrentGenerationCallback: () async {
+        // Use Pigeon-generated API for type-safe communication
+        final contextApi = ReelsFlutterContextApi();
+        try {
+          final result = await contextApi.getCurrentGeneration();
+          debugPrint('[ReelsSDK-Flutter] getCurrentGeneration result: $result');
+          return result;
+        } catch (e) {
+          debugPrint('[ReelsSDK-Flutter] Error getting current generation: $e');
+          return 0;
         }
       },
       isDebugModeCallback: () async {
@@ -259,8 +271,8 @@ class _ReelsLifecycleApiHandler extends ReelsFlutterLifecycleApi {
   }
 
   @override
-  void resumeAll() {
-    debugPrint('[ReelsSDK-Flutter] Lifecycle API: resumeAll called from native');
-    _lifecycleService.resumeAll();
+  void resumeAll(int generation) {
+    debugPrint('[ReelsSDK-Flutter] Lifecycle API: resumeAll($generation) called from native');
+    _lifecycleService.resumeAll(generation);
   }
 }

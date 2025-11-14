@@ -15,11 +15,13 @@ import 'package:reels_flutter/presentation/widgets/video_player_widget.dart';
 /// - Engagement buttons (like, comment, share)
 /// - Video description with hashtags
 /// - Product tags
+/// - Viewport-aware lazy player initialization for performance
 class VideoReelItem extends StatefulWidget {
   final VideoEntity video;
   final VoidCallback onLike;
   final VoidCallback onShare;
   final bool isActive;
+  final bool isInViewport;
   final CollectData? collectData;
 
   const VideoReelItem({
@@ -28,6 +30,7 @@ class VideoReelItem extends StatefulWidget {
     required this.onLike,
     required this.onShare,
     this.isActive = false,
+    this.isInViewport = true, // Default to true for backward compatibility
     this.collectData,
   });
 
@@ -137,11 +140,12 @@ class _VideoReelItemState extends State<VideoReelItem>
         child: Stack(
           fit: StackFit.expand,
           children: [
-            // Video player
+            // Video player - only initialize if in viewport
             VideoPlayerWidget(
               videoUrl: widget.video.url,
               isActive: isVideoActive,
               isMuted: _isMuted,
+              isInViewport: widget.isInViewport,
             ),
 
             // Top gradient overlay for better text visibility

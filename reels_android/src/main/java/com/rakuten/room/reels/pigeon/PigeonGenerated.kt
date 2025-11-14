@@ -339,10 +339,16 @@ interface ReelsFlutterTokenApi {
 interface ReelsFlutterContextApi {
   /**
    * Get the Collect data that was used to open this screen
+   * @param generation The generation number of the screen instance
    * @return CollectData object if opened from a Collect, null otherwise
    * If null, Flutter will show "no videos" screen
    */
-  fun getInitialCollect(): CollectData?
+  fun getInitialCollect(generation: Long): CollectData?
+  /**
+   * Get the current generation number from native
+   * @return Current generation number
+   */
+  fun getCurrentGeneration(): Long
   /**
    * Check if debug mode is enabled
    * @return true if debug mode is enabled, false otherwise
@@ -361,9 +367,26 @@ interface ReelsFlutterContextApi {
       run {
         val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect$separatedMessageChannelSuffix", codec)
         if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val generationArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getInitialCollect(generationArg))
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getCurrentGeneration$separatedMessageChannelSuffix", codec)
+        if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
-              listOf(api.getInitialCollect())
+              listOf(api.getCurrentGeneration())
             } catch (exception: Throwable) {
               wrapError(exception)
             }
@@ -681,13 +704,14 @@ class ReelsFlutterLifecycleApi(private val binaryMessenger: BinaryMessenger, pri
   /**
    * Resume all resources when screen gains focus
    * Called when screen returns to foreground or top of stack
+   * @param generation The generation number of the screen being resumed
    */
-  fun resumeAll(callback: (Result<Unit>) -> Unit)
+  fun resumeAll(generationArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
     val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.resumeAll$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(null) {
+    channel.send(listOf(generationArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

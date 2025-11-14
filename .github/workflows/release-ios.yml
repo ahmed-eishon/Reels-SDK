@@ -1,12 +1,12 @@
-name: Release ReelsSDK
+name: Release ReelsSDK iOS
 
 on:
   push:
     tags:
-      - 'v*.*.*'  # Trigger on version tags (e.g., v1.0.0)
+      - 'v*.*.*-ios'  # Trigger on iOS version tags (e.g., v1.0.0-ios)
 
 jobs:
-  build-and-release:
+  build-and-release-ios:
     runs-on: macos-latest
 
     steps:
@@ -15,14 +15,18 @@ jobs:
 
       - name: Get version from tag
         id: get_version
-        run: echo "VERSION=${GITHUB_REF#refs/tags/v}" >> $GITHUB_OUTPUT
+        run: |
+          # Extract version from tag (v1.0.0-ios -> 1.0.0)
+          VERSION="${GITHUB_REF#refs/tags/v}"
+          VERSION="${VERSION%-ios}"
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
 
       - name: Verify VERSION file matches tag
         run: |
           FILE_VERSION=$(cat VERSION)
           TAG_VERSION="${{ steps.get_version.outputs.VERSION }}"
           echo "VERSION file: $FILE_VERSION"
-          echo "Git tag: $TAG_VERSION"
+          echo "Git tag version: $TAG_VERSION"
           if [ "$FILE_VERSION" != "$TAG_VERSION" ]; then
             echo "Error: VERSION file ($FILE_VERSION) does not match git tag ($TAG_VERSION)"
             exit 1
@@ -87,7 +91,8 @@ jobs:
 
       - name: Generate framework manifest
         run: |
-          echo "ReelsSDK Framework Release v${{ steps.get_version.outputs.VERSION }}" > RELEASE_MANIFEST.txt
+          echo "ReelsSDK iOS Framework Release v${{ steps.get_version.outputs.VERSION }}" > RELEASE_MANIFEST.txt
+          echo "Platform: iOS" >> RELEASE_MANIFEST.txt
           echo "Generated: $(date)" >> RELEASE_MANIFEST.txt
           echo "" >> RELEASE_MANIFEST.txt
           echo "=== Debug Frameworks ===" >> RELEASE_MANIFEST.txt
@@ -109,7 +114,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ github.ref }}
-          release_name: ReelsSDK v${{ steps.get_version.outputs.VERSION }}
+          release_name: ReelsSDK iOS v${{ steps.get_version.outputs.VERSION }}
           body_path: RELEASE_MANIFEST.txt
           draft: false
           prerelease: false
@@ -146,11 +151,12 @@ jobs:
 
       - name: Release summary
         run: |
-          echo "Release v${{ steps.get_version.outputs.VERSION }} created successfully!"
+          echo "iOS Release v${{ steps.get_version.outputs.VERSION }} created successfully!"
           echo ""
+          echo "Platform: iOS"
           echo "Artifacts:"
-          echo "  - Debug frameworks: $(ls -lh ReelsSDK-Frameworks-Debug-*.zip | awk '{print $5}')"
-          echo "  - Release frameworks: $(ls -lh ReelsSDK-Frameworks-Release-*.zip | awk '{print $5}')"
+          echo "  - ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip"
+          echo "  - ReelsSDK-Frameworks-Release-${{ steps.get_version.outputs.VERSION }}.zip"
           echo ""
           echo "Users can now install via CocoaPods:"
-          echo "  pod 'ReelsSDK', :git => 'https://github.com/rakuten/reels-sdk.git', :tag => 'v${{ steps.get_version.outputs.VERSION }}'"
+          echo "  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v${{ steps.get_version.outputs.VERSION }}-ios'"

@@ -155,7 +155,6 @@ Pod::Spec.new do |spec|
     'reels_flutter/build/**/*',
     'reels_flutter/.ios/**/*',
     'reels_flutter/.android/**/*',
-    'Frameworks/Debug/**/*',
     '.reelsdk-dev'
   ]
 end

@@ -131,17 +131,40 @@ if [ -f "$OUTPUT_ZIP" ]; then
     rm "$OUTPUT_ZIP"
 fi
 
+# Create temporary directory for renamed frameworks
+TEMP_DIR=$(mktemp -d)
+log_info "Renaming frameworks with _{$BUILD_TYPE} suffix..."
+echo ""
+
+RENAMED_COUNT=0
+for framework in "$FRAMEWORKS_SOURCE"/*.xcframework; do
+    if [ -d "$framework" ]; then
+        original_name=$(basename "$framework" .xcframework)
+        renamed_name="${original_name}_${BUILD_TYPE}.xcframework"
+        log_info "  $original_name.xcframework → $renamed_name"
+        cp -R "$framework" "$TEMP_DIR/$renamed_name"
+        RENAMED_COUNT=$((RENAMED_COUNT + 1))
+    fi
+done
+
+echo ""
+log_success "Renamed $RENAMED_COUNT frameworks"
+
 log_info "Packaging frameworks..."
-cd "$FRAMEWORKS_SOURCE"
+cd "$TEMP_DIR"
 zip -r "$OUTPUT_ZIP" *.xcframework -q
 
 if [ $? -eq 0 ]; then
     log_success "Archive created successfully"
 else
     log_error "Failed to create archive"
+    rm -rf "$TEMP_DIR"
     exit 1
 fi
+
+# Clean up temporary directory
 cd "$SDK_ROOT"
+rm -rf "$TEMP_DIR"
 track_step_end
 
 # Step 4: Generate checksum and manifest
@@ -164,13 +187,14 @@ echo "Archive: $(basename "$OUTPUT_ZIP")" >> "$MANIFEST_FILE"
 echo "Size: $ZIP_SIZE" >> "$MANIFEST_FILE"
 echo "SHA256: $CHECKSUM" >> "$MANIFEST_FILE"
 echo "" >> "$MANIFEST_FILE"
-echo "Frameworks:" >> "$MANIFEST_FILE"
+echo "Frameworks (renamed with _${BUILD_TYPE} suffix):" >> "$MANIFEST_FILE"
 
 for framework in "$FRAMEWORKS_SOURCE"/*.xcframework; do
     if [ -d "$framework" ]; then
-        framework_name=$(basename "$framework")
+        original_name=$(basename "$framework" .xcframework)
+        renamed_name="${original_name}_${BUILD_TYPE}.xcframework"
         size=$(du -sh "$framework" | cut -f1)
-        echo "  - $framework_name ($size)" >> "$MANIFEST_FILE"
+        echo "  - $renamed_name ($size)" >> "$MANIFEST_FILE"
     fi
 done
 

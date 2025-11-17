@@ -173,12 +173,20 @@ Add the following to your `Podfile`:
 target 'YourApp' do
   use_frameworks!
 
-  # Reels SDK via Git - Automatic framework selection
-  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.2-ios'
+  # Reels SDK via Git
+  # For Debug (development/testing):
+  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios-debug'
+
+  # For Release (production):
+  # pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios'
 
   # Your other pods...
 end
 ```
+
+**Tag Selection:**
+- Use `v0.1.3-ios-debug` for development/testing (includes debug symbols)
+- Use `v0.1.3-ios` for production builds (optimized)
 
 #### Step 2: Install Pods
 
@@ -189,16 +197,16 @@ pod install
 
 **What happens during installation:**
 1. CocoaPods downloads pre-built frameworks from GitHub release
-2. Both Debug and Release frameworks are installed (with `_Debug` and `_Release` suffixes)
-3. Build script automatically selects correct frameworks based on your build configuration
+2. The podspec detects build type from the tag and downloads appropriate frameworks
+3. 6 frameworks are installed (no suffixes, clean names)
 4. No Flutter installation required!
 
 #### Step 3: Build Your App
 
-When you build your app:
-- **Debug builds** automatically use Debug frameworks
-- **Release builds** automatically use Release frameworks
-- Framework selection happens transparently - no configuration needed
+Your app will use the frameworks corresponding to the tag you specified:
+- **v0.1.3-ios-debug tag** → Debug frameworks (with symbols and assertions)
+- **v0.1.3-ios tag** → Release frameworks (optimized for production)
+- Simply change the tag in your Podfile to switch between Debug and Release
 
 #### Step 4: Update to New Versions
 
@@ -523,13 +531,13 @@ class CollectViewController: UIViewController, ReelsListener {
 3. Verify `Flutter/podhelper.rb` exists
 4. Re-run `pod install`
 
-### Issue 6: Framework structure questions
+### Issue 6: Wrong build type installed
 
-**Note:** ReelsSDK frameworks use suffix naming (_Debug, _Release) to support both Debug and Release builds:
-- `Pods/ReelsSDK/Frameworks/Debug/` contains Debug frameworks (e.g., `App_Debug.xcframework`)
-- `Pods/ReelsSDK/Frameworks/Release/` contains Release frameworks (e.g., `App_Release.xcframework`)
-- The build system automatically selects the correct variant based on your build configuration
-- This is transparent to developers - no configuration needed
+**Note:** ReelsSDK v0.1.3+ uses tag-based build selection:
+- Tag `v0.1.3-ios-debug` installs Debug frameworks (6 frameworks, no suffixes)
+- Tag `v0.1.3-ios` installs Release frameworks (6 frameworks, no suffixes)
+- Simply change the tag in your Podfile to switch between Debug and Release
+- Run `pod cache clean ReelsSDK --all` and `pod install` after changing tags
 
 ## Best Practices
 

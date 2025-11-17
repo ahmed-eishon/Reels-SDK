@@ -116,7 +116,7 @@ Pod::Spec.new do |spec|
   spec.script_phases = [
     {
       :name => 'Select ReelsSDK Frameworks',
-      :script => <<-SCRIPT
+      :script => <<-SCRIPT,
         set -e
 
         echo "[ReelsSDK] Configuration: $CONFIGURATION"
@@ -158,7 +158,7 @@ Pod::Spec.new do |spec|
         done
 
         echo "[ReelsSDK] Framework selection complete"
-      SCRIPT,
+      SCRIPT
       :execution_position => :before_compile
     }
   ]

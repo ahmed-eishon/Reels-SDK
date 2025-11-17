@@ -112,7 +112,7 @@ Pod::Spec.new do |spec|
   # Vendor ALL frameworks (both Debug and Release variants)
   spec.vendored_frameworks = 'Frameworks/*.xcframework'
 
-  # Script phase to symlink correct frameworks based on build configuration
+  # Script phase to download frameworks and symlink correct variant based on build configuration
   spec.script_phases = [
     {
       :name => 'Select ReelsSDK Frameworks',
@@ -120,6 +120,38 @@ Pod::Spec.new do |spec|
         set -e
 
         echo "[ReelsSDK] Configuration: $CONFIGURATION"
+
+        # Path to vendored frameworks in Pods
+        FRAMEWORKS_DIR="${PODS_ROOT}/ReelsSDK/Frameworks"
+        VERSION_FILE="${PODS_ROOT}/ReelsSDK/VERSION"
+
+        # Download frameworks if they don't exist
+        if [ ! -d "$FRAMEWORKS_DIR" ]; then
+          echo "[ReelsSDK] Frameworks not found, downloading from GitHub release..."
+
+          if [ ! -f "$VERSION_FILE" ]; then
+            echo "[ReelsSDK] ERROR: VERSION file not found"
+            exit 1
+          fi
+
+          VERSION=$(cat "$VERSION_FILE")
+          GITHUB_URL="https://github.com/ahmed-eishon/Reels-SDK/releases/download/v${VERSION}-ios/ReelsSDK-Frameworks-${VERSION}.zip"
+
+          echo "[ReelsSDK] Downloading v${VERSION} frameworks..."
+          echo "[ReelsSDK] URL: $GITHUB_URL"
+
+          cd "${PODS_ROOT}/ReelsSDK"
+          if curl -L -f -o "frameworks.zip" "$GITHUB_URL"; then
+            echo "[ReelsSDK] Download successful, extracting..."
+            unzip -q -o "frameworks.zip" -d .
+            rm "frameworks.zip"
+            echo "[ReelsSDK] Frameworks ready"
+          else
+            echo "[ReelsSDK] ERROR: Failed to download frameworks"
+            echo "[ReelsSDK] Please check: $GITHUB_URL"
+            exit 1
+          fi
+        fi
 
         # Determine which framework suffix to use
         if [[ "$CONFIGURATION" == *"Debug"* ]] || [[ "$CONFIGURATION" == "D_"* ]]; then
@@ -130,14 +162,6 @@ Pod::Spec.new do |spec|
           REQUIRED_SUFFIX="_Release"
           REMOVE_SUFFIX="_Debug"
           echo "[ReelsSDK] Using Release frameworks"
-        fi
-
-        # Path to vendored frameworks in Pods
-        FRAMEWORKS_DIR="${PODS_ROOT}/ReelsSDK/Frameworks"
-
-        if [ ! -d "$FRAMEWORKS_DIR" ]; then
-          echo "[ReelsSDK] Warning: Frameworks directory not found"
-          exit 0
         fi
 
         # Create symlinks for frameworks without suffix pointing to correct variant

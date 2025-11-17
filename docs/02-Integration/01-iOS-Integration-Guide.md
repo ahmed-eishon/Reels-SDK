@@ -173,8 +173,8 @@ Add the following to your `Podfile`:
 target 'YourApp' do
   use_frameworks!
 
-  # Reels SDK via Git
-  pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => 'v1.0.0-ios'
+  # Reels SDK via Git - Automatic framework selection
+  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.2-ios'
 
   # Your other pods...
 end
@@ -187,11 +187,24 @@ cd /path/to/your-ios-app
 pod install
 ```
 
-#### Step 3: Update to New Versions
+**What happens during installation:**
+1. CocoaPods downloads pre-built frameworks from GitHub release
+2. Both Debug and Release frameworks are installed (with `_Debug` and `_Release` suffixes)
+3. Build script automatically selects correct frameworks based on your build configuration
+4. No Flutter installation required!
+
+#### Step 3: Build Your App
+
+When you build your app:
+- **Debug builds** automatically use Debug frameworks
+- **Release builds** automatically use Release frameworks
+- Framework selection happens transparently - no configuration needed
+
+#### Step 4: Update to New Versions
 
 ```ruby
 # In Podfile, update the tag
-pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => 'v1.1.0-ios'
+pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios'
 ```
 
 ```bash
@@ -204,6 +217,9 @@ pod update ReelsSDK
 - ✅ Easy updates with `pod update`
 - ✅ CI/CD friendly
 - ✅ Standard CocoaPods workflow
+- ✅ Automatic Debug/Release framework selection
+- ✅ No Flutter installation required
+- ✅ Fast installation (~30 seconds)
 
 **Disadvantages:**
 - ⚠️ Requires Git authentication

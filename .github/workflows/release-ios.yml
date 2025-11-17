@@ -3,7 +3,8 @@ name: Release ReelsSDK iOS
 on:
   push:
     tags:
-      - 'v*.*.*-ios'  # Trigger on iOS release tags (e.g., v0.1.2-ios)
+      - 'v*.*.*-ios'        # Trigger on iOS Release tags (e.g., v0.1.2-ios)
+      - 'v*.*.*-ios-debug'  # Trigger on iOS Debug tags (e.g., v0.1.2-ios-debug)
 
 permissions:
   contents: write  # Required to create releases and upload assets
@@ -20,9 +21,20 @@ jobs:
         id: get_version
         run: |
           TAG_NAME="${GITHUB_REF#refs/tags/v}"
-          VERSION="${TAG_NAME%-ios}"
+          # Remove -ios or -ios-debug suffix to get version
+          if [[ "$TAG_NAME" == *"-ios-debug" ]]; then
+            VERSION="${TAG_NAME%-ios-debug}"
+            IS_DEBUG="true"
+            BUILD_TYPE="Debug"
+          else
+            VERSION="${TAG_NAME%-ios}"
+            IS_DEBUG="false"
+            BUILD_TYPE="Release"
+          fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
-          echo "Detected VERSION: $VERSION (from tag: v$TAG_NAME)"
+          echo "IS_DEBUG=$IS_DEBUG" >> $GITHUB_OUTPUT
+          echo "BUILD_TYPE=$BUILD_TYPE" >> $GITHUB_OUTPUT
+          echo "Detected VERSION: $VERSION, BUILD_TYPE: $BUILD_TYPE (from tag: v$TAG_NAME)"
 
       - name: Verify VERSION file matches tag
         run: |

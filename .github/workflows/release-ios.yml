@@ -3,7 +3,8 @@ name: Release ReelsSDK iOS
 on:
   push:
     tags:
-      - 'v*.*.*-ios'  # Trigger on iOS version tags (e.g., v1.0.0-ios)
+      - 'v*.*.*-ios'        # Trigger on iOS Release tags (e.g., v1.0.0-ios)
+      - 'v*.*.*-ios-debug'  # Trigger on iOS Debug tags (e.g., v1.0.0-ios-debug)
 
 permissions:
   contents: write  # Required to create releases and upload assets
@@ -16,13 +17,26 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      - name: Get version from tag
+      - name: Get version and build mode from tag
         id: get_version
         run: |
-          # Extract version from tag (v1.0.0-ios -> 1.0.0)
-          VERSION="${GITHUB_REF#refs/tags/v}"
-          VERSION="${VERSION%-ios}"
+          TAG_NAME="${GITHUB_REF#refs/tags/v}"
+
+          # Detect build mode and extract version
+          if [[ "$TAG_NAME" == *"-ios-debug" ]]; then
+            BUILD_MODE="Debug"
+            VERSION="${TAG_NAME%-ios-debug}"
+          elif [[ "$TAG_NAME" == *"-ios" ]]; then
+            BUILD_MODE="Release"
+            VERSION="${TAG_NAME%-ios}"
+          else
+            echo "Error: Invalid tag format"
+            exit 1
+          fi
+
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "BUILD_MODE=$BUILD_MODE" >> $GITHUB_OUTPUT
+          echo "Detected: VERSION=$VERSION, BUILD_MODE=$BUILD_MODE"
 
       - name: Verify VERSION file matches tag
         run: |
@@ -69,67 +83,64 @@ jobs:
             --kotlin_out ../reels_android/src/main/java/com/rakuten/room/reels_android/PigeonGenerated.kt \
             --kotlin_package com.rakuten.room.reels_android
 
-      - name: Build Debug frameworks
+      - name: Build frameworks
         working-directory: reels_flutter
         run: |
-          echo "Building Debug frameworks..."
+          BUILD_MODE="${{ steps.get_version.outputs.BUILD_MODE }}"
+          echo "Building $BUILD_MODE frameworks..."
           flutter clean
-          flutter build ios-framework --debug --output=.ios/Flutter/Debug
 
-      - name: Build Release frameworks
-        working-directory: reels_flutter
-        run: |
-          echo "Building Release frameworks..."
-          flutter build ios-framework --release --output=.ios/Flutter/Release
+          if [ "$BUILD_MODE" = "Debug" ]; then
+            flutter build ios-framework --debug --output=.ios/Flutter/Debug
+          else
+            flutter build ios-framework --release --output=.ios/Flutter/Release
+          fi
 
-      - name: Package Debug frameworks
+      - name: Package frameworks
         run: |
-          ./scripts/sdk/ios/package-frameworks.sh Debug
-          ls -lh ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip
-
-      - name: Package Release frameworks
-        run: |
-          ./scripts/sdk/ios/package-frameworks.sh Release
-          ls -lh ReelsSDK-Frameworks-Release-${{ steps.get_version.outputs.VERSION }}.zip
+          BUILD_MODE="${{ steps.get_version.outputs.BUILD_MODE }}"
+          ./scripts/sdk/ios/package-frameworks.sh $BUILD_MODE
+          ls -lh ReelsSDK-Frameworks-$BUILD_MODE-${{ steps.get_version.outputs.VERSION }}.zip
 
       - name: Generate framework manifest
         run: |
-          echo "ReelsSDK iOS Framework Release v${{ steps.get_version.outputs.VERSION }}" > RELEASE_MANIFEST.txt
+          BUILD_MODE="${{ steps.get_version.outputs.BUILD_MODE }}"
+          echo "ReelsSDK iOS Framework $BUILD_MODE v${{ steps.get_version.outputs.VERSION }}" > RELEASE_MANIFEST.txt
           echo "Platform: iOS" >> RELEASE_MANIFEST.txt
+          echo "Build Mode: $BUILD_MODE" >> RELEASE_MANIFEST.txt
           echo "Generated: $(date)" >> RELEASE_MANIFEST.txt
           echo "" >> RELEASE_MANIFEST.txt
-          echo "=== Debug Frameworks ===" >> RELEASE_MANIFEST.txt
-          cat FRAMEWORK_MANIFEST_Debug.txt | grep -A 100 "Frameworks" >> RELEASE_MANIFEST.txt
-          echo "" >> RELEASE_MANIFEST.txt
-          echo "=== Release Frameworks ===" >> RELEASE_MANIFEST.txt
-          cat FRAMEWORK_MANIFEST_Release.txt | grep -A 100 "Frameworks" >> RELEASE_MANIFEST.txt
+          echo "=== $BUILD_MODE Frameworks ===" >> RELEASE_MANIFEST.txt
+          cat FRAMEWORK_MANIFEST_$BUILD_MODE.txt | grep -A 100 "Frameworks" >> RELEASE_MANIFEST.txt
 
       - name: Calculate checksums
         run: |
-          shasum -a 256 ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip > CHECKSUMS.txt
-          shasum -a 256 ReelsSDK-Frameworks-Release-${{ steps.get_version.outputs.VERSION }}.zip >> CHECKSUMS.txt
+          BUILD_MODE="${{ steps.get_version.outputs.BUILD_MODE }}"
+          shasum -a 256 ReelsSDK-Frameworks-$BUILD_MODE-${{ steps.get_version.outputs.VERSION }}.zip > CHECKSUMS.txt
           cat CHECKSUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ReelsSDK iOS v${{ steps.get_version.outputs.VERSION }}
+          name: ReelsSDK iOS ${{ steps.get_version.outputs.BUILD_MODE }} v${{ steps.get_version.outputs.VERSION }}
           body_path: RELEASE_MANIFEST.txt
           draft: false
           prerelease: false
           files: |
-            ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip
-            ReelsSDK-Frameworks-Release-${{ steps.get_version.outputs.VERSION }}.zip
+            ReelsSDK-Frameworks-${{ steps.get_version.outputs.BUILD_MODE }}-${{ steps.get_version.outputs.VERSION }}.zip
             CHECKSUMS.txt
 
       - name: Release summary
         run: |
-          echo "iOS Release v${{ steps.get_version.outputs.VERSION }} created successfully!"
+          BUILD_MODE="${{ steps.get_version.outputs.BUILD_MODE }}"
+          TAG_SUFFIX=$([ "$BUILD_MODE" = "Debug" ] && echo "-ios-debug" || echo "-ios")
+
+          echo "$BUILD_MODE Release v${{ steps.get_version.outputs.VERSION }} created successfully!"
           echo ""
           echo "Platform: iOS"
+          echo "Build Mode: $BUILD_MODE"
           echo "Artifacts:"
-          echo "  - ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip"
-          echo "  - ReelsSDK-Frameworks-Release-${{ steps.get_version.outputs.VERSION }}.zip"
+          echo "  - ReelsSDK-Frameworks-$BUILD_MODE-${{ steps.get_version.outputs.VERSION }}.zip"
           echo ""
           echo "Users can now install via CocoaPods:"
-          echo "  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v${{ steps.get_version.outputs.VERSION }}-ios'"
+          echo "  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v${{ steps.get_version.outputs.VERSION }}$TAG_SUFFIX'"

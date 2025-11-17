@@ -123,6 +123,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}-ios-debug
+          target_commitish: ${{ github.sha }}
           name: ReelsSDK iOS Debug v${{ steps.get_version.outputs.VERSION }}
           body_path: DEBUG_MANIFEST.txt
           draft: false
@@ -135,6 +136,7 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: v${{ steps.get_version.outputs.VERSION }}-ios
+          target_commitish: ${{ github.sha }}
           name: ReelsSDK iOS Release v${{ steps.get_version.outputs.VERSION }}
           body_path: RELEASE_MANIFEST.txt
           draft: false

@@ -1,23 +1,26 @@
-# ReelsSDK Separate Tags Implementation Guide
+# ReelsSDK Automated Dual-Release Guide
 
 ## Overview
 
-This document explains the new separate-tags approach for distributing ReelsSDK Debug and Release versions. This solution eliminates the dual-framework conflicts that were causing build failures.
+This document explains the automated dual-release approach for distributing ReelsSDK Debug and Release versions. The GitHub Actions workflow automatically creates both releases from a single tag push.
 
 ## Problem We Solved
 
-Previously, the ReelsSDK podspec included both Debug and Release frameworks with `_Debug`/`_Release` suffixes. This caused:
+Previously, complex approaches using framework renaming or symlinks caused:
 - CocoaPods GUID conflicts
 - Xcode build system errors
-- Complex workarounds in Podfile post_install hooks
+- Complex post_install hooks
+- Manual tag creation
 
 ## Solution
 
-We now maintain **separate git tags** for Debug and Release versions:
-- **v0.1.2-ios**: Release version (production-optimized)
-- **v0.1.2-ios-debug**: Debug version (with symbols and assertions)
+We now use **automated dual releases** triggered by a single tag:
+- Push tag: `v0.1.3-ios`
+- Workflow automatically creates:
+  - **v0.1.3-ios**: Release version (production-optimized)
+  - **v0.1.3-ios-debug**: Debug version (with symbols and assertions)
 
-Each tag contains a `ReelsSDK.podspec` that references only the appropriate frameworks.
+Each release contains a single podspec that downloads the appropriate 6 frameworks (no suffixes, no renaming).
 
 ## File Structure
 
@@ -25,22 +28,23 @@ Each tag contains a `ReelsSDK.podspec` that references only the appropriate fram
 
 ```
 reels-sdk/
-├── ReelsSDK.podspec              # Release version (used for v0.1.2-ios tag)
-├── ReelsSDK-Debug.podspec         # Debug template (used to create debug tags)
-├── scripts/
-│   └── create-debug-release-tag.sh  # Helper script to create debug tags
-└── VERSION                        # Current version number (0.1.2)
+├── ReelsSDK.podspec                    # Single podspec for both builds
+├── .github/workflows/release-ios.yml   # Automated workflow
+├── scripts/sdk/ios/package-all-frameworks.sh  # Packaging script
+└── VERSION                              # Current version number (0.1.3)
 ```
 
-### In ROOM iOS App
+### Framework Structure
 
-```ruby
-# Podfile
-reels_sdk_version = ENV['REELS_SDK_VERSION'] || '0.1.2'
-reels_sdk_mode = ENV['REELS_SDK_MODE'] || 'release'
-reels_sdk_tag = reels_sdk_mode == 'debug' ? "v#{reels_sdk_version}-ios-debug" : "v#{reels_sdk_version}-ios"
-
-pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => reels_sdk_tag
+Both Debug and Release packages contain 6 frameworks without suffixes:
+```
+Frameworks/
+├── App.xcframework
+├── Flutter.xcframework
+├── FlutterPluginRegistrant.xcframework
+├── package_info_plus.xcframework
+├── video_player_avfoundation.xcframework
+└── wakelock_plus.xcframework
 ```
 
 ## Usage
@@ -48,163 +52,139 @@ pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag =>
 ### For ROOM iOS Developers
 
 **Install Debug version (for development):**
-```bash
-cd ROOM
-REELS_SDK_MODE=debug pod install
+```ruby
+# In Podfile
+pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios-debug'
 ```
 
 **Install Release version (for production/distribution):**
-```bash
-cd ROOM
-pod install  # defaults to release
-# or explicitly:
-REELS_SDK_MODE=release pod install
+```ruby
+# In Podfile
+pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios'
 ```
 
-**Install specific version:**
+Then run:
 ```bash
-REELS_SDK_VERSION=0.1.3 REELS_SDK_MODE=debug pod install
+pod install
 ```
 
 ## Creating New Releases
+
+The process is fully automated via GitHub Actions:
 
 ### Step 1: Update Version
 
 ```bash
 cd reels-sdk
-echo "0.1.2" > VERSION
+echo "0.1.3" > VERSION
 git add VERSION
-git commit -m "chore: Bump version to 0.1.2"
+git commit -m "chore: Bump version to 0.1.3"
 ```
 
-### Step 2: Build Frameworks
+### Step 2: Update Code (if needed)
 
+Make any necessary changes to:
+- Podspec
+- Packaging script
+- Workflow file
+
+Commit all changes:
 ```bash
-cd reels_flutter
-
-# Build Release frameworks
-flutter build ios-framework --release --no-codesign --output=../Frameworks/Release
-
-# Build Debug frameworks
-flutter build ios-framework --debug --no-codesign --output=../Frameworks/Debug
+git add .
+git commit -m "feat: Your changes"
+git push origin release/0.1.3-ios
 ```
 
-### Step 3: Package Frameworks
+### Step 3: Trigger Release
 
+Push the release tag (must match pattern `v*.*.*-ios`):
 ```bash
-cd ..
 VERSION=$(cat VERSION)
-
-# Package Release frameworks
-cd Frameworks/Release
-zip -r ../../ReelsSDK-Frameworks-Release-${VERSION}.zip *.xcframework
-cd ../..
-
-# Package Debug frameworks
-cd Frameworks/Debug
-zip -r ../../ReelsSDK-Frameworks-Debug-${VERSION}.zip *.xcframework
-cd ../..
+git tag "v${VERSION}-ios"
+git push origin "v${VERSION}-ios"
 ```
 
-### Step 4: Create Release Tag
+**That's it!** GitHub Actions automatically:
+1. Builds Debug and Release frameworks
+2. Packages them into separate zips
+3. Creates 2 GitHub releases:
+   - `v0.1.3-ios-debug` with Debug frameworks
+   - `v0.1.3-ios` with Release frameworks
+4. Uploads framework zips to each release
+5. Adds installation instructions
 
-```bash
-# Commit podspec changes
-git add ReelsSDK.podspec ReelsSDK-Debug.podspec
-git commit -m "chore: Update podspecs for v${VERSION}"
-git push origin release/0.1.2-ios
+### Step 4: Verify
 
-# Create and push Release tag
-git tag -a "v${VERSION}-ios" -m "ReelsSDK v${VERSION} - iOS Release"
-git push upstream "v${VERSION}-ios"
+Check the GitHub Actions workflow:
+- Go to: https://github.com/ahmed-eishon/Reels-SDK/actions
+- Verify the workflow completed successfully
+- Check both releases exist: https://github.com/ahmed-eishon/Reels-SDK/releases
+
+## How It Works
+
+### Podspec Detection
+
+The single `ReelsSDK.podspec` automatically detects build type from the git tag:
+
+```ruby
+# In prepare_command:
+CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+if echo "$CURRENT_TAG" | grep -q "debug"; then
+  BUILD_TYPE="Debug"
+  ZIP_NAME="ReelsSDK-Frameworks-Debug-${VERSION}.zip"
+else
+  BUILD_TYPE="Release"
+  ZIP_NAME="ReelsSDK-Frameworks-${VERSION}.zip"
+fi
 ```
 
-### Step 5: Create Debug Tag
+When you install:
+- With tag `v0.1.3-ios-debug` → Downloads Debug frameworks
+- With tag `v0.1.3-ios` → Downloads Release frameworks
 
-```bash
-# Use the helper script
-./scripts/create-debug-release-tag.sh
+### Workflow Process
 
-# Follow the script instructions to push the debug tag
-git push upstream "v${VERSION}-ios-debug"
+The `.github/workflows/release-ios.yml` workflow:
 
-# Clean up temporary branch
-git checkout release/0.1.2-ios
-git branch -D "temp/debug-release-v${VERSION}"
-```
+1. **Triggers** on tags matching `v*.*.*-ios`
+2. **Builds** both Debug and Release frameworks
+3. **Packages** them into 2 separate zips (no renaming)
+4. **Creates** 2 GitHub releases with separate tags
+5. **Uploads** framework zips as release assets
 
-### Step 6: Upload to GitHub Releases
-
-1. Go to https://github.com/ahmed-eishon/Reels-SDK/releases
-2. Create release for `v0.1.2-ios`:
-   - Upload `ReelsSDK-Frameworks-Release-0.1.2.zip`
-   - Add release notes
-3. Create release for `v0.1.2-ios-debug`:
-   - Upload `ReelsSDK-Frameworks-Debug-0.1.2.zip`
-   - Add release notes mentioning it's for development use
-
-## Podspec Details
-
-### ReelsSDK.podspec (Release)
-
-- Downloads from: `https://github.com/ahmed-eishon/Reels-SDK/releases/download/v${VERSION}-ios/ReelsSDK-Frameworks-Release-${VERSION}.zip`
-- Vendors: `Frameworks/*.xcframework` (without suffixes)
-- Optimized for production
-
-### ReelsSDK-Debug.podspec (Debug)
-
-- Downloads from: `https://github.com/ahmed-eishon/Reels-SDK/releases/download/v${VERSION}-ios-debug/ReelsSDK-Frameworks-Debug-${VERSION}.zip`
-- Vendors: `Frameworks/*.xcframework` (without suffixes)
-- Includes debug symbols and assertions
-
-## Workflow Automation (Future Enhancement)
-
-The GitHub Actions workflow can be updated to automatically create both tags and releases:
-
-```yaml
-# .github/workflows/ios-release.yml
-- name: Create Release Tag
-  run: |
-    VERSION=$(cat VERSION)
-    git tag "v${VERSION}-ios"
-    git push origin "v${VERSION}-ios"
-
-- name: Create Debug Tag
-  run: |
-    ./scripts/create-debug-release-tag.sh
-    git push origin "v${VERSION}-ios-debug"
-
-- name: Upload Release Frameworks
-  uses: softprops/action-gh-release@v1
-  with:
-    tag_name: v${{ steps.version.outputs.VERSION }}-ios
-    files: ReelsSDK-Frameworks-Release-*.zip
-
-- name: Upload Debug Frameworks
-  uses: softprops/action-gh-release@v1
-  with:
-    tag_name: v${{ steps.version.outputs.VERSION }}-ios-debug
-    files: ReelsSDK-Frameworks-Debug-*.zip
-```
+All from a single tag push!
 
 ## Benefits
 
-1. **No Framework Conflicts**: Each version contains only one set of frameworks
-2. **Clean Podfile**: No complex post_install hooks needed
-3. **Explicit Version Control**: Clear separation between Debug and Release
-4. **Standard CocoaPods**: Works with standard CocoaPods mechanisms
-5. **Easy to Use**: Simple environment variable toggles for developers
+1. **No Framework Conflicts**: Each release contains only 6 frameworks
+2. **No Renaming**: Frameworks keep original names
+3. **No Symlinks**: Simple direct framework vendoring
+4. **Automated**: Single tag push triggers everything
+5. **Fast**: One workflow run creates both releases
+6. **Clean Podfile**: Just change the tag to switch versions
+7. **Standard CocoaPods**: Works with standard mechanisms
 
 ## Troubleshooting
 
-### Pod Install Fails to Download
+### Workflow Not Running
 
-**Error:** `Failed to download Release/Debug frameworks`
+**Problem:** Pushed tag but workflow didn't start
 
 **Solution:**
-1. Check if the GitHub release exists: https://github.com/ahmed-eishon/Reels-SDK/releases
-2. Verify the release has the correct asset uploaded
+1. Check tag pattern matches `v*.*.*-ios` (e.g., `v0.1.3-ios`)
+2. Verify workflow file exists at the tagged commit
+3. Check GitHub Actions page for errors
+4. Ensure you pushed to the correct remote (GitHub, not gitpub)
+
+### Pod Install Fails to Download
+
+**Error:** `Failed to download Debug/Release frameworks`
+
+**Solution:**
+1. Check if GitHub release exists: https://github.com/ahmed-eishon/Reels-SDK/releases
+2. Verify the release has the correct zip uploaded
 3. Check your internet connection
+4. Try cleaning pod cache: `pod cache clean ReelsSDK --all`
 
 ### Wrong Framework Version Installed
 
@@ -216,30 +196,82 @@ pod cache clean ReelsSDK --all
 # Remove existing installation
 rm -rf Pods/ReelsSDK Podfile.lock
 
-# Reinstall with correct mode
-REELS_SDK_MODE=debug pod install
+# Reinstall with correct tag
+pod install
 ```
 
-### Framework Naming Conflicts
+### Need to Update an Existing Release
 
-The old dual-framework approach is no longer used. If you see `_Debug` or `_Release` suffixes:
-1. Update to v0.1.2 or later
-2. Clean install: `rm -rf Pods Podfile.lock && pod install`
+**Solution:**
+```bash
+# Delete local tag
+git tag -d v0.1.3-ios
 
-## Migration from v0.1.1
+# Delete remote tag
+git push origin :refs/tags/v0.1.3-ios
 
-If you're currently using v0.1.1 with the dual-framework setup:
+# Create new tag at desired commit
+git tag v0.1.3-ios
 
-1. Update your Podfile to the new conditional format (already done in ROOM)
+# Force push
+git push origin v0.1.3-ios --force
+```
+
+This will trigger a new workflow run.
+
+## Migration from v0.1.2
+
+If you're using v0.1.2 or earlier with the old approach:
+
+1. Update your Podfile to use the new tag format:
+   ```ruby
+   # Old (if you had environment variables)
+   pod 'ReelsSDK', :git => '...', :tag => reels_sdk_tag
+
+   # New (simple and direct)
+   pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios'
+   ```
+
 2. Clean your Pods:
    ```bash
    rm -rf Pods Podfile.lock
    pod cache clean ReelsSDK --all
    ```
-3. Install with the new approach:
+
+3. Install with the new version:
    ```bash
-   REELS_SDK_MODE=debug pod install
+   pod install
    ```
+
+## Example Release Process
+
+Here's a complete example of releasing v0.1.4:
+
+```bash
+# 1. Update version
+cd reels-sdk
+echo "0.1.4" > VERSION
+
+# 2. Commit changes
+git add VERSION
+git commit -m "chore: Bump version to 0.1.4"
+
+# 3. Push changes
+git push origin release/0.1.4-ios
+
+# 4. Create and push tag
+git tag v0.1.4-ios
+git push origin v0.1.4-ios
+
+# 5. Wait for GitHub Actions (10-15 minutes)
+# Check: https://github.com/ahmed-eishon/Reels-SDK/actions
+
+# 6. Verify releases created
+# https://github.com/ahmed-eishon/Reels-SDK/releases
+# Should see:
+#   - v0.1.4-ios (Release)
+#   - v0.1.4-ios-debug (Debug)
+```
 
 ## Questions?
 

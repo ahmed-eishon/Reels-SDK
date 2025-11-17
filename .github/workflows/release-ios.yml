@@ -90,39 +90,57 @@ jobs:
           echo "Packages created:"
           ls -lh ReelsSDK-Frameworks-*.zip
 
-      - name: Generate framework manifest
+      - name: Generate Debug release manifest
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          echo "ReelsSDK iOS Frameworks v$VERSION" > RELEASE_MANIFEST.txt
-          echo "Platform: iOS" >> RELEASE_MANIFEST.txt
+          echo "ReelsSDK iOS Debug Frameworks v$VERSION" > DEBUG_MANIFEST.txt
+          echo "Platform: iOS (Debug)" >> DEBUG_MANIFEST.txt
+          echo "Generated: $(date)" >> DEBUG_MANIFEST.txt
+          echo "" >> DEBUG_MANIFEST.txt
+          echo "=== Installation ===" >> DEBUG_MANIFEST.txt
+          echo "pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v$VERSION-ios-debug'" >> DEBUG_MANIFEST.txt
+          echo "" >> DEBUG_MANIFEST.txt
+          echo "Use this tag for development/testing with Debug frameworks." >> DEBUG_MANIFEST.txt
+
+      - name: Generate Release manifest
+        run: |
+          VERSION="${{ steps.get_version.outputs.VERSION }}"
+          echo "ReelsSDK iOS Release Frameworks v$VERSION" > RELEASE_MANIFEST.txt
+          echo "Platform: iOS (Release)" >> RELEASE_MANIFEST.txt
           echo "Generated: $(date)" >> RELEASE_MANIFEST.txt
-          echo "" >> RELEASE_MANIFEST.txt
-          echo "=== Available Packages ===" >> RELEASE_MANIFEST.txt
-          echo "1. ReelsSDK-Frameworks-$VERSION.zip (Full: All Debug + Release frameworks)" >> RELEASE_MANIFEST.txt
-          echo "2. ReelsSDK-Frameworks-Debug-$VERSION.zip (Debug frameworks only)" >> RELEASE_MANIFEST.txt
-          echo "3. ReelsSDK-Frameworks-Release-$VERSION.zip (Release frameworks only)" >> RELEASE_MANIFEST.txt
           echo "" >> RELEASE_MANIFEST.txt
           echo "=== Installation ===" >> RELEASE_MANIFEST.txt
           echo "pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v$VERSION-ios'" >> RELEASE_MANIFEST.txt
           echo "" >> RELEASE_MANIFEST.txt
-          echo "The SDK will automatically use the correct frameworks based on your build configuration." >> RELEASE_MANIFEST.txt
+          echo "Use this tag for production builds with optimized Release frameworks." >> RELEASE_MANIFEST.txt
 
       - name: Calculate checksums
         run: |
           shasum -a 256 ReelsSDK-Frameworks-*.zip > CHECKSUMS.txt
           cat CHECKSUMS.txt
 
-      - name: Create GitHub Release
+      - name: Create Debug GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          name: ReelsSDK iOS v${{ steps.get_version.outputs.VERSION }}
+          tag_name: v${{ steps.get_version.outputs.VERSION }}-ios-debug
+          name: ReelsSDK iOS Debug v${{ steps.get_version.outputs.VERSION }}
+          body_path: DEBUG_MANIFEST.txt
+          draft: false
+          prerelease: false
+          files: |
+            ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip
+            CHECKSUMS.txt
+
+      - name: Create Release GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.get_version.outputs.VERSION }}-ios
+          name: ReelsSDK iOS Release v${{ steps.get_version.outputs.VERSION }}
           body_path: RELEASE_MANIFEST.txt
           draft: false
           prerelease: false
           files: |
             ReelsSDK-Frameworks-${{ steps.get_version.outputs.VERSION }}.zip
-            ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip
-            ReelsSDK-Frameworks-Release-${{ steps.get_version.outputs.VERSION }}.zip
             CHECKSUMS.txt
 
       - name: Release summary

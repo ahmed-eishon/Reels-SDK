@@ -63,6 +63,18 @@ Pod::Spec.new do |spec|
           fi
         done
 
+        # Create initial symlinks (pointing to Debug by default)
+        echo "Creating initial framework symlinks (Debug)..."
+        for framework in Frameworks/*_Debug.xcframework; do
+          if [ -d "$framework" ]; then
+            base_name=$(basename "$framework" _Debug.xcframework)
+            symlink_path="Frameworks/${base_name}.xcframework"
+            rm -rf "$symlink_path"
+            ln -s "$(basename "$framework")" "$symlink_path"
+            echo "  ${base_name}.xcframework -> $(basename "$framework")"
+          fi
+        done
+
         echo "[OK] Linked local frameworks"
       fi
       echo ""
@@ -115,17 +127,37 @@ Pod::Spec.new do |spec|
     # Mark as downloaded for this version
     touch "$FRAMEWORKS_DIR/.downloaded-v$VERSION"
 
+    # Create initial symlinks (pointing to Debug by default for pod install)
+    echo "Creating initial framework symlinks (Debug)..."
+    for framework in "$FRAMEWORKS_DIR"/*_Debug.xcframework; do
+      if [ -e "$framework" ]; then
+        base_name=$(basename "$framework" _Debug.xcframework)
+        symlink_path="$FRAMEWORKS_DIR/${base_name}.xcframework"
+        rm -rf "$symlink_path"
+        ln -s "$(basename "$framework")" "$symlink_path"
+        echo "  ${base_name}.xcframework -> $(basename "$framework")"
+      fi
+    done
+
     echo "[OK] Frameworks ready"
     echo ""
-    ls -1 "$FRAMEWORKS_DIR"/*.xcframework 2>/dev/null | xargs -n1 basename || echo "No frameworks found"
+    ls -1 "$FRAMEWORKS_DIR"/*.xcframework 2>/dev/null | grep -v "_Debug\|_Release" | xargs -n1 basename || echo "No symlinks found"
     echo ""
     echo "================================================"
     echo "[OK] Frameworks ready for use"
     echo "================================================"
   CMD
 
-  # Vendor ALL frameworks (both Debug and Release variants)
-  spec.vendored_frameworks = 'Frameworks/*.xcframework'
+  # Vendor ONLY the symlinks (without suffixes), not the Debug/Release variants
+  # This prevents CocoaPods from linking both Debug and Release frameworks
+  spec.vendored_frameworks = [
+    'Frameworks/App.xcframework',
+    'Frameworks/Flutter.xcframework',
+    'Frameworks/FlutterPluginRegistrant.xcframework',
+    'Frameworks/package_info_plus.xcframework',
+    'Frameworks/video_player_avfoundation.xcframework',
+    'Frameworks/wakelock_plus.xcframework'
+  ]
 
   # Script phase to download frameworks and symlink correct variant based on build configuration
   spec.script_phases = [

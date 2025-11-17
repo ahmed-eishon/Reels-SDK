@@ -15,8 +15,10 @@ echo "========================================="
 echo ""
 
 # Define paths
-DEBUG_FRAMEWORKS="Frameworks/Debug/Debug"
-RELEASE_FRAMEWORKS="Frameworks/Release/Release"
+SDK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+FLUTTER_DIR="$SDK_ROOT/reels_flutter"
+DEBUG_FRAMEWORKS="$FLUTTER_DIR/.ios/Flutter/Debug"
+RELEASE_FRAMEWORKS="$FLUTTER_DIR/.ios/Flutter/Release"
 
 # Create temp packaging directories
 FULL_DIR="packaging/full"
@@ -44,7 +46,8 @@ for framework in "$RELEASE_FRAMEWORKS"/*.xcframework; do
   fi
 done
 
-zip -r -q "ReelsSDK-Frameworks-${VERSION}.zip" "$FULL_DIR"/*.xcframework
+# Create zip with frameworks at root level (not in subdirectory)
+(cd "$FULL_DIR" && zip -r -q "../../ReelsSDK-Frameworks-${VERSION}.zip" *.xcframework)
 echo "[OK] Created: ReelsSDK-Frameworks-${VERSION}.zip"
 echo ""
 
@@ -58,7 +61,8 @@ for framework in "$DEBUG_FRAMEWORKS"/*.xcframework; do
   fi
 done
 
-zip -r -q "ReelsSDK-Frameworks-Debug-${VERSION}.zip" "$DEBUG_DIR"/*.xcframework
+# Create zip with frameworks at root level
+(cd "$DEBUG_DIR" && zip -r -q "../../ReelsSDK-Frameworks-Debug-${VERSION}.zip" *.xcframework)
 echo "[OK] Created: ReelsSDK-Frameworks-Debug-${VERSION}.zip"
 echo ""
 
@@ -72,7 +76,8 @@ for framework in "$RELEASE_FRAMEWORKS"/*.xcframework; do
   fi
 done
 
-zip -r -q "ReelsSDK-Frameworks-Release-${VERSION}.zip" "$RELEASE_DIR"/*.xcframework
+# Create zip with frameworks at root level
+(cd "$RELEASE_DIR" && zip -r -q "../../ReelsSDK-Frameworks-Release-${VERSION}.zip" *.xcframework)
 echo "[OK] Created: ReelsSDK-Frameworks-Release-${VERSION}.zip"
 echo ""
 

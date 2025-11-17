@@ -40,14 +40,29 @@ Pod::Spec.new do |spec|
       echo ""
 
       # Link local frameworks
-      if [ -d "Frameworks/Debug/Debug" ] && [ -d "Frameworks/Release/Release" ]; then
+      FLUTTER_DEBUG="reels_flutter/.ios/Flutter/Debug"
+      FLUTTER_RELEASE="reels_flutter/.ios/Flutter/Release"
+      if [ -d "$FLUTTER_DEBUG" ] && [ -d "$FLUTTER_RELEASE" ]; then
         echo "Linking local Debug and Release frameworks..."
-        rm -rf Frameworks_All
-        mkdir -p Frameworks_All
-        cp -R Frameworks/Debug/Debug/*.xcframework Frameworks_All/
-        cp -R Frameworks/Release/Release/*.xcframework Frameworks_All/
         rm -rf Frameworks
-        mv Frameworks_All Frameworks
+        mkdir -p Frameworks
+
+        # Copy and rename Debug frameworks with _Debug suffix
+        for framework in "$FLUTTER_DEBUG"/*.xcframework; do
+          if [ -d "$framework" ]; then
+            base_name=$(basename "$framework" .xcframework)
+            cp -R "$framework" "Frameworks/${base_name}_Debug.xcframework"
+          fi
+        done
+
+        # Copy and rename Release frameworks with _Release suffix
+        for framework in "$FLUTTER_RELEASE"/*.xcframework; do
+          if [ -d "$framework" ]; then
+            base_name=$(basename "$framework" .xcframework)
+            cp -R "$framework" "Frameworks/${base_name}_Release.xcframework"
+          fi
+        done
+
         echo "[OK] Linked local frameworks"
       fi
       echo ""

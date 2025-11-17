@@ -40,20 +40,29 @@ Pod::Spec.new do |spec|
       exit 0
     fi
 
-    # Detect if this is a debug or release build based on git tag
-    CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || echo "")
+    # Detect current tag - try multiple methods for CocoaPods compatibility
+    CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null || echo "")
+
+    # If still empty, check if we're at a tag by looking at HEAD
+    if [ -z "$CURRENT_TAG" ]; then
+      CURRENT_TAG=$(git tag --points-at HEAD 2>/dev/null | grep "v${VERSION}-ios" | head -1 || echo "")
+    fi
+
+    # Determine build type and zip name
     if echo "$CURRENT_TAG" | grep -q "debug"; then
       BUILD_TYPE="Debug"
+      TAG_NAME="v${VERSION}-ios-debug"
       ZIP_NAME="ReelsSDK-Frameworks-Debug-${VERSION}.zip"
       echo "[ReelsSDK] Detected Debug build from tag: $CURRENT_TAG"
     else
       BUILD_TYPE="Release"
+      TAG_NAME="v${VERSION}-ios"
       ZIP_NAME="ReelsSDK-Frameworks-${VERSION}.zip"
       echo "[ReelsSDK] Detected Release build from tag: $CURRENT_TAG"
     fi
 
     # Download frameworks package
-    GITHUB_URL="https://github.com/ahmed-eishon/Reels-SDK/releases/download/${CURRENT_TAG}/${ZIP_NAME}"
+    GITHUB_URL="https://github.com/ahmed-eishon/Reels-SDK/releases/download/${TAG_NAME}/${ZIP_NAME}"
 
     echo "[ReelsSDK] Downloading $BUILD_TYPE frameworks v$VERSION..."
     echo "[ReelsSDK] URL: $GITHUB_URL"

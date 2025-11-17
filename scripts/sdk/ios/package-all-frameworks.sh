@@ -17,8 +17,23 @@ echo ""
 # Define paths
 SDK_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 FLUTTER_DIR="$SDK_ROOT/reels_flutter"
-DEBUG_FRAMEWORKS="$FLUTTER_DIR/.ios/Flutter/Debug"
-RELEASE_FRAMEWORKS="$FLUTTER_DIR/.ios/Flutter/Release"
+
+# Check for frameworks in GitHub Actions location first, then local build location
+if [ -d "$SDK_ROOT/Frameworks/Debug/Debug" ] && [ -d "$SDK_ROOT/Frameworks/Release/Release" ]; then
+  # GitHub Actions build location
+  DEBUG_FRAMEWORKS="$SDK_ROOT/Frameworks/Debug/Debug"
+  RELEASE_FRAMEWORKS="$SDK_ROOT/Frameworks/Release/Release"
+elif [ -d "$FLUTTER_DIR/.ios/Flutter/Debug" ] && [ -d "$FLUTTER_DIR/.ios/Flutter/Release" ]; then
+  # Local build location
+  DEBUG_FRAMEWORKS="$FLUTTER_DIR/.ios/Flutter/Debug"
+  RELEASE_FRAMEWORKS="$FLUTTER_DIR/.ios/Flutter/Release"
+else
+  echo "❌ Error: Could not find frameworks in expected locations"
+  echo "   Checked:"
+  echo "   - $SDK_ROOT/Frameworks/Debug/Debug (GitHub Actions)"
+  echo "   - $FLUTTER_DIR/.ios/Flutter/Debug (Local build)"
+  exit 1
+fi
 
 # Create temp packaging directories
 FULL_DIR="packaging/full"

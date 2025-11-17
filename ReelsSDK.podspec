@@ -27,7 +27,7 @@ Pod::Spec.new do |spec|
   spec.source_files          = 'reels_ios/Sources/ReelsIOS/**/*.swift'
 
   # Download pre-built Flutter frameworks from GitHub releases
-  # Detects Debug or Release based on git tag suffix
+  # Tries Debug first, falls back to Release if not found
   spec.prepare_command = <<-CMD
     set -e
 
@@ -40,45 +40,39 @@ Pod::Spec.new do |spec|
       exit 0
     fi
 
-    # Detect current tag - try multiple methods for CocoaPods compatibility
-    CURRENT_TAG=$(git describe --tags --exact-match 2>/dev/null || git describe --tags 2>/dev/null || echo "")
+    # Try Debug first (for development), fallback to Release
+    DEBUG_TAG="v${VERSION}-ios-debug"
+    RELEASE_TAG="v${VERSION}-ios"
+    DEBUG_ZIP="ReelsSDK-Frameworks-Debug-${VERSION}.zip"
+    RELEASE_ZIP="ReelsSDK-Frameworks-${VERSION}.zip"
 
-    # If still empty, check if we're at a tag by looking at HEAD
-    if [ -z "$CURRENT_TAG" ]; then
-      CURRENT_TAG=$(git tag --points-at HEAD 2>/dev/null | grep "v${VERSION}-ios" | head -1 || echo "")
-    fi
+    DEBUG_URL="https://github.com/ahmed-eishon/Reels-SDK/releases/download/${DEBUG_TAG}/${DEBUG_ZIP}"
+    RELEASE_URL="https://github.com/ahmed-eishon/Reels-SDK/releases/download/${RELEASE_TAG}/${RELEASE_ZIP}"
 
-    # Determine build type and zip name
-    if echo "$CURRENT_TAG" | grep -q "debug"; then
+    echo "[ReelsSDK] Downloading frameworks v$VERSION..."
+
+    # Try Debug first
+    if curl -L -f -o "frameworks.zip" "$DEBUG_URL" 2>/dev/null; then
+      echo "[ReelsSDK] Downloaded Debug frameworks from ${DEBUG_TAG}"
       BUILD_TYPE="Debug"
-      TAG_NAME="v${VERSION}-ios-debug"
-      ZIP_NAME="ReelsSDK-Frameworks-Debug-${VERSION}.zip"
-      echo "[ReelsSDK] Detected Debug build from tag: $CURRENT_TAG"
-    else
+    # Fallback to Release
+    elif curl -L -f -o "frameworks.zip" "$RELEASE_URL" 2>/dev/null; then
+      echo "[ReelsSDK] Downloaded Release frameworks from ${RELEASE_TAG}"
       BUILD_TYPE="Release"
-      TAG_NAME="v${VERSION}-ios"
-      ZIP_NAME="ReelsSDK-Frameworks-${VERSION}.zip"
-      echo "[ReelsSDK] Detected Release build from tag: $CURRENT_TAG"
-    fi
-
-    # Download frameworks package
-    GITHUB_URL="https://github.com/ahmed-eishon/Reels-SDK/releases/download/${TAG_NAME}/${ZIP_NAME}"
-
-    echo "[ReelsSDK] Downloading $BUILD_TYPE frameworks v$VERSION..."
-    echo "[ReelsSDK] URL: $GITHUB_URL"
-
-    if curl -L -f -o "frameworks.zip" "$GITHUB_URL"; then
-      echo "[ReelsSDK] Download successful, extracting..."
-      mkdir -p "$FRAMEWORKS_DIR"
-      unzip -q -o "frameworks.zip" -d "$FRAMEWORKS_DIR"
-      rm "frameworks.zip"
-      touch "$FRAMEWORKS_DIR/.downloaded-v$VERSION"
-      echo "[ReelsSDK] $BUILD_TYPE frameworks ready"
     else
       echo "[ReelsSDK] ERROR: Failed to download frameworks"
-      echo "[ReelsSDK] Please check: $GITHUB_URL"
+      echo "[ReelsSDK] Tried:"
+      echo "[ReelsSDK]   - $DEBUG_URL"
+      echo "[ReelsSDK]   - $RELEASE_URL"
       exit 1
     fi
+
+    echo "[ReelsSDK] Extracting $BUILD_TYPE frameworks..."
+    mkdir -p "$FRAMEWORKS_DIR"
+    unzip -q -o "frameworks.zip" -d "$FRAMEWORKS_DIR"
+    rm "frameworks.zip"
+    touch "$FRAMEWORKS_DIR/.downloaded-v$VERSION"
+    echo "[ReelsSDK] $BUILD_TYPE frameworks ready"
   CMD
 
   # Vendor the 6 Flutter frameworks (no suffixes)

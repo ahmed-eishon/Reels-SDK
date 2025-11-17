@@ -158,8 +158,7 @@ Pod::Spec.new do |spec|
         done
 
         echo "[ReelsSDK] Framework selection complete"
-      SCRIPT
-      ,
+      SCRIPT,
       :execution_position => :before_compile
     }
   ]

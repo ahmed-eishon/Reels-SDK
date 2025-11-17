@@ -174,7 +174,7 @@ target 'YourApp' do
   use_frameworks!
 
   # Reels SDK via Git
-  pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => '1.0.0'
+  pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => 'v1.0.0-ios'
 
   # Your other pods...
 end
@@ -191,7 +191,7 @@ pod install
 
 ```ruby
 # In Podfile, update the tag
-pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => '1.1.0'
+pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => 'v1.1.0-ios'
 ```
 
 ```bash
@@ -507,6 +507,14 @@ class CollectViewController: UIViewController, ReelsListener {
 3. Verify `Flutter/podhelper.rb` exists
 4. Re-run `pod install`
 
+### Issue 6: Framework structure questions
+
+**Note:** ReelsSDK frameworks use suffix naming (_Debug, _Release) to support both Debug and Release builds:
+- `Pods/ReelsSDK/Frameworks/Debug/` contains Debug frameworks (e.g., `App_Debug.xcframework`)
+- `Pods/ReelsSDK/Frameworks/Release/` contains Release frameworks (e.g., `App_Release.xcframework`)
+- The build system automatically selects the correct variant based on your build configuration
+- This is transparent to developers - no configuration needed
+
 ## Best Practices
 
 ### ✅ Do's
@@ -552,7 +560,7 @@ pod install
 
 ```ruby
 # Update Podfile with new tag
-pod 'ReelsSDK', :git => '...', :tag => '1.1.0'
+pod 'ReelsSDK', :git => '...', :tag => 'v1.1.0-ios'
 ```
 
 ```bash

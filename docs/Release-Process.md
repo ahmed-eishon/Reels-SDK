@@ -128,8 +128,10 @@ cd /path/to/reels-sdk
 
 3. **Test Download**
    ```bash
-   curl -L -O https://github.com/rakuten/reels-sdk/releases/download/v1.0.0/ReelsSDK-Frameworks-Release-1.0.0.zip
+   curl -L -O https://github.com/rakuten/reels-sdk/releases/download/v1.0.0-ios/ReelsSDK-Frameworks-Release-1.0.0.zip
    unzip -l ReelsSDK-Frameworks-Release-1.0.0.zip
+   # You'll see frameworks with _Release suffix (e.g., App_Release.xcframework)
+   # This naming prevents conflicts when both Debug and Release are present
    ```
 
 ## Local Development vs Distribution
@@ -300,13 +302,20 @@ pod install
 
 **What happens:**
 1. CocoaPods clones the repo
-2. Checks out tag `v1.0.0`
+2. Checks out tag `v1.0.0-ios`
 3. Runs `prepare_command` in podspec
-4. Downloads `ReelsSDK-Frameworks-Release-1.0.0.zip` from GitHub
-5. Extracts frameworks
-6. Links to Xcode project
+4. Downloads both Debug and Release framework zips from GitHub
+5. Extracts frameworks (with _Debug/_Release naming to prevent conflicts)
+6. Build system automatically selects correct variant per configuration
+7. Links to Xcode project
 
 **Time: ~30 seconds** (vs ~30 minutes if they had to build Flutter)
+
+**Technical Details:**
+- Frameworks use suffix naming (_Debug, _Release) to allow both variants to coexist
+- Your Debug builds automatically use Debug frameworks
+- Your Release builds automatically use Release frameworks
+- This happens transparently without any configuration needed
 
 ### Step 3: Use in Code
 

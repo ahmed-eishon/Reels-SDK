@@ -120,9 +120,13 @@ build_reels_android_aar() {
     cd "$ROOT_DIR/reels_android"
 
     if [ "$BUILD_MODE" == "Release" ]; then
-        ../gradlew assembleRelease --no-daemon --stacktrace
+        ../gradlew assembleRelease --no-daemon --stacktrace \
+            -Pandroid.enableJetifier=false \
+            -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
     else
-        ../gradlew assembleDebug --no-daemon --stacktrace
+        ../gradlew assembleDebug --no-daemon --stacktrace \
+            -Pandroid.enableJetifier=false \
+            -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
     fi
 
     cd "$ROOT_DIR"

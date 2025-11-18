@@ -99,7 +99,7 @@ publishing {
             pom {
                 name = 'Reels SDK for Android'
                 description = 'Flutter-based video reels SDK for Android applications'
-                url = 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk'
+                url = 'https://github.com/ahmed-eishon/Reels-SDK'
 
                 licenses {
                     license {
@@ -117,10 +117,21 @@ publishing {
                 }
 
                 scm {
-                    connection = 'scm:git:git://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git'
-                    developerConnection = 'scm:git:ssh://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git'
-                    url = 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk'
+                    connection = 'scm:git:git://github.com/ahmed-eishon/Reels-SDK.git'
+                    developerConnection = 'scm:git:ssh://github.com/ahmed-eishon/Reels-SDK.git'
+                    url = 'https://github.com/ahmed-eishon/Reels-SDK'
                 }
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ahmed-eishon/Reels-SDK")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") ?: ""
             }
         }
     }

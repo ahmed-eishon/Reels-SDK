@@ -201,6 +201,195 @@ implementation 'com.rakuten.room:reels-sdk:1.1.0'
 - ⚠️ May have issues in corporate environments
 - ⚠️ Slower build times
 
+### Method 3: AAR Integration (Recommended for Released Versions)
+
+This method is recommended for using **stable releases** without needing the SDK source code.
+
+#### Step 1: Download Released AAR Files
+
+Download the AAR package from the GitHub Releases page:
+
+```bash
+# Navigate to your project directory
+cd /path/to/your-android-app
+
+# Create libs directory if it doesn't exist
+mkdir -p app/libs
+
+# Download the release (replace VERSION with actual version, e.g., 0.1.4)
+VERSION="0.1.4"
+
+# For Debug builds (development/testing)
+curl -L -o ReelsSDK-Android-Debug-${VERSION}.zip \
+  "https://github.com/ahmed-eishon/Reels-SDK/releases/download/v${VERSION}-android-debug/ReelsSDK-Android-Debug-${VERSION}.zip"
+
+# OR for Release builds (production)
+curl -L -o ReelsSDK-Android-${VERSION}.zip \
+  "https://github.com/ahmed-eishon/Reels-SDK/releases/download/v${VERSION}-android/ReelsSDK-Android-${VERSION}.zip"
+
+# Extract the downloaded package
+unzip ReelsSDK-Android-Debug-${VERSION}.zip
+# or
+# unzip ReelsSDK-Android-${VERSION}.zip
+
+# Copy AAR files to your project
+cp ReelsSDK-Android-Debug-${VERSION}/*.aar app/libs/
+# or
+# cp ReelsSDK-Android-${VERSION}/*.aar app/libs/
+```
+
+**What's included in the package:**
+- `reels-sdk-debug-VERSION.aar` (Debug) or `reels-sdk-VERSION.aar` (Release) - Main SDK AAR
+- `flutter-debug-VERSION.aar` (Debug) or `flutter-release-VERSION.aar` (Release) - Flutter runtime dependencies
+- `README.md` - Integration instructions
+- `.sha256` - Checksum file for verification
+
+#### Step 2: Verify Checksums (Optional but Recommended)
+
+```bash
+# Verify package integrity
+shasum -a 256 -c ReelsSDK-Android-Debug-${VERSION}.zip.sha256
+# or
+# shasum -a 256 -c ReelsSDK-Android-${VERSION}.zip.sha256
+```
+
+#### Step 3: Update build.gradle (Project Level)
+
+Ensure your project-level `build.gradle` has the necessary repositories:
+
+```gradle
+// build.gradle (Project)
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+```
+
+#### Step 4: Update build.gradle (App Level)
+
+Add the following to your `app/build.gradle`:
+
+```gradle
+// app/build.gradle
+android {
+    compileSdk 35
+
+    defaultConfig {
+        minSdk 21
+        targetSdk 35
+        // ... other config
+    }
+
+    // Add flatDir repository for local AAR files
+    repositories {
+        flatDir {
+            dirs 'libs'
+        }
+    }
+}
+
+dependencies {
+    // For Debug builds
+    debugImplementation(name: 'reels-sdk-debug-0.1.4', ext: 'aar')
+    debugImplementation(name: 'flutter-debug-0.1.4', ext: 'aar')
+
+    // For Release builds
+    releaseImplementation(name: 'reels-sdk-0.1.4', ext: 'aar')
+    releaseImplementation(name: 'flutter-release-0.1.4', ext: 'aar')
+
+    // OR use implementation for both (not recommended)
+    // implementation(name: 'reels-sdk-0.1.4', ext: 'aar')
+    // implementation(name: 'flutter-release-0.1.4', ext: 'aar')
+
+    // Required Android dependencies
+    implementation 'androidx.appcompat:appcompat:1.6.1'
+    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+    implementation 'com.google.android.material:material:1.11.0'
+}
+```
+
+> [!tip] Debug vs Release AAR
+> - **Debug AAR**: Use during development for better logging and debugging
+> - **Release AAR**: Use in production for optimized performance
+> - Use `debugImplementation` and `releaseImplementation` to automatically switch between them
+
+#### Step 5: Clean Settings.gradle
+
+If you were previously using local folder import or Git + Gradle, remove those configurations from `settings.gradle`:
+
+```gradle
+// settings.gradle - Remove these lines if present:
+
+// OLD: Local folder import
+// include ':reels_android'
+// project(':reels_android').projectDir = new File('/path/to/reels-sdk/reels_android')
+// evaluate(new File('/path/to/reels-sdk/reels_flutter/.android/include_flutter.groovy'))
+
+// OLD: Git + Gradle
+// sourceControl {
+//     gitRepository(uri("...")) {
+//         producesModule("com.rakuten.room:reels-sdk")
+//     }
+// }
+```
+
+Your `settings.gradle` should only contain:
+
+```gradle
+rootProject.name = 'YourApp'
+include ':app'
+```
+
+#### Step 6: Sync and Build
+
+```bash
+# Clean and rebuild
+./gradlew clean
+./gradlew build
+
+# Or run from Android Studio
+# File → Sync Project with Gradle Files
+# Build → Clean Project
+# Build → Rebuild Project
+```
+
+#### Step 7: Verify Installation
+
+Check that the AARs are properly included:
+
+```bash
+# List dependencies
+./gradlew app:dependencies | grep reels
+
+# Should show:
+# debugImplementation - reels-sdk-debug-0.1.4.aar
+# debugImplementation - flutter-debug-0.1.4.aar
+# releaseImplementation - reels-sdk-0.1.4.aar
+# releaseImplementation - flutter-release-0.1.4.aar
+```
+
+**Advantages of AAR Integration:**
+- ✅ No Git authentication required
+- ✅ Faster build times (pre-compiled)
+- ✅ Stable versioned releases
+- ✅ No SDK source code needed
+- ✅ Smaller repository size
+- ✅ Works in air-gapped environments
+- ✅ Easy to version control AAR files
+
+**Disadvantages:**
+- ⚠️ Manual download and update process
+- ⚠️ Cannot debug into SDK source code
+- ⚠️ Need to re-download for updates
+
+**When to use AAR Integration:**
+- ✅ Production apps using stable releases
+- ✅ Corporate environments with restricted Git access
+- ✅ CI/CD pipelines with local artifact caching
+- ✅ Teams not actively developing the SDK
+
 ## SDK Usage
 
 ### Step 1: Import the SDK

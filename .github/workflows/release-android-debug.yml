@@ -79,8 +79,14 @@ jobs:
 
       - name: List Flutter build outputs
         run: |
-          echo "=== Flutter AAR outputs ==="
-          find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
+          echo "=== Flutter Module AAR ==="
+          find reels_flutter/build/host/outputs/repo/com/example/reels_flutter -type f 2>/dev/null || echo "Flutter module not found"
+          echo ""
+          echo "=== Flutter Engine Artifacts ==="
+          find reels_flutter/build/host/outputs/repo/io/flutter -type f 2>/dev/null || echo "Flutter engine artifacts not found"
+          echo ""
+          echo "=== All Maven Repository Contents ==="
+          ls -R reels_flutter/build/host/outputs/repo/ | head -100
 
       - name: Build reels_android AAR (Debug)
         working-directory: reels_android

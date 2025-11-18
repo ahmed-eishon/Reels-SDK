@@ -1,0 +1,279 @@
+name: Build and Release Android AAR (Debug)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*-android-debug'  # Matches v0.1.4-android-debug
+
+jobs:
+  build-debug-aar:
+    name: Build Debug AAR
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          VERSION=${TAG%-android-debug}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.9.2'
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            reels_flutter/.dart_tool
+          key: ${{ runner.os }}-flutter-${{ hashFiles('reels_flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            reels_android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Verify Flutter installation
+        run: |
+          flutter --version
+          flutter doctor -v
+
+      - name: Get Flutter dependencies
+        working-directory: reels_flutter
+        run: flutter pub get
+
+      - name: Run Pigeon code generation
+        working-directory: reels_flutter
+        run: flutter pub run pigeon --input pigeons/messages.dart
+
+      - name: Build Flutter AAR (Debug)
+        working-directory: reels_flutter
+        run: |
+          echo "Building Flutter AAR in Debug mode..."
+          flutter build aar --debug --no-release --no-profile
+          echo "Flutter AAR built successfully"
+
+      - name: List Flutter build outputs
+        run: |
+          echo "=== Flutter AAR outputs ==="
+          find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
+
+      - name: Build reels_android AAR (Debug)
+        working-directory: reels_android
+        run: |
+          echo "Building reels_android AAR..."
+          ../gradlew assembleDebug --no-daemon --stacktrace
+          echo "reels_android AAR built successfully"
+
+      - name: List reels_android build outputs
+        run: |
+          echo "=== reels_android AAR outputs ==="
+          find reels_android/build/outputs/aar -name "*.aar" -type f
+
+      - name: Create debug package
+        id: package
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          PACKAGE_DIR="ReelsSDK-Android-Debug-${VERSION}"
+          mkdir -p "$PACKAGE_DIR"
+
+          # Copy reels_android AAR
+          cp reels_android/build/outputs/aar/reels_android-debug.aar \
+             "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
+
+          # Copy Flutter AAR
+          cp reels_flutter/build/host/outputs/repo/com/rakuten/room/flutter_debug/1.0/flutter_debug-1.0.aar \
+             "$PACKAGE_DIR/flutter-debug-${VERSION}.aar"
+
+          # Create README
+          cat > "$PACKAGE_DIR/README.md" <<'EOF'
+          # ReelsSDK Android - Debug Build
+
+          Version: $VERSION
+          Build: Debug
+
+          ## Contents
+
+          - `reels-sdk-debug-${VERSION}.aar` - Main SDK AAR (Debug build)
+          - `flutter-debug-${VERSION}.aar` - Flutter dependencies (Debug)
+
+          ## Integration
+
+          1. Copy both AAR files to your `app/libs/` directory
+
+          2. Add to your `app/build.gradle`:
+
+          ```gradle
+          android {
+              ...
+          }
+
+          repositories {
+              flatDir {
+                  dirs 'libs'
+              }
+          }
+
+          dependencies {
+              debugImplementation(name: 'reels-sdk-debug-${VERSION}', ext: 'aar')
+              debugImplementation(name: 'flutter-debug-${VERSION}', ext: 'aar')
+
+              // Required dependencies
+              implementation 'androidx.appcompat:appcompat:1.6.1'
+              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
+              implementation 'com.google.android.material:material:1.11.0'
+          }
+          ```
+
+          3. Sync Gradle and build
+
+          ## ⚠️ Debug Build Notice
+
+          This is a DEBUG build intended for development only:
+          - Larger file size
+          - Not optimized
+          - Includes debug symbols
+          - More verbose logging
+
+          For production, use the Release build instead.
+
+          ## Documentation
+
+          See: https://github.com/ahmed-eishon/Reels-SDK/blob/master/docs/02-Integration/02-Android-Integration-Guide.md
+          EOF
+
+          # Create zip
+          ZIP_NAME="ReelsSDK-Android-Debug-${VERSION}.zip"
+          zip -r "$ZIP_NAME" "$PACKAGE_DIR"
+
+          # Calculate checksum
+          shasum -a 256 "$ZIP_NAME" > "${ZIP_NAME}.sha256"
+
+          echo "PACKAGE_DIR=$PACKAGE_DIR" >> $GITHUB_OUTPUT
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_OUTPUT
+
+          # Show package contents
+          echo "=== Package Contents ==="
+          ls -lh "$PACKAGE_DIR"
+          echo "=== Package Size ==="
+          du -h "$ZIP_NAME"
+
+      - name: Create GitHub Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Android Debug ${{ steps.get_version.outputs.VERSION }}
+          body: |
+            # ReelsSDK Android Debug v${{ steps.get_version.outputs.VERSION }}
+
+            **Build Type:** Debug (Development only)
+
+            ## 📦 What's Included
+
+            - `reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}.aar` - Main SDK AAR (Debug)
+            - `flutter-debug-${{ steps.get_version.outputs.VERSION }}.aar` - Flutter runtime (Debug)
+
+            ## 🚀 Quick Start
+
+            ### Installation
+
+            1. Download `ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}.zip`
+            2. Extract and copy AAR files to `app/libs/`
+            3. Update your `build.gradle`:
+
+            ```gradle
+            repositories {
+                flatDir {
+                    dirs 'libs'
+                }
+            }
+
+            dependencies {
+                debugImplementation(name: 'reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+                debugImplementation(name: 'flutter-debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+            }
+            ```
+
+            4. Sync and build!
+
+            ## ⚠️ Debug Build
+
+            This is a **Debug build** for development only:
+            - ❌ Not optimized for production
+            - ✅ Includes debug symbols
+            - ✅ Verbose logging enabled
+            - ✅ Easier debugging
+
+            **For production, use the Release build:** `v${{ steps.get_version.outputs.VERSION }}-android`
+
+            ## 📚 Documentation
+
+            - [Integration Guide](https://github.com/ahmed-eishon/Reels-SDK/blob/master/docs/02-Integration/02-Android-Integration-Guide.md)
+            - [API Reference](https://github.com/ahmed-eishon/Reels-SDK/blob/master/docs/05-API/02-Android-API-Reference.md)
+
+            ## ✅ Verification
+
+            ```bash
+            # Verify checksums
+            shasum -a 256 -c ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}.zip.sha256
+            ```
+
+            ---
+
+            🤖 Generated with [GitHub Actions](https://github.com/ahmed-eishon/Reels-SDK/actions)
+          draft: false
+          prerelease: false
+
+      - name: Upload Release Asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.package.outputs.ZIP_NAME }}
+          asset_name: ${{ steps.package.outputs.ZIP_NAME }}
+          asset_content_type: application/zip
+
+      - name: Upload Checksum
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./${{ steps.package.outputs.ZIP_NAME }}.sha256
+          asset_name: ${{ steps.package.outputs.ZIP_NAME }}.sha256
+          asset_content_type: text/plain
+
+      - name: Release Summary
+        run: |
+          echo "✅ Debug AAR build completed successfully!"
+          echo "📦 Package: ${{ steps.package.outputs.ZIP_NAME }}"
+          echo "🏷️ Tag: ${{ github.ref_name }}"
+          echo "📋 Version: ${{ steps.get_version.outputs.VERSION }}"

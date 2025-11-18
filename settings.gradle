@@ -21,3 +21,10 @@ dependencyResolutionManagement {
 
 rootProject.name = "Reels-SDK"
 include ':reels_android'
+
+// Include Flutter module
+setBinding(new Binding([gradle: this]))
+evaluate(new File(
+  settingsDir,
+  'reels_flutter/.android/include_flutter.groovy'
+))

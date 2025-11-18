@@ -9,6 +9,8 @@ jobs:
   build-debug-aar:
     name: Build Debug AAR
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
 
     steps:
       - name: Checkout code

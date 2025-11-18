@@ -62,7 +62,7 @@ object ReelsModule {
      * Stored collect data by generation number to support nested modals
      * Each screen instance has its own collect data keyed by generation
      */
-    private val collectDataByGeneration: MutableMap<Int, CollectData> = mutableMapOf()
+    private val collectDataByGeneration: MutableMap<Int, CollectData?> = mutableMapOf()
 
     /**
      * Debug mode flag

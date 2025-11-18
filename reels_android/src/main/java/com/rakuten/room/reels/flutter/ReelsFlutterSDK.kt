@@ -7,6 +7,7 @@ import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
 import com.rakuten.room.reels.pigeon.*
+import com.rakuten.room.reels.pigeon.CollectData
 
 /**
  * Advanced Flutter Reels SDK with Pigeon integration.
@@ -54,6 +55,7 @@ class ReelsFlutterSDK private constructor() {
         private var buttonEventsApi: ReelsFlutterButtonEventsApi? = null
         private var stateApi: ReelsFlutterStateApi? = null
         private var navigationApi: ReelsFlutterNavigationApi? = null
+        private var lifecycleApi: ReelsFlutterLifecycleApi? = null
         
         /**
          * Setup all Pigeon API handlers
@@ -61,20 +63,47 @@ class ReelsFlutterSDK private constructor() {
         private fun setupPigeonAPIs(binaryMessenger: BinaryMessenger) {
             // Host API: Provide access token to Flutter (Flutter calls, Android implements)
             ReelsFlutterTokenApi.setUp(binaryMessenger, object : ReelsFlutterTokenApi {
-                override fun getAccessToken(): String? {
+                override fun getAccessToken(callback: (Result<String?>) -> Unit) {
                     val token = accessTokenProvider?.invoke() ?: listener?.getAccessToken()
                     Log.d(TAG, "Token requested: ${if (token != null) "provided" else "null"}")
-                    return token
+                    callback(Result.success(token))
                 }
             })
 
             // Host API: Provide context data to Flutter (Flutter calls, Android implements)
             ReelsFlutterContextApi.setUp(binaryMessenger, object : ReelsFlutterContextApi {
-                override fun getInitialCollect(): CollectData? {
-                    // Stub - returns null for now
-                    // This will be implemented when collect context is added
-                    Log.d(TAG, "Initial collect data requested: null")
-                    return null
+                override fun getInitialCollect(generation: Long): CollectData? {
+                    val collectData = com.rakuten.room.reels.ReelsModule.getInitialCollect(generation.toInt())
+                    Log.d(TAG, "Initial collect data requested for generation $generation: ${collectData?.id ?: "null"}")
+
+                    return if (collectData != null) {
+                        // Convert native CollectData to Pigeon CollectData
+                        CollectData(
+                            id = collectData.id,
+                            content = collectData.content,
+                            name = collectData.name,
+                            likes = collectData.likes,
+                            comments = collectData.comments,
+                            recollects = collectData.recollects,
+                            isLiked = collectData.isLiked,
+                            isCollected = collectData.isCollected,
+                            trackingTag = collectData.trackingTag,
+                            userId = collectData.userId,
+                            userName = collectData.userName,
+                            userProfileImage = collectData.userProfileImage,
+                            itemName = collectData.itemName,
+                            itemImageUrl = collectData.itemImageUrl,
+                            imageUrl = collectData.imageUrl
+                        )
+                    } else {
+                        null
+                    }
+                }
+
+                override fun getCurrentGeneration(): Long {
+                    val generation = com.rakuten.room.reels.ReelsModule.getCurrentGeneration()
+                    Log.d(TAG, "Current generation requested: $generation")
+                    return generation.toLong()
                 }
 
                 override fun isDebugMode(): Boolean {
@@ -89,6 +118,7 @@ class ReelsFlutterSDK private constructor() {
             buttonEventsApi = ReelsFlutterButtonEventsApi(binaryMessenger)
             stateApi = ReelsFlutterStateApi(binaryMessenger)
             navigationApi = ReelsFlutterNavigationApi(binaryMessenger)
+            lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger)
         }
         
         /**
@@ -238,10 +268,10 @@ class ReelsFlutterSDK private constructor() {
         fun notifyVideoStateChanged(videoId: String, state: String, position: Int? = null, duration: Int? = null) {
             checkInitialized()
             val stateData = VideoStateData(
-                videoId, 
-                state, 
-                position?.toLong(), 
-                duration?.toLong(), 
+                videoId,
+                state,
+                position?.toLong(),
+                duration?.toLong(),
                 System.currentTimeMillis()
             )
             stateApi?.onVideoStateChanged(stateData) { result ->
@@ -254,7 +284,38 @@ class ReelsFlutterSDK private constructor() {
                 }
             }
         }
-        
+
+        /**
+         * Pause all Flutter resources (videos, network) when screen loses focus
+         */
+        @JvmStatic
+        fun pauseAll() {
+            checkInitialized()
+            lifecycleApi?.pauseAll { result ->
+                if (result.isFailure) {
+                    Log.e(TAG, "Failed to pause all resources: ${result.exceptionOrNull()}")
+                } else {
+                    Log.d(TAG, "Successfully paused all Flutter resources")
+                }
+            }
+        }
+
+        /**
+         * Resume all Flutter resources (videos, network) when screen gains focus
+         * @param generation The generation number of the screen being resumed
+         */
+        @JvmStatic
+        fun resumeAll(generation: Long) {
+            checkInitialized()
+            lifecycleApi?.resumeAll(generation) { result ->
+                if (result.isFailure) {
+                    Log.e(TAG, "Failed to resume all resources: ${result.exceptionOrNull()}")
+                } else {
+                    Log.d(TAG, "Successfully resumed all Flutter resources for generation $generation")
+                }
+            }
+        }
+
         /**
          * Check if SDK is initialized
          */
@@ -278,6 +339,7 @@ class ReelsFlutterSDK private constructor() {
                 buttonEventsApi = null
                 stateApi = null
                 navigationApi = null
+                lifecycleApi = null
                 isInitialized = false
                 Log.d(TAG, "SDK disposed")
             } catch (e: Exception) {

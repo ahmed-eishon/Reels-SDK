@@ -8,6 +8,7 @@ import io.flutter.embedding.engine.FlutterEngine
 import com.rakuten.reels.pigeon.*
 import com.rakuten.room.reels.ReelsModule
 import com.rakuten.room.reels.CollectData as NativeCollectData
+import com.rakuten.room.reels.pigeon.CollectData
 
 /**
  * Pigeon-based handler for type-safe communication between Android and Flutter

@@ -6,6 +6,7 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
+import com.rakuten.room.reels.CollectData
 import com.rakuten.room.reels.ReelsModule
 
 /**
@@ -24,6 +25,8 @@ class FlutterReelsActivity : FlutterActivity() {
         private const val TAG = "FlutterReelsActivity"
         const val FLUTTER_ROUTE = "flutter_route"
         const val ACCESS_TOKEN_EXTRA = "access_token"
+        const val EXTRA_COLLECT_DATA = "collect_data"
+        const val EXTRA_GENERATION = "generation"
         
         /**
          * Create intent to launch Flutter reels activity
@@ -56,7 +59,17 @@ class FlutterReelsActivity : FlutterActivity() {
     
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "Creating FlutterReelsActivity - Enhanced initialization")
-        
+
+        // Extract collectData and generation from intent
+        val collectData = intent.getParcelableExtra<CollectData>(EXTRA_COLLECT_DATA)
+        val generation = intent.getIntExtra(EXTRA_GENERATION, 0)
+
+        if (collectData != null) {
+            Log.d(TAG, "Received collectData: id=${collectData.id}, generation=$generation")
+        } else {
+            Log.d(TAG, "No collectData provided, generation=$generation")
+        }
+
         // Initialize Flutter engine BEFORE calling super.onCreate()
         val accessToken = intent.getStringExtra(ACCESS_TOKEN_EXTRA)
         val engineManager = FlutterEngineManager.getInstance()
@@ -163,10 +176,16 @@ class FlutterReelsActivity : FlutterActivity() {
     override fun onResume() {
         super.onResume()
         Log.d(TAG, "FlutterReelsActivity resumed")
-        
+
+        // Resume Flutter resources for this generation
+        val generation = intent.getIntExtra(EXTRA_GENERATION, 0)
+        if (generation > 0) {
+            ReelsModule.resumeFlutter(generation)
+        }
+
         // Track screen resume
         ReelsModule.notifyScreenStateChanged("flutter_reels", "focused")
-        
+
         // Track analytics event
         ReelsModule.trackEvent("reels_screen_resumed", mapOf(
             "timestamp" to System.currentTimeMillis().toString()
@@ -176,7 +195,10 @@ class FlutterReelsActivity : FlutterActivity() {
     override fun onPause() {
         super.onPause()
         Log.d(TAG, "FlutterReelsActivity paused")
-        
+
+        // Pause Flutter resources
+        ReelsModule.pauseFlutter()
+
         // Track screen pause
         ReelsModule.notifyScreenStateChanged("flutter_reels", "unfocused")
     }

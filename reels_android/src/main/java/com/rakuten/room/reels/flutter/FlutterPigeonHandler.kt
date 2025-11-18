@@ -2,9 +2,12 @@ package com.rakuten.room.reels.flutter
 
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import android.widget.Toast
 import io.flutter.embedding.engine.FlutterEngine
 import com.rakuten.reels.pigeon.*
+import com.rakuten.room.reels.ReelsModule
+import com.rakuten.room.reels.CollectData as NativeCollectData
 
 /**
  * Pigeon-based handler for type-safe communication between Android and Flutter
@@ -166,7 +169,41 @@ class FlutterPigeonHandler(private val context: Context) : ReelsHostApi {
             context.finish()
         }
     }
-    
+
+    override fun getInitialCollect(generation: Long): CollectData? {
+        try {
+            val nativeCollectData = ReelsModule.getInitialCollect(generation.toInt())
+
+            return if (nativeCollectData != null) {
+                Log.d("FlutterPigeonHandler", "getInitialCollect($generation) -> returning: ${nativeCollectData.id}")
+                // Convert native CollectData to Pigeon CollectData
+                CollectData(
+                    id = nativeCollectData.id,
+                    content = nativeCollectData.content,
+                    name = nativeCollectData.name,
+                    likes = nativeCollectData.likes,
+                    comments = nativeCollectData.comments,
+                    recollects = nativeCollectData.recollects,
+                    isLiked = nativeCollectData.isLiked,
+                    isCollected = nativeCollectData.isCollected,
+                    trackingTag = nativeCollectData.trackingTag,
+                    userId = nativeCollectData.userId,
+                    userName = nativeCollectData.userName,
+                    userProfileImage = nativeCollectData.userProfileImage,
+                    itemName = nativeCollectData.itemName,
+                    itemImageUrl = nativeCollectData.itemImageUrl,
+                    imageUrl = nativeCollectData.imageUrl
+                )
+            } else {
+                Log.d("FlutterPigeonHandler", "getInitialCollect($generation) -> returning: null")
+                null
+            }
+        } catch (e: Exception) {
+            Log.e("FlutterPigeonHandler", "Error in getInitialCollect", e)
+            return null
+        }
+    }
+
     // Helper methods for native screen navigation
     
     private fun openProfileScreen(params: Map<String, Any?>) {

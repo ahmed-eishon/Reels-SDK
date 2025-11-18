@@ -45,6 +45,7 @@ reels_ios/Frameworks/
 # Android
 reels_android/build/
 reels_android/.gradle/
+.gradle/
 *.iml
 local.properties
 

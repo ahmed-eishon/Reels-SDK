@@ -106,7 +106,7 @@ jobs:
              "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
 
           # Copy Flutter AAR
-          cp reels_flutter/build/host/outputs/repo/com/rakuten/room/flutter_debug/1.0/flutter_debug-1.0.aar \
+          cp reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar \
              "$PACKAGE_DIR/flutter-debug-${VERSION}.aar"
 
           # Create README

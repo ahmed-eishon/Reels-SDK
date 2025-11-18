@@ -4,6 +4,19 @@ pluginManagement {
         mavenCentral()
         gradlePluginPortal()
     }
+    resolutionStrategy {
+        eachPlugin {
+            if (requested.id.id == 'kotlin-android') {
+                useModule('org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0')
+            }
+            if (requested.id.id == 'kotlin-parcelize') {
+                useModule('org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0')
+            }
+        }
+    }
+    plugins {
+        id 'com.android.library' version '8.7.3'
+    }
 }
 
 dependencyResolutionManagement {

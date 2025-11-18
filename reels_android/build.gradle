@@ -61,8 +61,8 @@ android {
 
 dependencies {
     // Flutter module
-    debugImplementation 'com.rakuten.room:flutter_debug:1.0'
-    releaseImplementation 'com.rakuten.room:flutter_release:1.0'
+    debugImplementation 'com.example.reels_flutter:flutter_debug:1.0'
+    releaseImplementation 'com.example.reels_flutter:flutter_release:1.0'
 
     // Android X
     implementation(libs.androidx.appcompat)

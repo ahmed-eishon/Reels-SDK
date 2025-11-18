@@ -8,35 +8,52 @@ ReelsSDK uses **GitHub Actions** to automate framework building and release crea
 
 ## Release Architecture
 
+ReelsSDK uses **separate workflows** for Debug and Release builds:
+
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Developer                                                   │
 │  1. Update VERSION file                                      │
-│  2. Commit and push to master                                │
-│  3. Push tag: v0.1.2-ios                                     │
+│  2. Commit and push to release branch                        │
+│  3. Push two tags:                                           │
+│     - v0.1.4-ios → Triggers Release workflow                │
+│     - v0.1.4-ios-debug → Triggers Debug workflow            │
 └────────────────────────┬─────────────────────────────────────┘
                          │
-                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│  GitHub Actions (Triggered by v*.*.*-ios tag)               │
-│  1. Builds Debug frameworks                                  │
-│  2. Builds Release frameworks                                │
-│  3. Packages 3 variants:                                     │
-│     - Full package (all frameworks with _Debug/_Release)     │
-│     - Debug-only package (only _Debug frameworks)            │
-│     - Release-only package (only _Release frameworks)        │
-│  4. Creates GitHub Release                                   │
-│  5. Uploads framework zips as assets                         │
-└────────────────────────┬─────────────────────────────────────┘
-                         │
-                         ▼
+                ┌────────┴────────┐
+                ▼                 ▼
+┌───────────────────────┐  ┌───────────────────────┐
+│  Release Workflow     │  │  Debug Workflow       │
+│  (release-ios.yml)    │  │  (release-ios-debug)  │
+│  1. Build Release     │  │  1. Build Debug       │
+│  2. Package zip       │  │  2. Package zip       │
+│  3. Create release    │  │  3. Create release    │
+│  4. Upload asset      │  │  4. Upload asset      │
+└───────────┬───────────┘  └───────────┬───────────┘
+            │                          │
+            ▼                          ▼
+┌──────────────────────┐    ┌──────────────────────┐
+│  v0.1.4-ios Release  │    │  v0.1.4-ios-debug    │
+│  Package:            │    │  Release             │
+│  ReelsSDK-           │    │  Package:            │
+│  Frameworks-         │    │  ReelsSDK-           │
+│  0.1.4.zip           │    │  Frameworks-Debug-   │
+│                      │    │  0.1.4.zip           │
+└──────────────────────┘    └──────────────────────┘
+            │                          │
+            └────────┬─────────────────┘
+                     ▼
 ┌─────────────────────────────────────────────────────────────┐
 │  End User                                                     │
-│  pod 'ReelsSDK', :git => '...', :tag => 'v0.1.2-ios'       │
-│  → CocoaPods downloads FULL package from release             │
-│  → Both Debug & Release frameworks installed                 │
-│  → Build script automatically selects correct variant        │
-│  → No Flutter installation required!                         │
+│  # For Debug (development):                                  │
+│  pod 'ReelsSDK', :git => '...', :tag => 'v0.1.4-ios-debug' │
+│  → Downloads Debug frameworks (6 frameworks, clean names)    │
+│                                                               │
+│  # For Release (production):                                 │
+│  pod 'ReelsSDK', :git => '...', :tag => 'v0.1.4-ios'       │
+│  → Downloads Release frameworks (6 frameworks, clean names)  │
+│                                                               │
+│  No Flutter installation required!                           │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -65,7 +82,7 @@ ReelsSDK uses **GitHub Actions** to automate framework building and release crea
 
 ```bash
 # Update VERSION file
-echo "1.0.0" > VERSION
+echo "0.1.4" > VERSION
 
 # Update in podspec (automatically read from VERSION)
 cat ReelsSDK.podspec | grep version
@@ -79,31 +96,38 @@ cat ReelsSDK.podspec | grep version
 git add .
 
 # Commit
-git commit -m "Prepare release v1.0.0"
+git commit -m "Prepare release v0.1.4"
 
 # Push to main/master
 git push origin master
 ```
 
-### Step 3: Run Release Script
+### Step 3: Create and Push Release Tags
+
+Push **both** tags to trigger independent workflows:
 
 ```bash
 # Navigate to SDK root
 cd /path/to/reels-sdk
 
-# Run prepare release script
-./scripts/sdk/ios/prepare-release.sh 1.0.0
+# Get version from VERSION file
+VERSION=$(cat VERSION)
 
-# Or use VERSION file
-./scripts/sdk/ios/prepare-release.sh
+# Create and push Release tag (triggers release-ios.yml)
+git tag "v${VERSION}-ios"
+git push origin "v${VERSION}-ios"
+
+# Create and push Debug tag (triggers release-ios-debug.yml)
+git tag "v${VERSION}-ios-debug"
+git push origin "v${VERSION}-ios-debug"
 ```
 
-**What the script does:**
-1. ✅ Verifies git status (clean working directory)
-2. ✅ Validates SDK integrity
-3. ✅ Lints podspec
-4. ✅ Creates git tag `v1.0.0`
-5. ✅ Pushes tag to GitHub (triggers CI)
+**What happens:**
+1. ✅ Two independent GitHub Actions workflows are triggered
+2. ✅ Release workflow builds only Release frameworks
+3. ✅ Debug workflow builds only Debug frameworks
+4. ✅ Each creates its own GitHub release
+5. ✅ Each uploads its framework zip as a release asset
 
 ### Step 4: Monitor GitHub Actions
 
@@ -122,31 +146,34 @@ cd /path/to/reels-sdk
 
 ### Step 5: Verify Release
 
-1. **Check Release Page**
+1. **Check Both Release Pages**
    ```
-   https://github.com/ahmed-eishon/Reels-SDK/releases/tag/v0.1.2-ios
+   https://github.com/ahmed-eishon/Reels-SDK/releases/tag/v0.1.4-ios
+   https://github.com/ahmed-eishon/Reels-SDK/releases/tag/v0.1.4-ios-debug
    ```
 
-2. **Verify Assets** (3 packages created)
-   - ✅ `ReelsSDK-Frameworks-0.1.2.zip` (Full - both Debug & Release)
-   - ✅ `ReelsSDK-Frameworks-Debug-0.1.2.zip` (Debug only)
-   - ✅ `ReelsSDK-Frameworks-Release-0.1.2.zip` (Release only)
+2. **Verify Assets** (2 separate releases created)
+   - ✅ Release: `ReelsSDK-Frameworks-0.1.4.zip` (Release frameworks)
+   - ✅ Debug Release: `ReelsSDK-Frameworks-Debug-0.1.4.zip` (Debug frameworks)
 
 3. **Test Download**
    ```bash
-   # Download full package (this is what users get by default)
-   curl -L -O https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.2-ios/ReelsSDK-Frameworks-0.1.2.zip
-   unzip -l ReelsSDK-Frameworks-0.1.2.zip
+   # Download Release package
+   curl -L -O https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-ios/ReelsSDK-Frameworks-0.1.4.zip
+   unzip -l ReelsSDK-Frameworks-0.1.4.zip
 
-   # You'll see frameworks with both suffixes:
-   # - App_Debug.xcframework
-   # - App_Release.xcframework
-   # - Flutter_Debug.xcframework
-   # - Flutter_Release.xcframework
-   # etc.
+   # You'll see 6 frameworks with clean names (no suffixes):
+   # - App.xcframework
+   # - Flutter.xcframework
+   # - FlutterPluginRegistrant.xcframework
+   # - package_info_plus.xcframework
+   # - video_player_avfoundation.xcframework
+   # - wakelock_plus.xcframework
 
-   # This naming allows both variants to coexist
-   # Build script automatically selects correct variant per configuration
+   # Download Debug package
+   curl -L -O https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-ios-debug/ReelsSDK-Frameworks-Debug-0.1.4.zip
+   unzip -l ReelsSDK-Frameworks-Debug-0.1.4.zip
+   # Same 6 frameworks with clean names
    ```
 
 ## Local Development vs Distribution
@@ -174,16 +201,23 @@ cd /path/to/reels-sdk
 **For external users**:
 
 ```ruby
-# Their Podfile
+# Their Podfile - Debug version (development)
 pod 'ReelsSDK',
-    :git => 'https://github.com/rakuten/reels-sdk.git',
-    :tag => 'v1.0.0'
+    :git => 'https://github.com/ahmed-eishon/Reels-SDK.git',
+    :tag => 'v0.1.4-ios-debug'
+
+# OR Release version (production)
+pod 'ReelsSDK',
+    :git => 'https://github.com/ahmed-eishon/Reels-SDK.git',
+    :tag => 'v0.1.4-ios'
 ```
 
 **What happens:**
 - ❌ `.reelsdk-dev` file doesn't exist
-- ✅ pod install downloads from GitHub release
-- ✅ Extracts Release frameworks
+- ✅ pod install downloads from appropriate GitHub release
+- ✅ Tag with `-ios-debug` downloads Debug frameworks
+- ✅ Tag with `-ios` downloads Release frameworks
+- ✅ Extracts 6 frameworks with clean names
 - ✅ No Flutter required!
 
 ## Manual Framework Building (Optional)
@@ -199,10 +233,10 @@ flutter build ios-framework --release --output=.ios/Flutter/Release
 cd ..
 ./scripts/sdk/ios/package-frameworks.sh Release
 
-# Creates: ReelsSDK-Frameworks-Release-1.0.0.zip
+# Creates: ReelsSDK-Frameworks-Release-0.1.4.zip
 
 # Upload manually to GitHub release
-gh release upload v1.0.0 ReelsSDK-Frameworks-Release-1.0.0.zip
+gh release upload v0.1.4 ReelsSDK-Frameworks-Release-0.1.4.zip
 ```
 
 ## Troubleshooting
@@ -226,22 +260,22 @@ gh release upload v1.0.0 ReelsSDK-Frameworks-Release-1.0.0.zip
 ./scripts/sdk/ios/verify.sh
 
 # Delete and recreate tag
-git tag -d v1.0.0
-git push origin :refs/tags/v1.0.0
-./scripts/sdk/ios/prepare-release.sh 1.0.0
+git tag -d v0.1.4
+git push origin :refs/tags/v0.1.4
+./scripts/sdk/ios/prepare-release.sh 0.1.4
 ```
 
 ### Users Can't Download Frameworks
 
 **Check:**
-1. Release exists: `https://github.com/rakuten/reels-sdk/releases/tag/v1.0.0`
+1. Release exists: `https://github.com/rakuten/reels-sdk/releases/tag/v0.1.4`
 2. Assets uploaded (2 zip files + checksums)
 3. Assets are public (not private)
 
 **Solution:**
 ```bash
 # Re-upload assets
-gh release upload v1.0.0 ReelsSDK-Frameworks-Release-1.0.0.zip --clobber
+gh release upload v0.1.4 ReelsSDK-Frameworks-Release-0.1.4.zip --clobber
 ```
 
 ### Local Development Not Working
@@ -267,15 +301,15 @@ touch .reelsdk-dev
 Use [Semantic Versioning](https://semver.org/):
 
 - **MAJOR** version: Breaking changes
-  - Example: `1.0.0` → `2.0.0`
+  - Example: `0.1.4` → `2.0.0`
   - API changes, removed features
 
 - **MINOR** version: New features (backward compatible)
-  - Example: `1.0.0` → `1.1.0`
+  - Example: `0.1.4` → `0.1.5`
   - New APIs, enhancements
 
 - **PATCH** version: Bug fixes
-  - Example: `1.0.0` → `1.0.1`
+  - Example: `0.1.4` → `1.0.1`
   - Bug fixes only
 
 ### Pre-releases
@@ -283,11 +317,11 @@ Use [Semantic Versioning](https://semver.org/):
 For beta/alpha versions:
 
 ```bash
-echo "1.0.0-beta.1" > VERSION
+echo "0.1.4-beta.1" > VERSION
 ./scripts/sdk/ios/prepare-release.sh
 
-# Creates: v1.0.0-beta.1
-# Users: pod 'ReelsSDK', :git => '...', :tag => 'v1.0.0-beta.1'
+# Creates: v0.1.4-beta.1
+# Users: pod 'ReelsSDK', :git => '...', :tag => 'v0.1.4-beta.1'
 ```
 
 ## User Installation Instructions
@@ -301,10 +335,15 @@ Share these instructions with SDK users:
 target 'YourApp' do
   use_frameworks!
 
-  # ReelsSDK from GitHub - Automatic framework selection
+  # ReelsSDK from GitHub - Debug version for development
   pod 'ReelsSDK',
       :git => 'https://github.com/ahmed-eishon/Reels-SDK.git',
-      :tag => 'v0.1.2-ios'
+      :tag => 'v0.1.4-ios-debug'
+
+  # OR use Release version for production builds
+  # pod 'ReelsSDK',
+  #     :git => 'https://github.com/ahmed-eishon/Reels-SDK.git',
+  #     :tag => 'v0.1.4-ios'
 end
 ```
 
@@ -317,22 +356,22 @@ pod install
 
 **What happens:**
 1. CocoaPods clones the repo
-2. Checks out tag `v0.1.2-ios`
+2. Checks out the specified tag (e.g., `v0.1.4-ios-debug` or `v0.1.4-ios`)
 3. Runs `prepare_command` in podspec
-4. Downloads FULL package from GitHub (contains both Debug & Release frameworks)
-5. Extracts frameworks (with _Debug/_Release suffixes)
-6. Adds all frameworks to Pods/ReelsSDK/Frameworks/
-7. Script phase automatically creates symlinks to correct variant during build
-8. Links to Xcode project
+4. Downloads appropriate framework package from GitHub release:
+   - Tag with `-ios-debug` → Downloads Debug frameworks
+   - Tag with `-ios` → Downloads Release frameworks
+5. Extracts 6 frameworks with clean names (no suffixes)
+6. Adds frameworks to Pods/ReelsSDK/Frameworks/
+7. Links to Xcode project
 
 **Time: ~30 seconds** (vs ~30 minutes if they had to build Flutter)
 
 **Technical Details:**
-- Frameworks use suffix naming (_Debug, _Release) to allow both variants to coexist
-- A build script phase runs before compilation to create symlinks
-- Your Debug builds: symlinks point to *_Debug.xcframework
-- Your Release builds: symlinks point to *_Release.xcframework
-- This happens transparently without any configuration needed
+- Each release contains only one variant (Debug OR Release)
+- Frameworks have clean names without suffixes
+- Simply change the tag to switch between Debug and Release
+- No build scripts or symlinks needed
 - No environment variables required
 
 ### Step 3: Use in Code
@@ -379,7 +418,7 @@ Before official release:
 
 ```bash
 # Create test release
-echo "1.0.0-test.1" > VERSION
+echo "0.1.4-test.1" > VERSION
 ./scripts/sdk/ios/prepare-release.sh
 
 # Test in another project
@@ -408,7 +447,7 @@ pod install
    - List new features
 
 4. **Tag naming convention**
-   - Always use `v` prefix: `v1.0.0` (not `1.0.0`)
+   - Always use `v` prefix: `v0.1.4` (not `0.1.4`)
    - Matches semantic versioning
 
 5. **Keep releases stable**
@@ -434,13 +473,15 @@ Total time: ~30 minutes
 ### After (Automated)
 ```bash
 # Users just:
+# Update Podfile with tag (Debug or Release)
+pod 'ReelsSDK', :git => '...', :tag => 'v0.1.4-ios-debug'
 pod install
 
 Total time: ~30 seconds
 ```
 
 **Migration steps:**
-1. ✅ Update Podfile to use new format
+1. ✅ Update Podfile to use new tag format (with `-ios-debug` or `-ios` suffix)
 2. ✅ Remove manual framework links
 3. ✅ Run `pod install`
 4. ✅ Clean Xcode build
@@ -450,18 +491,21 @@ Total time: ~30 seconds
 **Release Checklist:**
 - [ ] Update VERSION file
 - [ ] Commit all changes
-- [ ] Run `./scripts/sdk/ios/prepare-release.sh`
-- [ ] Monitor GitHub Actions
-- [ ] Verify release created
-- [ ] Test pod install from release
+- [ ] Push both tags (`v*.*.*-ios` and `v*.*.*-ios-debug`)
+- [ ] Monitor both GitHub Actions workflows
+- [ ] Verify both releases created (Debug and Release)
+- [ ] Test pod install from both releases
 - [ ] Announce to team
 
 **Key Benefits:**
+- ✅ Separate workflows for Debug and Release builds
+- ✅ Independent releases reduce build times
 - ✅ Automated builds via GitHub Actions
 - ✅ No Flutter required for users
 - ✅ Fast installation (~30 seconds)
 - ✅ Reproducible builds
-- ✅ Easy version management
+- ✅ Easy version management (just change tag)
+- ✅ Clean framework names (no suffixes)
 - ✅ Works with CocoaPods naturally
 
 ---

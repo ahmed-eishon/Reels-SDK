@@ -216,7 +216,7 @@ target 'YourApp' do
   # ReelsSDK with automatic Debug/Release framework selection
   pod 'ReelsSDK',
       :git => 'https://github.com/ahmed-eishon/Reels-SDK.git',
-      :tag => 'v0.1.2-ios'
+      :tag => 'v0.1.4-ios'
 end
 ```
 

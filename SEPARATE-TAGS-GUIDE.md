@@ -1,26 +1,26 @@
-# ReelsSDK Automated Dual-Release Guide
+# ReelsSDK Separate Workflows Release Guide
 
 ## Overview
 
-This document explains the automated dual-release approach for distributing ReelsSDK Debug and Release versions. The GitHub Actions workflow automatically creates both releases from a single tag push.
+This document explains the separate workflow approach for distributing ReelsSDK Debug and Release versions. We use **two independent GitHub Actions workflows**, each triggered by its own tag pattern.
 
 ## Problem We Solved
 
-Previously, complex approaches using framework renaming or symlinks caused:
-- CocoaPods GUID conflicts
-- Xcode build system errors
-- Complex post_install hooks
-- Manual tag creation
+Previously, a single workflow built both Debug and Release frameworks on every tag push:
+- Redundant building (both variants on every release)
+- Longer CI/CD times
+- Unnecessary resource usage
 
 ## Solution
 
-We now use **automated dual releases** triggered by a single tag:
-- Push tag: `v0.1.3-ios`
-- Workflow automatically creates:
-  - **v0.1.3-ios**: Release version (production-optimized)
-  - **v0.1.3-ios-debug**: Debug version (with symbols and assertions)
+We now use **separate workflows** with specific tag patterns:
+- Push tag: `v0.1.4-ios-debug` → Triggers Debug workflow
+- Push tag: `v0.1.4-ios` → Triggers Release workflow
 
-Each release contains a single podspec that downloads the appropriate 6 frameworks (no suffixes, no renaming).
+Each workflow:
+- Builds only the required framework variant
+- Creates its own GitHub release
+- Packages and uploads  frameworks (no suffixes, clean names)
 
 ## File Structure
 
@@ -28,10 +28,12 @@ Each release contains a single podspec that downloads the appropriate 6 framewor
 
 ```
 reels-sdk/
-├── ReelsSDK.podspec                    # Single podspec for both builds
-├── .github/workflows/release-ios.yml   # Automated workflow
-├── scripts/sdk/ios/package-all-frameworks.sh  # Packaging script
-└── VERSION                              # Current version number (0.1.3)
+├── ReelsSDK.podspec                         # Single podspec for both builds
+├── .github/workflows/
+│   ├── release-ios.yml                      # Release workflow (v*.*.*-ios)
+│   └── release-ios-debug.yml                # Debug workflow (v*.*.*-ios-debug)
+├── scripts/sdk/ios/package-frameworks.sh    # Packaging script
+└── VERSION                                   # Current version number (0.1.4)
 ```
 
 ### Framework Structure
@@ -54,13 +56,13 @@ Frameworks/
 **Install Debug version (for development):**
 ```ruby
 # In Podfile
-pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios-debug'
+pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.4-ios-debug'
 ```
 
 **Install Release version (for production/distribution):**
 ```ruby
 # In Podfile
-pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios'
+pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.4-ios'
 ```
 
 Then run:
@@ -76,9 +78,9 @@ The process is fully automated via GitHub Actions:
 
 ```bash
 cd reels-sdk
-echo "0.1.3" > VERSION
+echo "0.1.4" > VERSION
 git add VERSION
-git commit -m "chore: Bump version to 0.1.3"
+git commit -m "chore: Bump version to 0.1.4"
 ```
 
 ### Step 2: Update Code (if needed)
@@ -92,26 +94,30 @@ Commit all changes:
 ```bash
 git add .
 git commit -m "feat: Your changes"
-git push origin release/0.1.3-ios
+git push origin release/0.1.4-ios
 ```
 
-### Step 3: Trigger Release
+### Step 3: Trigger Releases
 
-Push the release tag (must match pattern `v*.*.*-ios`):
+Push **both** release tags to trigger independent workflows:
 ```bash
 VERSION=$(cat VERSION)
+
+# Push Release tag (triggers release-ios.yml workflow)
 git tag "v${VERSION}-ios"
 git push origin "v${VERSION}-ios"
+
+# Push Debug tag (triggers release-ios-debug.yml workflow)
+git tag "v${VERSION}-ios-debug"
+git push origin "v${VERSION}-ios-debug"
 ```
 
 **That's it!** GitHub Actions automatically:
-1. Builds Debug and Release frameworks
-2. Packages them into separate zips
-3. Creates 2 GitHub releases:
-   - `v0.1.3-ios-debug` with Debug frameworks
-   - `v0.1.3-ios` with Release frameworks
-4. Uploads framework zips to each release
-5. Adds installation instructions
+1. **Release workflow**: Builds only Release frameworks, creates `v0.1.4-ios` release
+2. **Debug workflow**: Builds only Debug frameworks, creates `v0.1.4-ios-debug` release
+3. Each workflow packages frameworks into separate zips
+4. Each release gets its own framework zip uploaded
+5. Each release includes installation instructions
 
 ### Step 4: Verify
 
@@ -139,8 +145,8 @@ fi
 ```
 
 When you install:
-- With tag `v0.1.3-ios-debug` → Downloads Debug frameworks
-- With tag `v0.1.3-ios` → Downloads Release frameworks
+- With tag `v0.1.4-ios-debug` → Downloads Debug frameworks
+- With tag `v0.1.4-ios` → Downloads Release frameworks
 
 ### Workflow Process
 
@@ -171,7 +177,7 @@ All from a single tag push!
 **Problem:** Pushed tag but workflow didn't start
 
 **Solution:**
-1. Check tag pattern matches `v*.*.*-ios` (e.g., `v0.1.3-ios`)
+1. Check tag pattern matches `v*.*.*-ios` (e.g., `v0.1.4-ios`)
 2. Verify workflow file exists at the tagged commit
 3. Check GitHub Actions page for errors
 4. Ensure you pushed to the correct remote (GitHub, not gitpub)
@@ -205,16 +211,16 @@ pod install
 **Solution:**
 ```bash
 # Delete local tag
-git tag -d v0.1.3-ios
+git tag -d v0.1.4-ios
 
 # Delete remote tag
-git push origin :refs/tags/v0.1.3-ios
+git push origin :refs/tags/v0.1.4-ios
 
 # Create new tag at desired commit
-git tag v0.1.3-ios
+git tag v0.1.4-ios
 
 # Force push
-git push origin v0.1.3-ios --force
+git push origin v0.1.4-ios --force
 ```
 
 This will trigger a new workflow run.
@@ -229,7 +235,7 @@ If you're using v0.1.2 or earlier with the old approach:
    pod 'ReelsSDK', :git => '...', :tag => reels_sdk_tag
 
    # New (simple and direct)
-   pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.3-ios'
+   pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.4-ios'
    ```
 
 2. Clean your Pods:

@@ -86,7 +86,7 @@ jobs:
         working-directory: reels_android
         run: |
           echo "Building reels_android AAR..."
-          ../gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace
           echo "reels_android AAR built successfully"
 
       - name: List reels_android build outputs

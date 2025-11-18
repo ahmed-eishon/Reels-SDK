@@ -1,42 +1,24 @@
-# GitHub Packages Authentication Setup
+# Android SDK Integration Guide
 
 ## Overview
 
-The Reels SDK Android library is published to **GitHub Packages (Maven)**. To use it in your project, you need to configure GitHub authentication.
+The Reels SDK Android library is published to **GitHub Releases** and automatically downloaded when you build your project. **No authentication required** - just like iOS CocoaPods!
 
 ## Quick Setup
 
-### 1. Create a GitHub Personal Access Token (PAT)
+### 1. Configure Gradle (Already Done!)
 
-1. Go to GitHub Settings → [Developer settings → Personal access tokens → Tokens (classic)](https://github.com/settings/tokens)
-2. Click "Generate new token (classic)"
-3. Give it a name (e.g., "Reels SDK Access")
-4. Select the `read:packages` scope
-5. Click "Generate token"
-6. **Copy the token** - you won't be able to see it again!
+Your `settings.gradle` and `app/build.gradle` are already configured to automatically download the SDK from GitHub Releases.
 
-### 2. Configure Gradle Properties
+### 2. Build Your Project
 
-Create or edit `~/.gradle/gradle.properties`:
-
-```properties
-gpr.user=YOUR_GITHUB_USERNAME
-gpr.key=YOUR_GITHUB_PAT_TOKEN
-```
-
-**Example:**
-```properties
-gpr.user=john.doe
-gpr.key=ghp_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
-```
-
-### 3. Add Dependency
-
-Your `settings.gradle` and `app/build.gradle` are already configured. Just sync Gradle and build!
+That's it! Just run:
 
 ```bash
 ./gradlew clean build
 ```
+
+The SDK will be automatically downloaded from GitHub Releases on first build.
 
 ## How It Works
 
@@ -47,77 +29,113 @@ dependencyResolutionManagement {
     repositories {
         google()
         mavenCentral()
-
-        maven {
-            url = uri("https://maven.pkg.github.com/ahmed-eishon/Reels-SDK")
-            credentials {
-                username = providers.gradleProperty("gpr.user").getOrElse("")
-                password = providers.gradleProperty("gpr.key").getOrElse("")
-            }
-        }
     }
 }
 ```
 
 ### app/build.gradle
 ```gradle
+// Reels SDK - Download AARs from GitHub Releases (similar to iOS CocoaPods)
+// Automatically downloads from GitHub when you run gradlew build - no authentication required
+ext.reelsSDKVersion = '0.1.4'
+ext.reelsSDKDir = file("$buildDir/reels-sdk-libs")
+
+task downloadReelsSDK {
+    description = 'Downloads Reels SDK AARs from GitHub Releases'
+    group = 'reels-sdk'
+
+    doLast {
+        // Downloads release and debug AARs from GitHub Releases
+        // Only downloads if not already cached
+    }
+}
+
+preBuild.dependsOn(downloadReelsSDK)
+
 dependencies {
-    implementation 'com.rakuten.room:reels-sdk:0.1.4'
+    debugImplementation files("$buildDir/reels-sdk-libs/reels-sdk-debug-${reelsSDKVersion}.aar")
+    debugImplementation files("$buildDir/reels-sdk-libs/flutter-debug-${reelsSDKVersion}.aar")
+
+    releaseImplementation files("$buildDir/reels-sdk-libs/reels-sdk-${reelsSDKVersion}.aar")
+    releaseImplementation files("$buildDir/reels-sdk-libs/flutter-release-${reelsSDKVersion}.aar")
 }
 ```
 
 ## Comparison with iOS
 
-| Platform | Package Manager | Authentication |
-|----------|----------------|----------------|
-| **iOS** | CocoaPods | Built-in GitHub access |
-| **Android** | Maven (GitHub Packages) | GitHub PAT required |
+| Platform | Package Manager | Authentication | Auto-Download |
+|----------|----------------|----------------|---------------|
+| **iOS** | CocoaPods | Not required | ✅ Yes |
+| **Android** | Gradle + GitHub Releases | Not required | ✅ Yes |
 
-Both provide automatic fetching and version management!
+Both provide automatic fetching and version management with no authentication!
 
-## CI/CD Setup
+## Updating SDK Version
 
-For GitHub Actions or CI/CD pipelines, use environment variables:
+To update to a new version, simply change the version number in `app/build.gradle`:
 
-```yaml
-- name: Build Android
-  env:
-    GITHUB_ACTOR: ${{ github.actor }}
-    GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  run: ./gradlew build
+```gradle
+ext.reelsSDKVersion = '0.1.5'  // Change this
+```
+
+Then clean and rebuild:
+
+```bash
+./gradlew clean build
+```
+
+## Build Output
+
+When building, you'll see:
+
+```
+📦 Downloading Reels SDK 0.1.4 (Release) from GitHub...
+   Downloading reels-sdk-0.1.4.aar...
+   ✅ reels-sdk-0.1.4.aar downloaded
+   Downloading flutter-release-0.1.4.aar...
+   ✅ flutter-release-0.1.4.aar downloaded
+🐛 Downloading Reels SDK 0.1.4 (Debug) from GitHub...
+   Downloading reels-sdk-debug-0.1.4.aar...
+   ✅ reels-sdk-debug-0.1.4.aar downloaded
+   Downloading flutter-debug-0.1.4.aar...
+   ✅ flutter-debug-0.1.4.aar downloaded
+✅ Reels SDK 0.1.4 ready!
 ```
 
 ## Troubleshooting
 
-### "Could not resolve com.rakuten.room:reels-sdk:X.X.X"
+### Download fails with network error
 
-**Cause**: Missing or invalid GitHub credentials
-
-**Solution**:
-1. Verify `~/.gradle/gradle.properties` exists and contains correct values
-2. Check your PAT has `read:packages` permission
-3. Ensure your GitHub username is correct
-
-### "401 Unauthorized"
-
-**Cause**: Invalid or expired GitHub PAT
+**Cause**: Network connectivity issue or GitHub is down
 
 **Solution**:
-1. Generate a new PAT with `read:packages` scope
-2. Update `gpr.key` in `~/.gradle/gradle.properties`
+1. Check your internet connection
+2. Try again - the task will resume from where it failed
+3. Check GitHub status: https://www.githubstatus.com/
 
-### "404 Not Found"
+### "Could not find reels-sdk-X.X.X.aar"
 
-**Cause**: Package doesn't exist for that version
+**Cause**: Version doesn't exist in GitHub Releases
 
 **Solution**:
-1. Check available versions at: https://github.com/ahmed-eishon/Reels-SDK/packages
-2. Update version number in `app/build.gradle`
+1. Check available versions at: https://github.com/ahmed-eishon/Reels-SDK/releases
+2. Update `reelsSDKVersion` in `app/build.gradle`
+
+### Build error after SDK update
+
+**Cause**: Cached old version
+
+**Solution**:
+```bash
+./gradlew clean
+rm -rf app/build/reels-sdk-libs
+./gradlew build
+```
 
 ## Available Versions
 
 Check published versions at:
-https://github.com/ahmed-eishon/Reels-SDK/packages
+https://github.com/ahmed-eishon/Reels-SDK/releases
 
 ## Documentation
 

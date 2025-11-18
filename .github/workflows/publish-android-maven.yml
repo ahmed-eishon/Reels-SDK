@@ -3,8 +3,8 @@ name: Publish Android SDK to GitHub Packages
 on:
   push:
     tags:
-      - 'v*.*.*-android'       # Matches v0.1.4-android (production)
-      - 'v*.*.*-android-debug' # Matches v0.1.4-android-debug (debug)
+      - 'v*.*.*-android-maven'       # Disabled - use release-android.yml for GitHub Releases instead
+      - 'v*.*.*-android-maven-debug' # Disabled - use release-android-debug.yml for GitHub Releases instead
 
 jobs:
   publish-maven:

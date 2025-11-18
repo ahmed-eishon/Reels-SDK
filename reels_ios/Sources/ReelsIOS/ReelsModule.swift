@@ -244,6 +244,19 @@ public class ReelsModule {
         engineManager.destroyFlutterEngine()
     }
 
+    /// Clean up collect data for a specific generation when the screen is closed
+    /// This prevents memory leaks from accumulating collectData across many screen instances
+    ///
+    /// - Parameter generation: The generation number to clean up
+    internal static func cleanupGeneration(_ generation: Int) {
+        if let removed = collectDataByGeneration.removeValue(forKey: generation) {
+            print("[ReelsSDK-iOS] 🗑️ Cleaned up collectData for generation #\(generation) (id=\(removed.id))")
+        } else {
+            print("[ReelsSDK-iOS] ⚠️ No collectData found for generation #\(generation)")
+        }
+        print("[ReelsSDK-iOS]    Remaining generations in memory: \(collectDataByGeneration.count)")
+    }
+
     /// Pause Flutter resources (videos, network) when screen loses focus
     internal static func pauseFlutter() {
         print("[ReelsSDK-DEBUG] ⏸️ pauseFlutter() called")
@@ -530,12 +543,19 @@ private class FlutterViewControllerWrapper: UIViewController {
         // If this is the final dismissal (not just navigation to another screen)
         if isBeingDismissed || isMovingFromParent {
             print("[ReelsSDK-DEBUG]   🗑️ Cleaning up Flutter view controller")
+
+            // Clean up generation data to prevent memory leaks
+            if generation > 0 {
+                ReelsModule.cleanupGeneration(generation)
+                print("[ReelsSDK-DEBUG]   View controller being dismissed, cleaned up generation #\(generation)")
+            }
+
             // Remove Flutter view controller as child
             flutterViewController.willMove(toParent: nil)
             flutterViewController.view.removeFromSuperview()
             flutterViewController.removeFromParent()
         } else {
-            print("[ReelsSDK-DEBUG]   ℹ️ Keeping Flutter view controller in hierarchy")
+            print("[ReelsSDK-DEBUG]   ℹ️ Keeping Flutter view controller in hierarchy (navigation?) - keeping data")
         }
 
         print("[ReelsSDK-DEBUG] 🔴 viewDidDisappear - END")

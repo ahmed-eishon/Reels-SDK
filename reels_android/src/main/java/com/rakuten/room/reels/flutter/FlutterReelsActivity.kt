@@ -205,15 +205,26 @@ class FlutterReelsActivity : FlutterActivity() {
     
     override fun onDestroy() {
         Log.d(TAG, "FlutterReelsActivity destroyed")
-        
+
+        // Clean up generation data if activity is truly finishing (not just recreating)
+        if (isFinishing) {
+            val generation = intent.getIntExtra(EXTRA_GENERATION, 0)
+            if (generation > 0) {
+                ReelsModule.cleanupGeneration(generation)
+                Log.d(TAG, "Activity finishing, cleaned up generation #$generation")
+            }
+        } else {
+            Log.d(TAG, "Activity destroyed but not finishing (config change?) - keeping data")
+        }
+
         // Track screen destruction
         ReelsModule.notifyScreenStateChanged("flutter_reels", "disappeared")
-        
+
         // Track analytics event
         ReelsModule.trackEvent("reels_screen_closed", mapOf(
             "duration" to "unknown" // You could track actual duration if needed
         ))
-        
+
         super.onDestroy()
     }
 }

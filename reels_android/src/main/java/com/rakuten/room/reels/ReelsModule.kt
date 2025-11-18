@@ -367,6 +367,22 @@ object ReelsModule {
     fun getFlutterSDK() = FlutterEngineManager.getInstance().getFlutterSDK()
 
     /**
+     * Clean up collect data for a specific generation when the screen is closed
+     * This prevents memory leaks from accumulating collectData across many screen instances
+     *
+     * @param generation The generation number to clean up
+     */
+    fun cleanupGeneration(generation: Int) {
+        val removed = collectDataByGeneration.remove(generation)
+        if (removed != null) {
+            Log.d(TAG, "🗑️ Cleaned up collectData for generation #$generation (id=${removed.id})")
+        } else {
+            Log.d(TAG, "⚠️ No collectData found for generation #$generation")
+        }
+        Log.d(TAG, "   Remaining generations in memory: ${collectDataByGeneration.size}")
+    }
+
+    /**
      * Clean up resources when the app is destroyed
      */
     fun cleanup() {

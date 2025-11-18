@@ -94,4 +94,19 @@ class FlutterReelsFragment : Fragment() {
         }
         flutterFragment = null
     }
+
+    override fun onDestroy() {
+        // Clean up generation data if fragment is being removed (not just recreating)
+        if (isRemoving) {
+            val generation = arguments?.getInt(ARG_GENERATION, 0) ?: 0
+            if (generation > 0) {
+                ReelsModule.cleanupGeneration(generation)
+                Log.d(TAG, "Fragment being removed, cleaned up generation #$generation")
+            }
+        } else {
+            Log.d(TAG, "Fragment destroyed but not removing (config change?) - keeping data")
+        }
+
+        super.onDestroy()
+    }
 }

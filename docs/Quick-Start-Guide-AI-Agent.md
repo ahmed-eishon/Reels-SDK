@@ -275,6 +275,109 @@ Pigeon → ReelsModule.isDebugMode()
 Shows/Hides debug menu
 ```
 
+## Memory Leak Awareness & Prevention
+
+**CRITICAL**: When working with generation-based or similar state management systems, always consider lifecycle cleanup to prevent memory leaks.
+
+### Key Principles
+
+1. **Data Storage Requires Cleanup**
+   - Any map/dictionary that stores data keyed by generation, session, or instance ID needs cleanup logic
+   - Don't rely solely on app-level `cleanup()` methods called at shutdown
+   - Implement per-instance cleanup when the instance is destroyed
+
+2. **Detect True Dismissal vs Recreation**
+
+   **Android:**
+   - **Activity**: Check `isFinishing` in `onDestroy()`
+     - `isFinishing == true` → True dismissal (cleanup!)
+     - `isFinishing == false` → Configuration change (keep data!)
+   - **Fragment**: Check `isRemoving` in `onDestroy()`
+     - `isRemoving == true` → Being removed (cleanup!)
+     - `isRemoving == false` → Recreation (keep data!)
+
+   **iOS:**
+   - **ViewController**: Check `isBeingDismissed || isMovingFromParent` in `viewDidDisappear()`
+     - `true` → True dismissal (cleanup!)
+     - `false` → Navigation (keep data!)
+
+3. **Memory Leak Pattern Recognition**
+
+   Watch for these patterns:
+   ```kotlin
+   // ❌ LEAK RISK: No cleanup when generation closes
+   object Module {
+       private val dataByGeneration: MutableMap<Int, Data> = mutableMapOf()
+
+       fun storeData(generation: Int, data: Data) {
+           dataByGeneration[generation] = data
+       }
+
+       // Only cleans ALL data at app shutdown
+       fun cleanup() {
+           dataByGeneration.clear()
+       }
+   }
+   ```
+
+   ```kotlin
+   // ✅ GOOD: Per-generation cleanup
+   object Module {
+       private val dataByGeneration: MutableMap<Int, Data> = mutableMapOf()
+
+       fun storeData(generation: Int, data: Data) {
+           dataByGeneration[generation] = data
+       }
+
+       // Cleans specific generation when dismissed
+       fun cleanupGeneration(generation: Int) {
+           dataByGeneration.remove(generation)
+       }
+
+       fun cleanup() {
+           dataByGeneration.clear()
+       }
+   }
+   ```
+
+4. **Implementation Checklist**
+
+   When adding per-instance data storage:
+   - [ ] Add cleanup method (e.g., `cleanupGeneration(id)`)
+   - [ ] Call cleanup from Activity/Fragment `onDestroy()` (Android)
+   - [ ] Call cleanup from ViewController `viewDidDisappear()` (iOS)
+   - [ ] Use proper lifecycle flags (`isFinishing`, `isRemoving`, `isBeingDismissed`)
+   - [ ] Preserve data during configuration changes
+   - [ ] Test nested instances cleanup independently
+   - [ ] Add logging to verify cleanup occurs
+   - [ ] Document the cleanup pattern in architecture docs
+
+### Case Study: collectDataByGeneration Leak (v0.1.3 → v0.1.4)
+
+**Problem Found:**
+- `collectDataByGeneration` map grew indefinitely
+- Only cleared at app shutdown by `cleanup()`
+- ~1-2KB leaked per screen presentation
+- After 1000 presentations: ~1-2MB leaked
+
+**Solution Implemented:**
+1. Added `cleanupGeneration(generation: Int)` method to ReelsModule (both platforms)
+2. Called from FlutterReelsActivity.onDestroy() when `isFinishing`
+3. Called from FlutterReelsFragment.onDestroy() when `isRemoving`
+4. Called from FlutterViewControllerWrapper.viewDidDisappear() when `isBeingDismissed || isMovingFromParent`
+
+**Documentation:**
+- See `docs/03-Architecture/03-Generation-Based-State-Management.md` (section: "Memory Leak Fix")
+- Lines 545-816 cover the complete fix with examples
+
+### When to Apply This Pattern
+
+Apply per-instance cleanup when:
+- Storing data in maps/dictionaries keyed by ID/generation/session
+- Implementing screen instance tracking systems
+- Managing per-screen caches or state
+- Building any system where instances can be created many times
+
 ## Common Tasks for AI Agents
 
 ### 1. Adding New Platform Communication

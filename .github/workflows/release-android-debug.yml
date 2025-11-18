@@ -92,7 +92,7 @@ jobs:
         working-directory: reels_android
         run: |
           echo "Building reels_android AAR..."
-          ./gradlew assembleDebug --no-daemon --stacktrace
+          ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.enableJetifier=false -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
           echo "reels_android AAR built successfully"
 
       - name: List reels_android build outputs

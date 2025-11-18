@@ -206,9 +206,27 @@ The module uses [Pigeon](https://pub.dev/packages/pigeon) for type-safe platform
 
 ## Integration
 
-### Using CocoaPods (Recommended)
+### Using CocoaPods from GitHub (Recommended for Production)
 
-See the main [README.md](../README.md) for CocoaPods integration with Git or external folder import.
+```ruby
+# In your Podfile
+target 'YourApp' do
+  use_frameworks!
+
+  # ReelsSDK with automatic Debug/Release framework selection
+  pod 'ReelsSDK',
+      :git => 'https://github.com/ahmed-eishon/Reels-SDK.git',
+      :tag => 'v0.1.4-ios'
+end
+```
+
+Then run `pod install`. The SDK will:
+1. Download pre-built frameworks from GitHub release
+2. Install both Debug and Release frameworks (with `_Debug` and `_Release` suffixes)
+3. Automatically select the correct variant based on your build configuration
+4. No Flutter installation required!
+
+See the main [README.md](../README.md) for additional integration methods including local folder import for development.
 
 ### Using Xcode Directly
 

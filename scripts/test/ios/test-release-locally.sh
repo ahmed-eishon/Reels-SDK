@@ -47,7 +47,7 @@ SDK_ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
 cd "$SDK_ROOT"
 
 log_info "SDK Root: $SDK_ROOT"
-log_info "Simulating: .github/workflows/release.yml"
+log_info "Simulating: .github/workflows/release-ios.yml and release-ios-debug.yml"
 echo ""
 
 # Step 1: Check VERSION file
@@ -150,7 +150,9 @@ if ! ./scripts/sdk/ios/package-frameworks.sh Release; then
     log_error "Package script failed for Release"
     exit 1
 fi
-RELEASE_ZIP="ReelsSDK-Frameworks-Release-$VERSION.zip"
+# Rename to match podspec expectations (without "Release" suffix)
+mv "ReelsSDK-Frameworks-Release-$VERSION.zip" "ReelsSDK-Frameworks-$VERSION.zip"
+RELEASE_ZIP="ReelsSDK-Frameworks-$VERSION.zip"
 if [ ! -f "$RELEASE_ZIP" ]; then
     log_error "Release zip not created: $RELEASE_ZIP"
     exit 1

@@ -174,11 +174,19 @@ target 'YourApp' do
   use_frameworks!
 
   # Reels SDK via Git
-  pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => '1.0.0'
+  # For Debug (development/testing):
+  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.4-ios-debug'
+
+  # For Release (production):
+  # pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.4-ios'
 
   # Your other pods...
 end
 ```
+
+**Tag Selection:**
+- Use `v0.1.4-ios-debug` for development/testing (includes debug symbols)
+- Use `v0.1.4-ios` for production builds (optimized)
 
 #### Step 2: Install Pods
 
@@ -187,11 +195,26 @@ cd /path/to/your-ios-app
 pod install
 ```
 
-#### Step 3: Update to New Versions
+**What happens during installation:**
+1. CocoaPods downloads pre-built frameworks from GitHub release
+2. The tag determines which framework variant is downloaded:
+   - Tag with `-ios-debug` → Downloads from Debug release
+   - Tag with `-ios` → Downloads from Release release
+3. 6 frameworks are installed (no suffixes, clean names)
+4. No Flutter installation required!
+
+#### Step 3: Build Your App
+
+Your app will use the frameworks corresponding to the tag you specified:
+- **v0.1.4-ios-debug tag** → Debug frameworks (with symbols and assertions)
+- **v0.1.4-ios tag** → Release frameworks (optimized for production)
+- Simply change the tag in your Podfile to switch between Debug and Release
+
+#### Step 4: Update to New Versions
 
 ```ruby
 # In Podfile, update the tag
-pod 'ReelsSDK', :git => 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git', :tag => '1.1.0'
+pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v0.1.4-ios'
 ```
 
 ```bash
@@ -204,6 +227,9 @@ pod update ReelsSDK
 - ✅ Easy updates with `pod update`
 - ✅ CI/CD friendly
 - ✅ Standard CocoaPods workflow
+- ✅ Automatic Debug/Release framework selection
+- ✅ No Flutter installation required
+- ✅ Fast installation (~30 seconds)
 
 **Disadvantages:**
 - ⚠️ Requires Git authentication
@@ -507,6 +533,15 @@ class CollectViewController: UIViewController, ReelsListener {
 3. Verify `Flutter/podhelper.rb` exists
 4. Re-run `pod install`
 
+### Issue 6: Wrong build type installed
+
+**Note:** ReelsSDK v0.1.4+ uses separate GitHub releases for Debug and Release:
+- Tag `v0.1.4-ios-debug` downloads from Debug release (6 frameworks, no suffixes)
+- Tag `v0.1.4-ios` downloads from Release release (6 frameworks, no suffixes)
+- Each tag corresponds to a separate workflow and GitHub release
+- Simply change the tag in your Podfile to switch between Debug and Release
+- Run `pod cache clean ReelsSDK --all` and `pod install` after changing tags
+
 ## Best Practices
 
 ### ✅ Do's
@@ -552,7 +587,7 @@ pod install
 
 ```ruby
 # Update Podfile with new tag
-pod 'ReelsSDK', :git => '...', :tag => '1.1.0'
+pod 'ReelsSDK', :git => '...', :tag => 'v1.1.0-ios'
 ```
 
 ```bash

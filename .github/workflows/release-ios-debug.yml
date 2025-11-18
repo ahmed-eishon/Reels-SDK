@@ -1,15 +1,15 @@
-name: Release ReelsSDK iOS (Release)
+name: Release ReelsSDK iOS (Debug)
 
 on:
   push:
     tags:
-      - 'v*.*.*-ios'  # Trigger on iOS Release tags only (e.g., v0.1.4-ios)
+      - 'v*.*.*-ios-debug'  # Trigger on iOS Debug tags only (e.g., v0.1.4-ios-debug)
 
 permissions:
   contents: write  # Required to create releases and upload assets
 
 jobs:
-  build-and-release-ios:
+  build-and-release-ios-debug:
     runs-on: macos-latest
 
     steps:
@@ -20,7 +20,7 @@ jobs:
         id: get_version
         run: |
           TAG_NAME="${GITHUB_REF#refs/tags/v}"
-          VERSION="${TAG_NAME%-ios}"
+          VERSION="${TAG_NAME%-ios-debug}"
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           echo "Detected VERSION: $VERSION (from tag: v$TAG_NAME)"
 
@@ -69,19 +69,16 @@ jobs:
             --kotlin_out ../reels_android/src/main/java/com/rakuten/room/reels_android/PigeonGenerated.kt \
             --kotlin_package com.rakuten.room.reels_android
 
-      - name: Build Release frameworks
+      - name: Build Debug frameworks
         working-directory: reels_flutter
         run: |
-          echo "Building Release frameworks..."
+          echo "Building Debug frameworks..."
           flutter clean
-          flutter build ios-framework --release --output=.ios/Flutter/Release
+          flutter build ios-framework --debug --output=.ios/Flutter/Debug
 
-      - name: Package Release frameworks
+      - name: Package Debug frameworks
         run: |
-          ./scripts/sdk/ios/package-frameworks.sh Release
-          # Rename to match podspec expectations (without "Release" suffix)
-          VERSION="${{ steps.get_version.outputs.VERSION }}"
-          mv "ReelsSDK-Frameworks-Release-$VERSION.zip" "ReelsSDK-Frameworks-$VERSION.zip"
+          ./scripts/sdk/ios/package-frameworks.sh Debug
           echo ""
           echo "Package created:"
           ls -lh ReelsSDK-Frameworks-*.zip
@@ -89,41 +86,41 @@ jobs:
       - name: Generate release manifest
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          echo "ReelsSDK iOS Release Frameworks v$VERSION" > RELEASE_MANIFEST.txt
-          echo "Platform: iOS (Release)" >> RELEASE_MANIFEST.txt
-          echo "Generated: $(date)" >> RELEASE_MANIFEST.txt
-          echo "" >> RELEASE_MANIFEST.txt
-          echo "=== Installation ===" >> RELEASE_MANIFEST.txt
-          echo "pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v$VERSION-ios'" >> RELEASE_MANIFEST.txt
-          echo "" >> RELEASE_MANIFEST.txt
-          echo "Use this tag for production builds with optimized Release frameworks." >> RELEASE_MANIFEST.txt
+          echo "ReelsSDK iOS Debug Frameworks v$VERSION" > DEBUG_MANIFEST.txt
+          echo "Platform: iOS (Debug)" >> DEBUG_MANIFEST.txt
+          echo "Generated: $(date)" >> DEBUG_MANIFEST.txt
+          echo "" >> DEBUG_MANIFEST.txt
+          echo "=== Installation ===" >> DEBUG_MANIFEST.txt
+          echo "pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v$VERSION-ios-debug'" >> DEBUG_MANIFEST.txt
+          echo "" >> DEBUG_MANIFEST.txt
+          echo "Use this tag for development/testing with Debug frameworks." >> DEBUG_MANIFEST.txt
 
       - name: Calculate checksum
         run: |
-          shasum -a 256 ReelsSDK-Frameworks-*.zip > CHECKSUMS.txt
+          shasum -a 256 ReelsSDK-Frameworks-Debug-*.zip > CHECKSUMS.txt
           cat CHECKSUMS.txt
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v${{ steps.get_version.outputs.VERSION }}-ios
+          tag_name: v${{ steps.get_version.outputs.VERSION }}-ios-debug
           target_commitish: ${{ github.sha }}
-          name: ReelsSDK iOS Release v${{ steps.get_version.outputs.VERSION }}
-          body_path: RELEASE_MANIFEST.txt
+          name: ReelsSDK iOS Debug v${{ steps.get_version.outputs.VERSION }}
+          body_path: DEBUG_MANIFEST.txt
           draft: false
           prerelease: false
           files: |
-            ReelsSDK-Frameworks-${{ steps.get_version.outputs.VERSION }}.zip
+            ReelsSDK-Frameworks-Debug-${{ steps.get_version.outputs.VERSION }}.zip
             CHECKSUMS.txt
 
       - name: Release summary
         run: |
           VERSION="${{ steps.get_version.outputs.VERSION }}"
-          echo "✅ iOS Release v$VERSION created successfully!"
+          echo "✅ iOS Debug v$VERSION created successfully!"
           echo ""
           echo "Platform: iOS"
-          echo "Build Type: Release"
-          echo "Package: ReelsSDK-Frameworks-$VERSION.zip"
+          echo "Build Type: Debug"
+          echo "Package: ReelsSDK-Frameworks-Debug-$VERSION.zip"
           echo ""
           echo "Install via CocoaPods:"
-          echo "  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v$VERSION-ios'"
+          echo "  pod 'ReelsSDK', :git => 'https://github.com/ahmed-eishon/Reels-SDK.git', :tag => 'v$VERSION-ios-debug'"

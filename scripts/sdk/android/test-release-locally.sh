@@ -144,13 +144,13 @@ package_aar() {
         AAR_NAME="reels-sdk-${VERSION}.aar"
         FLUTTER_AAR_NAME="flutter-release-${VERSION}.aar"
         FLUTTER_SOURCE="reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_release/1.0/flutter_release-1.0.aar"
-        ANDROID_SOURCE="reels_android/build/outputs/aar/reels_android-release.aar"
+        ANDROID_SOURCE="reels_android/build/outputs/aar/reels-android-release.aar"
     else
         PACKAGE_DIR="ReelsSDK-Android-Debug-${VERSION}"
         AAR_NAME="reels-sdk-debug-${VERSION}.aar"
         FLUTTER_AAR_NAME="flutter-debug-${VERSION}.aar"
         FLUTTER_SOURCE="reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar"
-        ANDROID_SOURCE="reels_android/build/outputs/aar/reels_android-debug.aar"
+        ANDROID_SOURCE="reels_android/build/outputs/aar/reels-android-debug.aar"
     fi
 
     # Create package directory

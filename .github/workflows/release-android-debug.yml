@@ -108,7 +108,7 @@ jobs:
           mkdir -p "$PACKAGE_DIR"
 
           # Copy reels_android AAR
-          cp reels_android/build/outputs/aar/reels_android-debug.aar \
+          cp reels_android/build/outputs/aar/reels-android-debug.aar \
              "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
 
           # Copy Flutter AAR

@@ -15,7 +15,7 @@ echo ""
 
 # Get script directory and SDK root
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SDK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+SDK_ROOT="$(cd "$SCRIPT_DIR/../../.." && pwd)"
 
 echo -e "${BLUE}📁 SDK Root: $SDK_ROOT${NC}"
 echo ""

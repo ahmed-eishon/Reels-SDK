@@ -64,55 +64,6 @@ jobs:
           flutter --version
           flutter doctor -v
 
-      - name: Download Flutter embedding from Maven Central
-        run: |
-          echo "Downloading Flutter embedding AAR from Maven Central..."
-
-          # Get Flutter engine version
-          FLUTTER_VERSION=$(flutter --version | grep "Flutter" | awk '{print $2}')
-          echo "Flutter version: $FLUTTER_VERSION"
-
-          # Get engine hash from Flutter SDK
-          ENGINE_VERSION=$(cat $FLUTTER_ROOT/bin/internal/engine.version)
-          echo "Flutter engine version: $ENGINE_VERSION"
-
-          # Download flutter_embedding_debug from Maven Central
-          MAVEN_URL="https://repo1.maven.org/maven2/io/flutter/flutter_embedding_debug/1.0.0-${ENGINE_VERSION}/flutter_embedding_debug-1.0.0-${ENGINE_VERSION}.aar"
-
-          echo "Downloading from: $MAVEN_URL"
-          mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
-
-          # Download with retry logic
-          MAX_RETRIES=3
-          RETRY_COUNT=0
-
-          while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
-            if curl -f -L -o "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar" "$MAVEN_URL"; then
-              echo "✓ Successfully downloaded flutter_embedding_debug.aar"
-              ls -lh "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
-
-              # Verify it's a valid AAR (zip file)
-              if unzip -t "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar" > /dev/null 2>&1; then
-                echo "✓ AAR file is valid"
-                break
-              else
-                echo "ERROR: Downloaded file is not a valid AAR"
-                exit 1
-              fi
-            else
-              RETRY_COUNT=$((RETRY_COUNT + 1))
-              echo "Download attempt $RETRY_COUNT failed"
-              if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
-                echo "Retrying in 5 seconds..."
-                sleep 5
-              else
-                echo "ERROR: Failed to download flutter_embedding after $MAX_RETRIES attempts"
-                echo "URL: $MAVEN_URL"
-                exit 1
-              fi
-            fi
-          done
-
       - name: Get Flutter dependencies
         working-directory: reels_flutter
         run: flutter pub get
@@ -145,6 +96,38 @@ jobs:
           echo "Building reels_android AAR..."
           ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.enableJetifier=false -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
           echo "reels_android AAR built successfully"
+
+      - name: Extract Flutter embedding from Gradle cache
+        run: |
+          echo "Extracting Flutter embedding AAR from Gradle cache..."
+          mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
+
+          # Search for flutter_embedding_debug in Gradle cache (transformed version)
+          # After building reels_android, Gradle downloads and caches the flutter_embedding AAR
+          FLUTTER_EMBEDDING=$(find ~/.gradle/caches -name "*flutter_embedding_debug*.aar" -type f 2>/dev/null | head -1)
+
+          if [ -n "$FLUTTER_EMBEDDING" ] && [ -f "$FLUTTER_EMBEDDING" ]; then
+            echo "✓ Found Flutter embedding AAR in Gradle cache:"
+            echo "  Path: $FLUTTER_EMBEDDING"
+            ls -lh "$FLUTTER_EMBEDDING"
+
+            # Copy to flutter_artifacts directory
+            cp "$FLUTTER_EMBEDDING" "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
+            echo "✓ Copied Flutter embedding AAR"
+            ls -lh "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
+
+            # Verify it's a valid AAR (zip file)
+            if unzip -t "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar" > /dev/null 2>&1; then
+              echo "✓ AAR file is valid"
+            else
+              echo "ERROR: AAR file is not valid"
+              exit 1
+            fi
+          else
+            echo "ERROR: Flutter embedding AAR not found in Gradle cache"
+            echo "Searched in: ~/.gradle/caches"
+            exit 1
+          fi
 
       - name: List build outputs
         run: |

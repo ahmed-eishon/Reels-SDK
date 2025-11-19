@@ -1,8 +1,11 @@
 rootProject.name = 'reels-sdk'
 
+// Include the Android wrapper module
+include ':reels_android'
+
 // Include Flutter module for local development
 setBinding(new Binding([gradle: this]))
 evaluate(new File(
-    settingsDir.parentFile,
+    settingsDir,
     'reels_flutter/.android/include_flutter.groovy'
 ))

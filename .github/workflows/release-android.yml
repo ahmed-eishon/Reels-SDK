@@ -83,18 +83,9 @@ jobs:
         run: |
           echo "=== Flutter AAR outputs ==="
           find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
-
-      - name: Build reels_android AAR (Release)
-        working-directory: reels_android
-        run: |
-          echo "Building reels_android AAR..."
-          ../gradlew assembleRelease --no-daemon --stacktrace
-          echo "reels_android AAR built successfully"
-
-      - name: List reels_android build outputs
-        run: |
-          echo "=== reels_android AAR outputs ==="
-          find reels_android/build/outputs/aar -name "*.aar" -type f
+          echo ""
+          echo "=== Directory structure ==="
+          ls -lah reels_flutter/build/host/outputs/repo/
 
       - name: Create release package
         id: package
@@ -103,55 +94,51 @@ jobs:
           PACKAGE_DIR="ReelsSDK-Android-${VERSION}"
           mkdir -p "$PACKAGE_DIR"
 
-          # Copy reels_android AAR
-          cp reels_android/build/outputs/aar/reels-android-release.aar \
-             "$PACKAGE_DIR/reels-sdk-${VERSION}.aar"
-
-          # Copy Flutter AAR
-          cp reels_flutter/build/host/outputs/repo/com/rakuten/room/flutter_release/1.0/flutter_release-1.0.aar \
-             "$PACKAGE_DIR/flutter-release-${VERSION}.aar"
+          # Copy entire Flutter AAR Maven repository
+          echo "Copying Flutter AAR Maven repository..."
+          cp -r reels_flutter/build/host/outputs/repo "$PACKAGE_DIR/maven-repo"
 
           # Create README
-          cat > "$PACKAGE_DIR/README.md" <<'EOF'
+          cat > "$PACKAGE_DIR/README.md" <<EOF
           # ReelsSDK Android - Release Build
 
-          Version: $VERSION
+          Version: ${VERSION}
           Build: Release
 
           ## Contents
 
-          - `reels-sdk-${VERSION}.aar` - Main SDK AAR (Release build)
-          - `flutter-release-${VERSION}.aar` - Flutter dependencies
+          - \`maven-repo/\` - Complete Maven repository with all Flutter SDK dependencies
 
           ## Integration
 
-          1. Copy both AAR files to your `app/libs/` directory
+          1. Extract the zip file
 
-          2. Add to your `app/build.gradle`:
+          2. Add to your project's \`build.gradle\` or \`settings.gradle\`:
 
-          ```gradle
-          android {
-              ...
-          }
-
+          \`\`\`gradle
           repositories {
-              flatDir {
-                  dirs 'libs'
+              maven {
+                  url "${PWD}/path/to/ReelsSDK-Android-${VERSION}/maven-repo"
+              }
+              maven {
+                  url "https://storage.googleapis.com/download.flutter.io"
               }
           }
+          \`\`\`
 
+          3. Add to your \`app/build.gradle\`:
+
+          \`\`\`gradle
           dependencies {
-              implementation(name: 'reels-sdk-${VERSION}', ext: 'aar')
-              implementation(name: 'flutter-release-${VERSION}', ext: 'aar')
+              // ReelsSDK with all Flutter dependencies
+              releaseImplementation 'com.example.reels_flutter:flutter_release:1.0'
 
-              // Required dependencies
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-              implementation 'com.google.android.material:material:1.11.0'
+              // Or for debug builds:
+              // debugImplementation 'com.example.reels_flutter:flutter_debug:1.0'
           }
-          ```
+          \`\`\`
 
-          3. Sync Gradle and build
+          4. Sync Gradle and build
 
           ## Documentation
 
@@ -170,7 +157,11 @@ jobs:
 
           # Show package contents
           echo "=== Package Contents ==="
-          ls -lh "$PACKAGE_DIR"
+          du -h -d 2 "$PACKAGE_DIR"
+          echo ""
+          echo "=== AAR Files ==="
+          find "$PACKAGE_DIR" -name "*.aar" | head -10
+          echo ""
           echo "=== Package Size ==="
           du -h "$ZIP_NAME"
 
@@ -188,31 +179,37 @@ jobs:
 
           ## 📦 What's Included
 
-          - `reels-sdk-${{ steps.get_version.outputs.VERSION }}.aar` - Main SDK AAR
-          - `flutter-release-${{ steps.get_version.outputs.VERSION }}.aar` - Flutter runtime
+          - Complete Maven repository with Flutter SDK and all dependencies
+          - Ready-to-use AAR files with Gradle integration
 
           ## 🚀 Quick Start
 
           ### Installation
 
           1. Download `ReelsSDK-Android-${{ steps.get_version.outputs.VERSION }}.zip`
-          2. Extract and copy AAR files to `app/libs/`
-          3. Update your `build.gradle`:
+          2. Extract to your project directory
+          3. Update your `build.gradle` or `settings.gradle`:
 
           ```gradle
           repositories {
-              flatDir {
-                  dirs 'libs'
+              maven {
+                  url "path/to/ReelsSDK-Android-${{ steps.get_version.outputs.VERSION }}/maven-repo"
               }
-          }
-
-          dependencies {
-              implementation(name: 'reels-sdk-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              implementation(name: 'flutter-release-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+              maven {
+                  url "https://storage.googleapis.com/download.flutter.io"
+              }
           }
           ```
 
-          4. Sync and build!
+          4. Add dependency in `app/build.gradle`:
+
+          ```gradle
+          dependencies {
+              releaseImplementation 'com.example.reels_flutter:flutter_release:1.0'
+          }
+          ```
+
+          5. Sync and build!
 
           ## 📚 Documentation
 

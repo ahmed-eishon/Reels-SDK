@@ -119,8 +119,22 @@ jobs:
           # Copy all Flutter module and plugin AARs
           cp reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar \
              "$PACKAGE_DIR/flutter_debug-${VERSION}.aar"
-          cp reels_flutter/build/host/outputs/repo/io/flutter/flutter_embedding_debug/1.0.0-b45fa18946/flutter_embedding_debug-1.0.0-b45fa18946.aar \
-             "$PACKAGE_DIR/flutter_embedding_debug-${VERSION}.aar"
+
+          # Find and copy Flutter embedding AAR from Flutter SDK cache
+          # Flutter downloads engine artifacts during AAR build to ~/.gradle or Flutter SDK cache
+          FLUTTER_EMBEDDING_PATH=$(find ~/.gradle/caches -name "flutter_embedding_debug-*.aar" 2>/dev/null | head -1)
+          if [ -z "$FLUTTER_EMBEDDING_PATH" ]; then
+            # Fallback: check Flutter SDK's artifacts
+            FLUTTER_EMBEDDING_PATH=$(find $FLUTTER_ROOT/bin/cache/artifacts/engine -name "flutter_embedding_debug*.aar" 2>/dev/null | head -1)
+          fi
+          if [ -n "$FLUTTER_EMBEDDING_PATH" ]; then
+            echo "Found Flutter embedding at: $FLUTTER_EMBEDDING_PATH"
+            cp "$FLUTTER_EMBEDDING_PATH" "$PACKAGE_DIR/flutter_embedding_debug-${VERSION}.aar"
+          else
+            echo "ERROR: Could not find Flutter embedding AAR"
+            exit 1
+          fi
+
           cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/packageinfo/package_info_plus_debug/1.0/package_info_plus_debug-1.0.aar \
              "$PACKAGE_DIR/package_info_plus_debug-${VERSION}.aar"
           cp reels_flutter/build/host/outputs/repo/io/flutter/plugins/videoplayer/video_player_android_debug/1.0/video_player_android_debug-1.0.aar \

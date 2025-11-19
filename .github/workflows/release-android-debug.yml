@@ -64,21 +64,6 @@ jobs:
           flutter --version
           flutter doctor -v
 
-      - name: Get Flutter dependencies
-        working-directory: reels_flutter
-        run: flutter pub get
-
-      - name: Run Pigeon code generation
-        working-directory: reels_flutter
-        run: flutter pub run pigeon --input pigeons/messages.dart
-
-      - name: Build Flutter AAR (Debug)
-        working-directory: reels_flutter
-        run: |
-          echo "Building Flutter AAR in Debug mode..."
-          flutter build aar --debug --no-release --no-profile
-          echo "Flutter AAR built successfully"
-
       - name: Extract Flutter embedding from SDK
         run: |
           echo "Extracting Flutter embedding AAR from Flutter SDK..."
@@ -104,12 +89,10 @@ jobs:
               cp flutter.jar flutter_embedding_temp/classes.jar
 
               # Create AndroidManifest.xml
-              cat > flutter_embedding_temp/AndroidManifest.xml <<'MANIFEST'
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.flutter.embedding">
-</manifest>
-MANIFEST
+              echo '<?xml version="1.0" encoding="utf-8"?>' > flutter_embedding_temp/AndroidManifest.xml
+              echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"' >> flutter_embedding_temp/AndroidManifest.xml
+              echo '    package="io.flutter.embedding">' >> flutter_embedding_temp/AndroidManifest.xml
+              echo '</manifest>' >> flutter_embedding_temp/AndroidManifest.xml
 
               # Package as AAR
               cd flutter_embedding_temp
@@ -130,6 +113,21 @@ MANIFEST
             echo "ERROR: Could not find Flutter engine directory"
             exit 1
           fi
+
+      - name: Get Flutter dependencies
+        working-directory: reels_flutter
+        run: flutter pub get
+
+      - name: Run Pigeon code generation
+        working-directory: reels_flutter
+        run: flutter pub run pigeon --input pigeons/messages.dart
+
+      - name: Build Flutter AAR (Debug)
+        working-directory: reels_flutter
+        run: |
+          echo "Building Flutter AAR in Debug mode..."
+          flutter build aar --debug --no-release --no-profile
+          echo "Flutter AAR built successfully"
 
       - name: List Flutter build outputs
         run: |

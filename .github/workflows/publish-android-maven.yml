@@ -3,8 +3,8 @@ name: Publish Android SDK to GitHub Packages
 on:
   push:
     tags:
-      - 'v*.*.*-android-maven'       # Disabled - use release-android.yml for GitHub Releases instead
-      - 'v*.*.*-android-maven-debug' # Disabled - use release-android-debug.yml for GitHub Releases instead
+      - 'v*.*.*-android-debug'  # Publishes debug build to GitHub Packages Maven
+      - 'v*.*.*-android'         # Publishes release build to GitHub Packages Maven
 
 jobs:
   publish-maven:
@@ -124,7 +124,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "## 📦 Package Details" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- **Group ID**: com.rakuten.room" >> $GITHUB_STEP_SUMMARY
+          echo "- **Group ID**: com.ahmed-eishon" >> $GITHUB_STEP_SUMMARY
           echo "- **Artifact ID**: reels-sdk" >> $GITHUB_STEP_SUMMARY
           echo "- **Version**: ${{ steps.get_version.outputs.VERSION }}" >> $GITHUB_STEP_SUMMARY
           echo "- **Build Type**: ${{ steps.get_version.outputs.BUILD_TYPE }}" >> $GITHUB_STEP_SUMMARY
@@ -145,6 +145,7 @@ jobs:
           echo '                password = project.findProperty("gpr.key") ?: System.getenv("GITHUB_TOKEN")' >> $GITHUB_STEP_SUMMARY
           echo '            }' >> $GITHUB_STEP_SUMMARY
           echo '        }' >> $GITHUB_STEP_SUMMARY
+          echo '        maven { url = uri("https://storage.googleapis.com/download.flutter.io") }' >> $GITHUB_STEP_SUMMARY
           echo '    }' >> $GITHUB_STEP_SUMMARY
           echo '}' >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
@@ -152,7 +153,7 @@ jobs:
           echo "### 2. Add dependency in app/build.gradle:" >> $GITHUB_STEP_SUMMARY
           echo '```gradle' >> $GITHUB_STEP_SUMMARY
           echo "dependencies {" >> $GITHUB_STEP_SUMMARY
-          echo "    implementation 'com.rakuten.room:reels-sdk:${{ steps.get_version.outputs.VERSION }}'" >> $GITHUB_STEP_SUMMARY
+          echo "    implementation 'com.ahmed-eishon:reels-sdk:${{ steps.get_version.outputs.VERSION }}'" >> $GITHUB_STEP_SUMMARY
           echo "}" >> $GITHUB_STEP_SUMMARY
           echo '```' >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
@@ -169,7 +170,7 @@ jobs:
       - name: Publish Summary
         run: |
           echo "✅ Maven package published to GitHub Packages!"
-          echo "📦 Package: com.rakuten.room:reels-sdk:${{ steps.get_version.outputs.VERSION }}"
+          echo "📦 Package: com.ahmed-eishon:reels-sdk:${{ steps.get_version.outputs.VERSION }}"
           echo "🏷️ Tag: ${{ github.ref_name }}"
           echo "📋 Version: ${{ steps.get_version.outputs.VERSION }}"
           echo "🔨 Build Type: ${{ steps.get_version.outputs.BUILD_TYPE }}"

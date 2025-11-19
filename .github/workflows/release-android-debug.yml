@@ -1,9 +1,9 @@
-name: Build and Release Android AAR (Debug)
+name: Build and Release Android AAR (Debug) - DISABLED
 
 on:
   push:
     tags:
-      - 'v*.*.*-android-debug'  # Matches v0.1.4-android-debug
+      - 'v*.*.*-android-debug-aar'  # DISABLED - Now using Maven publishing instead
 
 jobs:
   build-debug-aar:

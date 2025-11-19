@@ -101,52 +101,51 @@ jobs:
 
           # Add pluginManagement block to settings.gradle for Android Gradle Plugin
           echo "Adding pluginManagement to settings.gradle..."
-          cat > settings.gradle.tmp << 'SETTINGS_EOF'
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url 'file://${{ env.MAVEN_REPO }}'
-        }
-        maven {
-            url 'https://storage.googleapis.com/download.flutter.io'
-        }
-    }
-}
-
-SETTINGS_EOF
-          cat settings.gradle >> settings.gradle.tmp
+          {
+            echo "pluginManagement {"
+            echo "    repositories {"
+            echo "        google()"
+            echo "        mavenCentral()"
+            echo "        gradlePluginPortal()"
+            echo "    }"
+            echo "}"
+            echo ""
+            echo "dependencyResolutionManagement {"
+            echo "    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)"
+            echo "    repositories {"
+            echo "        google()"
+            echo "        mavenCentral()"
+            echo "        maven {"
+            echo "            url 'file://${{ env.MAVEN_REPO }}'"
+            echo "        }"
+            echo "        maven {"
+            echo "            url 'https://storage.googleapis.com/download.flutter.io'"
+            echo "        }"
+            echo "    }"
+            echo "}"
+            echo ""
+            cat settings.gradle
+          } > settings.gradle.tmp
           mv settings.gradle.tmp settings.gradle
 
-          echo "Updated settings.gradle:"
-          cat settings.gradle
+          echo "Updated settings.gradle"
 
           # Add buildscript block to build.gradle for Android Gradle Plugin version
           echo "Adding buildscript block to build.gradle..."
-          cat > build.gradle.tmp << 'BUILDSCRIPT_EOF'
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.3'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-    }
-}
-
-BUILDSCRIPT_EOF
-          cat build.gradle >> build.gradle.tmp
+          {
+            echo "buildscript {"
+            echo "    repositories {"
+            echo "        google()"
+            echo "        mavenCentral()"
+            echo "    }"
+            echo "    dependencies {"
+            echo "        classpath 'com.android.tools.build:gradle:8.7.3'"
+            echo "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'"
+            echo "    }"
+            echo "}"
+            echo ""
+            cat build.gradle
+          } > build.gradle.tmp
           mv build.gradle.tmp build.gradle
 
           echo "Updated build.gradle with buildscript"

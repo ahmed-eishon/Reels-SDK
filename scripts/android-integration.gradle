@@ -115,12 +115,12 @@ task downloadReelsSDK {
         println ""
         if (buildMode.toLowerCase() == 'release') {
             println "   releaseImplementation(name: 'reels-sdk-${version}', ext: 'aar')"
-            println "   releaseImplementation(name: 'flutter_embedding_release-1.0.0-b45fa18946', ext: 'aar')"
-            println "   releaseImplementation(name: 'flutter_release-1.0', ext: 'aar')"
+            println "   releaseImplementation(name: 'flutter_embedding_release-${version}', ext: 'aar')"
+            println "   releaseImplementation(name: 'flutter_release-${version}', ext: 'aar')"
         } else {
             println "   debugImplementation(name: 'reels-sdk-debug-${version}', ext: 'aar')"
-            println "   debugImplementation(name: 'flutter_embedding_debug-1.0.0-b45fa18946', ext: 'aar')"
-            println "   debugImplementation(name: 'flutter_debug-1.0', ext: 'aar')"
+            println "   debugImplementation(name: 'flutter_embedding_debug-${version}', ext: 'aar')"
+            println "   debugImplementation(name: 'flutter_debug-${version}', ext: 'aar')"
         }
         println "   // ... and Flutter plugin AARs"
         println ""

@@ -79,6 +79,58 @@ jobs:
           flutter build aar --debug --no-release --no-profile
           echo "Flutter AAR built successfully"
 
+      - name: Extract Flutter embedding from SDK
+        run: |
+          echo "Extracting Flutter embedding AAR from Flutter SDK..."
+          FLUTTER_ENGINE_DIR="$FLUTTER_ROOT/bin/cache/artifacts/engine"
+
+          # Find the Flutter embedding debug AAR in the Flutter SDK
+          EMBEDDING_AAR=$(find "$FLUTTER_ENGINE_DIR" -name "*arm64-v8a-debug.jar" -o -name "flutter.jar" | head -1 | xargs dirname 2>/dev/null)
+
+          if [ -z "$EMBEDDING_AAR" ]; then
+            echo "Checking android-arm-debug directory..."
+            EMBEDDING_AAR="$FLUTTER_ENGINE_DIR/android-arm-debug"
+          fi
+
+          if [ -d "$EMBEDDING_AAR" ]; then
+            echo "Found Flutter engine at: $EMBEDDING_AAR"
+            ls -la "$EMBEDDING_AAR" | head -20
+
+            # Create Flutter embedding AAR from the engine artifacts
+            cd "$EMBEDDING_AAR"
+            if [ -f "flutter.jar" ]; then
+              # Create a minimal AAR structure
+              mkdir -p flutter_embedding_temp
+              cp flutter.jar flutter_embedding_temp/classes.jar
+
+              # Create AndroidManifest.xml
+              cat > flutter_embedding_temp/AndroidManifest.xml <<'MANIFEST'
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.flutter.embedding">
+</manifest>
+MANIFEST
+
+              # Package as AAR
+              cd flutter_embedding_temp
+              jar cf flutter_embedding_debug.aar classes.jar AndroidManifest.xml
+
+              # Move to a known location
+              mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
+              mv flutter_embedding_debug.aar "$GITHUB_WORKSPACE/flutter_artifacts/"
+              cd "$GITHUB_WORKSPACE"
+              rm -rf "$EMBEDDING_AAR/flutter_embedding_temp"
+
+              echo "✓ Created flutter_embedding_debug.aar"
+            else
+              echo "ERROR: flutter.jar not found in $EMBEDDING_AAR"
+              exit 1
+            fi
+          else
+            echo "ERROR: Could not find Flutter engine directory"
+            exit 1
+          fi
+
       - name: List Flutter build outputs
         run: |
           echo "=== Flutter Module AAR ==="
@@ -126,18 +178,14 @@ jobs:
           cp reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar \
              "$PACKAGE_DIR/flutter_debug-${VERSION}.aar"
 
-          # Find and copy Flutter embedding AAR from Flutter SDK cache
-          # Flutter downloads engine artifacts during AAR build to ~/.gradle or Flutter SDK cache
-          FLUTTER_EMBEDDING_PATH=$(find ~/.gradle/caches -name "flutter_embedding_debug-*.aar" 2>/dev/null | head -1)
-          if [ -z "$FLUTTER_EMBEDDING_PATH" ]; then
-            # Fallback: check Flutter SDK's artifacts
-            FLUTTER_EMBEDDING_PATH=$(find $FLUTTER_ROOT/bin/cache/artifacts/engine -name "flutter_embedding_debug*.aar" 2>/dev/null | head -1)
-          fi
-          if [ -n "$FLUTTER_EMBEDDING_PATH" ]; then
-            echo "Found Flutter embedding at: $FLUTTER_EMBEDDING_PATH"
-            cp "$FLUTTER_EMBEDDING_PATH" "$PACKAGE_DIR/flutter_embedding_debug-${VERSION}.aar"
+          # Copy Flutter embedding AAR extracted from Flutter SDK
+          FLUTTER_EMBEDDING="$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
+          if [ -f "$FLUTTER_EMBEDDING" ]; then
+            cp "$FLUTTER_EMBEDDING" "$PACKAGE_DIR/flutter_embedding_debug-${VERSION}.aar"
+            echo "✓ Copied Flutter embedding AAR"
           else
-            echo "ERROR: Could not find Flutter embedding AAR"
+            echo "ERROR: Flutter embedding AAR not found at $FLUTTER_EMBEDDING"
+            ls -la "$GITHUB_WORKSPACE/flutter_artifacts/" || echo "flutter_artifacts directory not found"
             exit 1
           fi
 

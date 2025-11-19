@@ -99,33 +99,68 @@ jobs:
 
       - name: Extract Flutter embedding from Gradle cache
         run: |
-          echo "Extracting Flutter embedding AAR from Gradle cache..."
+          echo "Extracting Flutter embedding from Gradle cache..."
           mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
 
-          # Search for flutter_embedding_debug in Gradle cache (transformed version)
-          # After building reels_android, Gradle downloads and caches the flutter_embedding AAR
+          # First try to find transformed AAR in transforms cache
           FLUTTER_EMBEDDING=$(find ~/.gradle/caches -name "*flutter_embedding_debug*.aar" -type f 2>/dev/null | head -1)
 
           if [ -n "$FLUTTER_EMBEDDING" ] && [ -f "$FLUTTER_EMBEDDING" ]; then
-            echo "✓ Found Flutter embedding AAR in Gradle cache:"
+            echo "✓ Found Flutter embedding AAR in transforms cache:"
             echo "  Path: $FLUTTER_EMBEDDING"
             ls -lh "$FLUTTER_EMBEDDING"
-
-            # Copy to flutter_artifacts directory
             cp "$FLUTTER_EMBEDDING" "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
-            echo "✓ Copied Flutter embedding AAR"
-            ls -lh "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
+          else
+            # Try to find JAR in modules cache (flutter_embedding is distributed as JAR)
+            echo "AAR not found in transforms cache, searching for JAR in modules cache..."
+            FLUTTER_EMBEDDING_JAR=$(find ~/.gradle/caches/modules-2/files-2.1/io.flutter/flutter_embedding_debug -name "*.jar" ! -name "*-sources.jar" -type f 2>/dev/null | head -1)
 
-            # Verify it's a valid AAR (zip file)
-            if unzip -t "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar" > /dev/null 2>&1; then
-              echo "✓ AAR file is valid"
+            if [ -n "$FLUTTER_EMBEDDING_JAR" ] && [ -f "$FLUTTER_EMBEDDING_JAR" ]; then
+              echo "✓ Found Flutter embedding JAR in modules cache:"
+              echo "  Path: $FLUTTER_EMBEDDING_JAR"
+              ls -lh "$FLUTTER_EMBEDDING_JAR"
+
+              # Convert JAR to AAR format (AAR is just a JAR with Android manifest)
+              TEMP_AAR_DIR=$(mktemp -d)
+              cd "$TEMP_AAR_DIR"
+
+              # Copy JAR as classes.jar
+              cp "$FLUTTER_EMBEDDING_JAR" classes.jar
+
+              # Create minimal AndroidManifest.xml
+              cat > AndroidManifest.xml <<'MANIFEST'
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="io.flutter.embedding">
+    <uses-sdk android:minSdkVersion="21"/>
+</manifest>
+MANIFEST
+
+              # Package as AAR (AAR is a ZIP file)
+              zip -q flutter_embedding_debug.aar AndroidManifest.xml classes.jar
+              cp flutter_embedding_debug.aar "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
+
+              cd "$GITHUB_WORKSPACE"
+              rm -rf "$TEMP_AAR_DIR"
+
+              echo "✓ Converted JAR to AAR format"
             else
-              echo "ERROR: AAR file is not valid"
+              echo "ERROR: Flutter embedding not found in Gradle cache"
+              echo "Searched for AAR in: ~/.gradle/caches"
+              echo "Searched for JAR in: ~/.gradle/caches/modules-2/files-2.1/io.flutter/flutter_embedding_debug"
+              find ~/.gradle/caches/modules-2/files-2.1/io.flutter -type f 2>/dev/null | head -20 || echo "No files found"
               exit 1
             fi
+          fi
+
+          echo "✓ Flutter embedding ready"
+          ls -lh "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
+
+          # Verify it's a valid AAR (zip file)
+          if unzip -t "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar" > /dev/null 2>&1; then
+            echo "✓ AAR file is valid"
           else
-            echo "ERROR: Flutter embedding AAR not found in Gradle cache"
-            echo "Searched in: ~/.gradle/caches"
+            echo "ERROR: AAR file is not valid"
             exit 1
           fi
 

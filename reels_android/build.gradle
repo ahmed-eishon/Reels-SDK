@@ -61,6 +61,8 @@ android {
 
 dependencies {
     // Flutter module - using api instead of implementation to expose to consuming apps
+    // The Flutter module's transitive dependencies (including flutter_embedding) will be
+    // automatically included and bundled into the fat AAR
     debugApi 'com.example.reels_flutter:flutter_debug:1.0'
     releaseApi 'com.example.reels_flutter:flutter_release:1.0'
 
@@ -78,6 +80,150 @@ dependencies {
     testImplementation(libs.junit4)
     androidTestImplementation(libs.androidx.test.junit)
     androidTestImplementation(libs.androidx.test.espresso)
+}
+
+// Fat AAR Configuration - Bundles all dependencies into a single AAR
+// This creates a self-contained AAR that includes Flutter embedding and all required libraries
+android.libraryVariants.all { variant ->
+    def variantName = variant.name.capitalize()
+    def buildType = variant.buildType.name
+
+    // Create fat AAR task for this variant
+    def fatAarTask = tasks.create(name: "bundle${variantName}FatAar", type: Zip) {
+        description = "Creates a fat AAR with all dependencies bundled for ${variantName}"
+        group = 'build'
+
+        // Set output file name
+        archiveBaseName = "reels-android-fat"
+        archiveVersion = getVersionName()
+        archiveClassifier = buildType
+        archiveExtension = "aar"
+        destinationDirectory = file("${project.buildDir}/outputs/fat-aar")
+
+        // Depend on the regular AAR build
+        dependsOn variant.assemble
+
+        doFirst {
+            println "================================================"
+            println "  Creating Fat AAR for ${variantName}"
+            println "================================================"
+            println "Build Type: ${buildType}"
+            println "Output: ${archiveFileName.get()}"
+            println ""
+
+            // Temporary extraction directory
+            def tempDir = file("${project.buildDir}/fat-aar-tmp/${variantName}")
+            delete tempDir
+            tempDir.mkdirs()
+
+            // Extract the base AAR
+            def baseAar = variant.outputs.first().outputFile
+            println "Base AAR: ${baseAar.name}"
+            copy {
+                from zipTree(baseAar)
+                into tempDir
+            }
+
+            // Extract and merge all AAR/JAR dependencies
+            def apiDeps = []
+            variant.compileConfiguration.resolvedConfiguration.resolvedArtifacts.each { artifact ->
+                def depName = artifact.name
+                def depFile = artifact.file
+
+                // Only include 'api' dependencies (flutter module, flutter embedding, etc.)
+                if (depName.contains('flutter') || depName.contains('io.flutter')) {
+                    println "Merging dependency: ${depName}"
+                    apiDeps << depFile
+
+                    if (depFile.name.endsWith('.aar')) {
+                        // Extract AAR
+                        def aarExtractDir = file("${tempDir}/deps/${depName}")
+                        copy {
+                            from zipTree(depFile)
+                            into aarExtractDir
+                        }
+
+                        // Merge classes.jar
+                        def classesJar = file("${aarExtractDir}/classes.jar")
+                        if (classesJar.exists()) {
+                            copy {
+                                from zipTree(classesJar)
+                                into file("${tempDir}/classes-merged")
+                                exclude 'META-INF/**'
+                            }
+                        }
+
+                        // Merge JNI libs
+                        def jniDir = file("${aarExtractDir}/jni")
+                        if (jniDir.exists()) {
+                            copy {
+                                from jniDir
+                                into file("${tempDir}/jni")
+                            }
+                        }
+
+                        // Merge resources
+                        def resDir = file("${aarExtractDir}/res")
+                        if (resDir.exists()) {
+                            copy {
+                                from resDir
+                                into file("${tempDir}/res")
+                            }
+                        }
+
+                        // Merge assets
+                        def assetsDir = file("${aarExtractDir}/assets")
+                        if (assetsDir.exists()) {
+                            copy {
+                                from assetsDir
+                                into file("${tempDir}/assets")
+                            }
+                        }
+                    } else if (depFile.name.endsWith('.jar')) {
+                        // Merge JAR classes
+                        copy {
+                            from zipTree(depFile)
+                            into file("${tempDir}/classes-merged")
+                            exclude 'META-INF/**'
+                        }
+                    }
+                }
+            }
+
+            // Extract and merge base classes.jar
+            def baseClassesJar = file("${tempDir}/classes.jar")
+            if (baseClassesJar.exists()) {
+                copy {
+                    from zipTree(baseClassesJar)
+                    into file("${tempDir}/classes-merged")
+                    exclude 'META-INF/**'
+                }
+                delete baseClassesJar
+            }
+
+            // Repackage merged classes into classes.jar
+            ant.jar(destfile: "${tempDir}/classes.jar") {
+                fileset(dir: "${tempDir}/classes-merged")
+            }
+
+            // Clean up temporary extraction directories
+            delete file("${tempDir}/classes-merged")
+            delete file("${tempDir}/deps")
+
+            println ""
+            println "Merged ${apiDeps.size()} dependencies"
+            println "================================================"
+            println ""
+
+            // Set the content to be zipped
+            from tempDir
+        }
+    }
+
+    // Make assembleDebug/assembleRelease depend on fat AAR creation
+    tasks.named("assemble${variantName}").configure {
+        finalizedBy fatAarTask
+    }
 }
 
 // Maven Publishing Configuration

@@ -100,6 +100,12 @@ android.libraryVariants.all { variant ->
         archiveExtension = "aar"
         destinationDirectory = file("${project.buildDir}/outputs/merged-aar")
 
+        // Temporary extraction directory (must be defined at configuration time)
+        def tempDir = file("${project.buildDir}/merged-aar-tmp/${variantName}")
+
+        // Set the content to be zipped (must be at configuration time)
+        from tempDir
+
         // Depend on the regular AAR build
         dependsOn variant.assemble
 
@@ -114,8 +120,7 @@ android.libraryVariants.all { variant ->
             println "Output: ${archiveFileName.get()}"
             println ""
 
-            // Temporary extraction directory
-            def tempDir = file("${project.buildDir}/merged-aar-tmp/${variantName}")
+            // Clean and recreate temp directory
             delete tempDir
             tempDir.mkdirs()
 
@@ -217,9 +222,6 @@ android.libraryVariants.all { variant ->
             println "Merged ${apiDeps.size()} dependencies"
             println "================================================"
             println ""
-
-            // Set the content to be zipped
-            from tempDir
         }
     }
 

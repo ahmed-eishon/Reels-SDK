@@ -1,9 +1,9 @@
-name: Build and Release Android AAR (Debug) - DISABLED
+name: Build and Release Android AAR (Debug)
 
 on:
   push:
     tags:
-      - 'v*.*.*-android-debug-aar'  # DISABLED - Now using Maven publishing instead
+      - 'v*.*.*-android-debug'  # Matches v0.1.4-android-debug
 
 jobs:
   build-debug-aar:
@@ -81,100 +81,11 @@ jobs:
 
       - name: List Flutter build outputs
         run: |
-          echo "=== Flutter Module AAR ==="
-          find reels_flutter/build/host/outputs/repo/com/example/reels_flutter -type f 2>/dev/null || echo "Flutter module not found"
-          echo ""
-          echo "=== Flutter Engine Artifacts ==="
-          find reels_flutter/build/host/outputs/repo/io/flutter -type f 2>/dev/null || echo "Flutter engine artifacts not found"
-          echo ""
-          echo "=== All Maven Repository Contents ==="
-          ls -R reels_flutter/build/host/outputs/repo/ | head -100
-
-      - name: Build reels_android AAR (Debug)
-        working-directory: reels_android
-        run: |
-          echo "Building reels_android AAR..."
-          ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.enableJetifier=false -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
-          echo "reels_android AAR built successfully"
-
-      - name: Extract Flutter embedding from Gradle cache
-        run: |
-          echo "Extracting Flutter embedding from Gradle cache..."
-          mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
-
-          # First try to find transformed AAR in transforms cache
-          FLUTTER_EMBEDDING=$(find ~/.gradle/caches -name "*flutter_embedding_debug*.aar" -type f 2>/dev/null | head -1)
-
-          if [ -n "$FLUTTER_EMBEDDING" ] && [ -f "$FLUTTER_EMBEDDING" ]; then
-            echo "✓ Found Flutter embedding AAR in transforms cache:"
-            echo "  Path: $FLUTTER_EMBEDDING"
-            ls -lh "$FLUTTER_EMBEDDING"
-            cp "$FLUTTER_EMBEDDING" "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
-          else
-            # Try to find JAR in modules cache (flutter_embedding is distributed as JAR)
-            echo "AAR not found in transforms cache, searching for JAR in modules cache..."
-            FLUTTER_EMBEDDING_JAR=$(find ~/.gradle/caches/modules-2/files-2.1/io.flutter/flutter_embedding_debug -name "*.jar" ! -name "*-sources.jar" -type f 2>/dev/null | head -1)
-
-            if [ -n "$FLUTTER_EMBEDDING_JAR" ] && [ -f "$FLUTTER_EMBEDDING_JAR" ]; then
-              echo "✓ Found Flutter embedding JAR in modules cache:"
-              echo "  Path: $FLUTTER_EMBEDDING_JAR"
-              ls -lh "$FLUTTER_EMBEDDING_JAR"
-
-              # Convert JAR to AAR format (AAR is just a JAR with Android manifest)
-              TEMP_AAR_DIR=$(mktemp -d)
-              cd "$TEMP_AAR_DIR"
-
-              # Copy JAR as classes.jar
-              cp "$FLUTTER_EMBEDDING_JAR" classes.jar
-
-              # Create minimal AndroidManifest.xml using echo to avoid YAML syntax issues
-              echo '<?xml version="1.0" encoding="utf-8"?>' > AndroidManifest.xml
-              echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"' >> AndroidManifest.xml
-              echo '    package="io.flutter.embedding">' >> AndroidManifest.xml
-              echo '    <uses-sdk android:minSdkVersion="21"/>' >> AndroidManifest.xml
-              echo '</manifest>' >> AndroidManifest.xml
-
-              # Package as AAR (AAR is a ZIP file)
-              zip -q flutter_embedding_debug.aar AndroidManifest.xml classes.jar
-              cp flutter_embedding_debug.aar "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
-
-              cd "$GITHUB_WORKSPACE"
-              rm -rf "$TEMP_AAR_DIR"
-
-              echo "✓ Converted JAR to AAR format"
-            else
-              echo "ERROR: Flutter embedding not found in Gradle cache"
-              echo "Searched for AAR in: ~/.gradle/caches"
-              echo "Searched for JAR in: ~/.gradle/caches/modules-2/files-2.1/io.flutter/flutter_embedding_debug"
-              find ~/.gradle/caches/modules-2/files-2.1/io.flutter -type f 2>/dev/null | head -20 || echo "No files found"
-              exit 1
-            fi
-          fi
-
-          echo "✓ Flutter embedding ready"
-          ls -lh "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
-
-          # Verify it's a valid AAR (zip file)
-          if unzip -t "$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar" > /dev/null 2>&1; then
-            echo "✓ AAR file is valid"
-          else
-            echo "ERROR: AAR file is not valid"
-            exit 1
-          fi
-
-      - name: List build outputs
-        run: |
-          echo "=== reels_android AAR ==="
-          find reels_android/build/outputs/aar -name "*.aar" -type f
-          echo ""
-          echo "=== Flutter Module AARs ==="
+          echo "=== Flutter AAR outputs ===="
           find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
           echo ""
-          echo "=== Searching for Flutter embedding in Gradle cache ==="
-          find ~/.gradle/caches -name "*flutter_embedding*" -type f 2>/dev/null | head -10 || echo "Not found in ~/.gradle/caches"
-          echo ""
-          echo "=== Searching for Flutter embedding in reels_android build ==="
-          find reels_android -name "*flutter_embedding*" -type f 2>/dev/null | head -10 || echo "Not found in reels_android"
+          echo "=== Directory structure ===="
+          ls -lah reels_flutter/build/host/outputs/repo/
 
       - name: Create debug package
         id: package
@@ -183,86 +94,48 @@ jobs:
           PACKAGE_DIR="ReelsSDK-Android-Debug-${VERSION}"
           mkdir -p "$PACKAGE_DIR"
 
-          # Copy reels_android AAR
-          cp reels_android/build/outputs/aar/reels-android-debug.aar \
-             "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
-
-          # Copy all Flutter module and plugin AARs
-          cp reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar \
-             "$PACKAGE_DIR/flutter_debug-${VERSION}.aar"
-
-          # Copy Flutter embedding AAR extracted from Flutter SDK
-          FLUTTER_EMBEDDING="$GITHUB_WORKSPACE/flutter_artifacts/flutter_embedding_debug.aar"
-          if [ -f "$FLUTTER_EMBEDDING" ]; then
-            cp "$FLUTTER_EMBEDDING" "$PACKAGE_DIR/flutter_embedding_debug-${VERSION}.aar"
-            echo "✓ Copied Flutter embedding AAR"
-          else
-            echo "ERROR: Flutter embedding AAR not found at $FLUTTER_EMBEDDING"
-            ls -la "$GITHUB_WORKSPACE/flutter_artifacts/" || echo "flutter_artifacts directory not found"
-            exit 1
-          fi
-
-          cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/packageinfo/package_info_plus_debug/1.0/package_info_plus_debug-1.0.aar \
-             "$PACKAGE_DIR/package_info_plus_debug-${VERSION}.aar"
-          cp reels_flutter/build/host/outputs/repo/io/flutter/plugins/videoplayer/video_player_android_debug/1.0/video_player_android_debug-1.0.aar \
-             "$PACKAGE_DIR/video_player_android_debug-${VERSION}.aar"
-          cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/wakelock/wakelock_plus_debug/1.0/wakelock_plus_debug-1.0.aar \
-             "$PACKAGE_DIR/wakelock_plus_debug-${VERSION}.aar"
+          # Copy entire Flutter AAR Maven repository
+          echo "Copying Flutter AAR Maven repository..."
+          cp -r reels_flutter/build/host/outputs/repo "$PACKAGE_DIR/maven-repo"
 
           # Create README
-          cat > "$PACKAGE_DIR/README.md" <<'EOF'
+          cat > "$PACKAGE_DIR/README.md" <<EOF
           # ReelsSDK Android - Debug Build
 
-          Version: $VERSION
+          Version: ${VERSION}
           Build: Debug
 
           ## Contents
 
-          This package includes all required AAR files:
-
-          - `reels-sdk-debug-${VERSION}.aar` - Main ReelsSDK library
-          - `flutter_embedding_debug-${VERSION}.aar` - Flutter engine embedding (FlutterActivity, etc.)
-          - `flutter_debug-${VERSION}.aar` - Flutter runtime assets
-          - `package_info_plus_debug-${VERSION}.aar` - Package info plugin
-          - `video_player_android_debug-${VERSION}.aar` - Video player plugin
-          - `wakelock_plus_debug-${VERSION}.aar` - Wakelock plugin
+          - \`maven-repo/\` - Complete Maven repository with all Flutter SDK dependencies
 
           ## Integration
 
-          1. Copy ALL AAR files to your `app/libs/` directory
+          1. Extract the zip file
 
-          2. Add to your `app/build.gradle`:
+          2. Add to your project's \`build.gradle\` or \`settings.gradle\`:
 
-          ```gradle
-          android {
-              ...
-          }
-
+          \`\`\`gradle
           repositories {
-              flatDir {
-                  dirs 'libs'
+              maven {
+                  url "file://\${rootProject.projectDir}/../ReelsSDK-Android-Debug-${VERSION}/maven-repo"
+              }
+              maven {
+                  url "https://storage.googleapis.com/download.flutter.io"
               }
           }
+          \`\`\`
 
+          3. Add to your \`app/build.gradle\`:
+
+          \`\`\`gradle
           dependencies {
-              // ReelsSDK and Flutter dependencies
-              debugImplementation(name: 'reels-sdk-debug-${VERSION}', ext: 'aar')
-              debugImplementation(name: 'flutter_embedding_debug-${VERSION}', ext: 'aar')
-              debugImplementation(name: 'flutter_debug-${VERSION}', ext: 'aar')
-              debugImplementation(name: 'package_info_plus_debug-${VERSION}', ext: 'aar')
-              debugImplementation(name: 'video_player_android_debug-${VERSION}', ext: 'aar')
-              debugImplementation(name: 'wakelock_plus_debug-${VERSION}', ext: 'aar')
-
-              // Required AndroidX dependencies
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.fragment:fragment-ktx:1.6.2'
-              implementation 'androidx.activity:activity-ktx:1.8.2'
+              // ReelsSDK with all Flutter dependencies
+              debugImplementation 'com.example.reels_flutter:flutter_debug:1.0'
           }
-          ```
+          \`\`\`
 
-          3. Sync Gradle and build
+          4. Sync Gradle and build
 
           ## ⚠️ Debug Build Notice
 
@@ -272,7 +145,7 @@ jobs:
           - Includes debug symbols
           - More verbose logging
 
-          For production, use the Release build instead.
+          For production, use the Release build instead: \`v${VERSION}-android\`
 
           ## Documentation
 
@@ -290,9 +163,13 @@ jobs:
           echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_OUTPUT
 
           # Show package contents
-          echo "=== Package Contents ==="
-          ls -lh "$PACKAGE_DIR"
-          echo "=== Package Size ==="
+          echo "=== Package Contents ===="
+          du -h -d 2 "$PACKAGE_DIR" | head -20
+          echo ""
+          echo "=== AAR Files (first 10) ===="
+          find "$PACKAGE_DIR" -name "*.aar" | head -10
+          echo ""
+          echo "=== Package Size ===="
           du -h "$ZIP_NAME"
 
       - name: Create GitHub Release
@@ -309,51 +186,38 @@ jobs:
 
           ## 📦 What's Included
 
-          This package includes all required AAR files:
-
-          - `reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}.aar` - Main ReelsSDK library
-          - `flutter_embedding_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Flutter engine embedding (FlutterActivity, etc.)
-          - `flutter_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Flutter runtime assets
-          - `package_info_plus_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Package info plugin
-          - `video_player_android_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Video player plugin
-          - `wakelock_plus_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Wakelock plugin
-
-          All Flutter dependencies are included - no separate Flutter setup required!
+          - Complete Maven repository with Flutter SDK and all dependencies
+          - Ready-to-use AAR files with Gradle integration
+          - Debug build with symbols and verbose logging
 
           ## 🚀 Quick Start
 
           ### Installation
 
           1. Download `ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}.zip`
-          2. Extract and copy **ALL AAR files** to `app/libs/`
-          3. Update your `build.gradle`:
+          2. Extract to your project directory
+          3. Update your `build.gradle` or `settings.gradle`:
 
           ```gradle
           repositories {
-              flatDir {
-                  dirs 'libs'
+              maven {
+                  url "path/to/ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}/maven-repo"
               }
-          }
-
-          dependencies {
-              // ReelsSDK and Flutter dependencies
-              debugImplementation(name: 'reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              debugImplementation(name: 'flutter_embedding_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              debugImplementation(name: 'flutter_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              debugImplementation(name: 'package_info_plus_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              debugImplementation(name: 'video_player_android_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              debugImplementation(name: 'wakelock_plus_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-
-              // Required AndroidX dependencies
-              implementation 'androidx.appcompat:appcompat:1.6.1'
-              implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-              implementation 'com.google.android.material:material:1.11.0'
-              implementation 'androidx.fragment:fragment-ktx:1.6.2'
-              implementation 'androidx.activity:activity-ktx:1.8.2'
+              maven {
+                  url "https://storage.googleapis.com/download.flutter.io"
+              }
           }
           ```
 
-          4. Sync and build!
+          4. Add dependency in `app/build.gradle`:
+
+          ```gradle
+          dependencies {
+              debugImplementation 'com.example.reels_flutter:flutter_debug:1.0'
+          }
+          ```
+
+          5. Sync and build!
 
           ## ⚠️ Debug Build
 

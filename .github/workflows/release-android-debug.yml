@@ -90,20 +90,20 @@ jobs:
           echo "=== All Maven Repository Contents ==="
           ls -R reels_flutter/build/host/outputs/repo/ | head -100
 
-      - name: Build reels_android Merged AAR (Debug)
+      - name: Build reels_android AAR (Debug)
         working-directory: reels_android
         run: |
-          echo "Building reels_android merged AAR (includes all Flutter dependencies)..."
+          echo "Building reels_android AAR..."
           ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.enableJetifier=false -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
-          echo "reels_android merged AAR built successfully"
+          echo "reels_android AAR built successfully"
 
-      - name: List reels_android build outputs
+      - name: List build outputs
         run: |
-          echo "=== reels_android AAR outputs (regular) ==="
+          echo "=== reels_android AAR ==="
           find reels_android/build/outputs/aar -name "*.aar" -type f
           echo ""
-          echo "=== reels_android Merged AAR outputs ==="
-          find reels_android/build/outputs/merged-aar -name "*.aar" -type f
+          echo "=== Flutter Module AARs ==="
+          find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
 
       - name: Create debug package
         id: package
@@ -112,9 +112,19 @@ jobs:
           PACKAGE_DIR="ReelsSDK-Android-Debug-${VERSION}"
           mkdir -p "$PACKAGE_DIR"
 
-          # Copy merged AAR (includes all dependencies)
-          cp reels_android/build/outputs/merged-aar/reels-android-${VERSION}-debug.aar \
+          # Copy reels_android AAR
+          cp reels_android/build/outputs/aar/reels_android-debug.aar \
              "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
+
+          # Copy all Flutter AARs
+          cp reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar \
+             "$PACKAGE_DIR/flutter_debug-1.0.aar"
+          cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/packageinfo/package_info_plus_debug/1.0/package_info_plus_debug-1.0.aar \
+             "$PACKAGE_DIR/package_info_plus_debug-1.0.aar"
+          cp reels_flutter/build/host/outputs/repo/io/flutter/plugins/videoplayer/video_player_android_debug/1.0/video_player_android_debug-1.0.aar \
+             "$PACKAGE_DIR/video_player_android_debug-1.0.aar"
+          cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/wakelock/wakelock_plus_debug/1.0/wakelock_plus_debug-1.0.aar \
+             "$PACKAGE_DIR/wakelock_plus_debug-1.0.aar"
 
           # Create README
           cat > "$PACKAGE_DIR/README.md" <<'EOF'
@@ -125,11 +135,17 @@ jobs:
 
           ## Contents
 
-          - `reels-sdk-debug-${VERSION}.aar` - Complete SDK AAR (includes all Flutter dependencies)
+          This package includes all required AAR files:
+
+          - `reels-sdk-debug-${VERSION}.aar` - Main ReelsSDK library
+          - `flutter_debug-1.0.aar` - Flutter runtime
+          - `package_info_plus_debug-1.0.aar` - Package info plugin
+          - `video_player_android_debug-1.0.aar` - Video player plugin
+          - `wakelock_plus_debug-1.0.aar` - Wakelock plugin
 
           ## Integration
 
-          1. Copy the AAR file to your `app/libs/` directory
+          1. Copy ALL AAR files to your `app/libs/` directory
 
           2. Add to your `app/build.gradle`:
 
@@ -145,27 +161,23 @@ jobs:
           }
 
           dependencies {
-              debugImplementation(name: 'reels-sdk-debug-${VERSION}', ext: 'aar') {
-                  transitive = true
-              }
+              // ReelsSDK and Flutter dependencies
+              debugImplementation(name: 'reels-sdk-debug-${VERSION}', ext: 'aar')
+              debugImplementation(name: 'flutter_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'package_info_plus_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'video_player_android_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'wakelock_plus_debug-1.0', ext: 'aar')
 
-              // Required dependencies (AndroidX only - Flutter is bundled)
+              // Required AndroidX dependencies
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
               implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.fragment:fragment-ktx:1.6.2'
+              implementation 'androidx.activity:activity-ktx:1.8.2'
           }
           ```
 
           3. Sync Gradle and build
-
-          ## ✨ What's New
-
-          This build includes all dependencies in a single AAR:
-          - ReelsSDK core functionality
-          - Flutter runtime (flutter_embedding)
-          - All Flutter dependencies bundled
-
-          **No need to manage Flutter dependencies separately!**
 
           ## ⚠️ Debug Build Notice
 
@@ -210,26 +222,24 @@ jobs:
 
           **Build Type:** Debug (Development only)
 
-          ## ✨ What's New
-
-          This build includes all dependencies in a single AAR:
-          - ReelsSDK core functionality
-          - Flutter runtime (flutter_embedding)
-          - All architecture-specific libraries (arm64-v8a, armeabi-v7a)
-          - All Flutter dependencies bundled
-
-          **No need to manage multiple AARs or Flutter dependencies!**
-
           ## 📦 What's Included
 
-          - `reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}.aar` - Complete SDK AAR with all dependencies
+          This package includes all required AAR files:
+
+          - `reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}.aar` - Main ReelsSDK library
+          - `flutter_debug-1.0.aar` - Flutter runtime
+          - `package_info_plus_debug-1.0.aar` - Package info plugin
+          - `video_player_android_debug-1.0.aar` - Video player plugin
+          - `wakelock_plus_debug-1.0.aar` - Wakelock plugin
+
+          All Flutter dependencies are included - no separate Flutter setup required!
 
           ## 🚀 Quick Start
 
           ### Installation
 
           1. Download `ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}.zip`
-          2. Extract and copy the AAR file to `app/libs/`
+          2. Extract and copy **ALL AAR files** to `app/libs/`
           3. Update your `build.gradle`:
 
           ```gradle
@@ -240,14 +250,19 @@ jobs:
           }
 
           dependencies {
-              debugImplementation(name: 'reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar') {
-                  transitive = true
-              }
+              // ReelsSDK and Flutter dependencies
+              debugImplementation(name: 'reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+              debugImplementation(name: 'flutter_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'package_info_plus_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'video_player_android_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'wakelock_plus_debug-1.0', ext: 'aar')
 
-              // Required dependencies (AndroidX only - Flutter is bundled)
+              // Required AndroidX dependencies
               implementation 'androidx.appcompat:appcompat:1.6.1'
               implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
               implementation 'com.google.android.material:material:1.11.0'
+              implementation 'androidx.fragment:fragment-ktx:1.6.2'
+              implementation 'androidx.activity:activity-ktx:1.8.2'
           }
           ```
 

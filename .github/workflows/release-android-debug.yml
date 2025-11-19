@@ -97,19 +97,6 @@ jobs:
           ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.enableJetifier=false -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
           echo "reels_android AAR built successfully"
 
-      - name: Download Flutter Engine AARs
-        run: |
-          echo "Downloading Flutter engine embedding AARs..."
-          mkdir -p flutter_engine_aars
-
-          # Download debug Flutter engine embedding AAR
-          FLUTTER_ENGINE_VERSION="1.0.0-b45fa18946"
-          curl -L -o flutter_engine_aars/flutter_embedding_debug.aar \
-            "https://storage.googleapis.com/download.flutter.io/io/flutter/flutter_embedding_debug/${FLUTTER_ENGINE_VERSION}/flutter_embedding_debug-${FLUTTER_ENGINE_VERSION}.aar"
-
-          echo "Flutter engine AARs downloaded successfully"
-          ls -lh flutter_engine_aars/
-
       - name: List build outputs
         run: |
           echo "=== reels_android AAR ==="
@@ -129,19 +116,17 @@ jobs:
           cp reels_android/build/outputs/aar/reels-android-debug.aar \
              "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
 
-          # Copy Flutter engine embedding AAR (required for FlutterActivity and other Flutter classes)
-          cp flutter_engine_aars/flutter_embedding_debug.aar \
-             "$PACKAGE_DIR/flutter_embedding_debug-1.0.0-b45fa18946.aar"
-
           # Copy all Flutter module and plugin AARs
           cp reels_flutter/build/host/outputs/repo/com/example/reels_flutter/flutter_debug/1.0/flutter_debug-1.0.aar \
-             "$PACKAGE_DIR/flutter_debug-1.0.aar"
+             "$PACKAGE_DIR/flutter_debug-${VERSION}.aar"
+          cp reels_flutter/build/host/outputs/repo/io/flutter/flutter_embedding_debug/1.0.0-b45fa18946/flutter_embedding_debug-1.0.0-b45fa18946.aar \
+             "$PACKAGE_DIR/flutter_embedding_debug-${VERSION}.aar"
           cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/packageinfo/package_info_plus_debug/1.0/package_info_plus_debug-1.0.aar \
-             "$PACKAGE_DIR/package_info_plus_debug-1.0.aar"
+             "$PACKAGE_DIR/package_info_plus_debug-${VERSION}.aar"
           cp reels_flutter/build/host/outputs/repo/io/flutter/plugins/videoplayer/video_player_android_debug/1.0/video_player_android_debug-1.0.aar \
-             "$PACKAGE_DIR/video_player_android_debug-1.0.aar"
+             "$PACKAGE_DIR/video_player_android_debug-${VERSION}.aar"
           cp reels_flutter/build/host/outputs/repo/dev/fluttercommunity/plus/wakelock/wakelock_plus_debug/1.0/wakelock_plus_debug-1.0.aar \
-             "$PACKAGE_DIR/wakelock_plus_debug-1.0.aar"
+             "$PACKAGE_DIR/wakelock_plus_debug-${VERSION}.aar"
 
           # Create README
           cat > "$PACKAGE_DIR/README.md" <<'EOF'
@@ -155,11 +140,11 @@ jobs:
           This package includes all required AAR files:
 
           - `reels-sdk-debug-${VERSION}.aar` - Main ReelsSDK library
-          - `flutter_embedding_debug-1.0.0-b45fa18946.aar` - Flutter engine embedding (FlutterActivity, etc.)
-          - `flutter_debug-1.0.aar` - Flutter runtime assets
-          - `package_info_plus_debug-1.0.aar` - Package info plugin
-          - `video_player_android_debug-1.0.aar` - Video player plugin
-          - `wakelock_plus_debug-1.0.aar` - Wakelock plugin
+          - `flutter_embedding_debug-${VERSION}.aar` - Flutter engine embedding (FlutterActivity, etc.)
+          - `flutter_debug-${VERSION}.aar` - Flutter runtime assets
+          - `package_info_plus_debug-${VERSION}.aar` - Package info plugin
+          - `video_player_android_debug-${VERSION}.aar` - Video player plugin
+          - `wakelock_plus_debug-${VERSION}.aar` - Wakelock plugin
 
           ## Integration
 
@@ -181,11 +166,11 @@ jobs:
           dependencies {
               // ReelsSDK and Flutter dependencies
               debugImplementation(name: 'reels-sdk-debug-${VERSION}', ext: 'aar')
-              debugImplementation(name: 'flutter_embedding_debug-1.0.0-b45fa18946', ext: 'aar')
-              debugImplementation(name: 'flutter_debug-1.0', ext: 'aar')
-              debugImplementation(name: 'package_info_plus_debug-1.0', ext: 'aar')
-              debugImplementation(name: 'video_player_android_debug-1.0', ext: 'aar')
-              debugImplementation(name: 'wakelock_plus_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'flutter_embedding_debug-${VERSION}', ext: 'aar')
+              debugImplementation(name: 'flutter_debug-${VERSION}', ext: 'aar')
+              debugImplementation(name: 'package_info_plus_debug-${VERSION}', ext: 'aar')
+              debugImplementation(name: 'video_player_android_debug-${VERSION}', ext: 'aar')
+              debugImplementation(name: 'wakelock_plus_debug-${VERSION}', ext: 'aar')
 
               // Required AndroidX dependencies
               implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -246,11 +231,11 @@ jobs:
           This package includes all required AAR files:
 
           - `reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}.aar` - Main ReelsSDK library
-          - `flutter_embedding_debug-1.0.0-b45fa18946.aar` - Flutter engine embedding (FlutterActivity, etc.)
-          - `flutter_debug-1.0.aar` - Flutter runtime assets
-          - `package_info_plus_debug-1.0.aar` - Package info plugin
-          - `video_player_android_debug-1.0.aar` - Video player plugin
-          - `wakelock_plus_debug-1.0.aar` - Wakelock plugin
+          - `flutter_embedding_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Flutter engine embedding (FlutterActivity, etc.)
+          - `flutter_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Flutter runtime assets
+          - `package_info_plus_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Package info plugin
+          - `video_player_android_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Video player plugin
+          - `wakelock_plus_debug-${{ steps.get_version.outputs.VERSION }}.aar` - Wakelock plugin
 
           All Flutter dependencies are included - no separate Flutter setup required!
 
@@ -272,11 +257,11 @@ jobs:
           dependencies {
               // ReelsSDK and Flutter dependencies
               debugImplementation(name: 'reels-sdk-debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
-              debugImplementation(name: 'flutter_embedding_debug-1.0.0-b45fa18946', ext: 'aar')
-              debugImplementation(name: 'flutter_debug-1.0', ext: 'aar')
-              debugImplementation(name: 'package_info_plus_debug-1.0', ext: 'aar')
-              debugImplementation(name: 'video_player_android_debug-1.0', ext: 'aar')
-              debugImplementation(name: 'wakelock_plus_debug-1.0', ext: 'aar')
+              debugImplementation(name: 'flutter_embedding_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+              debugImplementation(name: 'flutter_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+              debugImplementation(name: 'package_info_plus_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+              debugImplementation(name: 'video_player_android_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
+              debugImplementation(name: 'wakelock_plus_debug-${{ steps.get_version.outputs.VERSION }}', ext: 'aar')
 
               // Required AndroidX dependencies
               implementation 'androidx.appcompat:appcompat:1.6.1'

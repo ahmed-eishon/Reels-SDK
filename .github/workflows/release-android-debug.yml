@@ -99,15 +99,57 @@ jobs:
         run: |
           echo "Building reels_android AAR in Debug mode..."
 
-          # Add local Maven repository to build.gradle temporarily
-          echo "Configuring Gradle to use local Flutter AAR..."
+          # Add pluginManagement block to settings.gradle for Android Gradle Plugin
+          echo "Adding pluginManagement to settings.gradle..."
+          cat > settings.gradle.tmp << 'SETTINGS_EOF'
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 
-          # Insert repository into build.gradle before existing repositories block
-          sed -i "/repositories {/a\\    maven { url 'file://${{ env.MAVEN_REPO }}' }" build.gradle
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url 'file://${{ env.MAVEN_REPO }}'
+        }
+        maven {
+            url 'https://storage.googleapis.com/download.flutter.io'
+        }
+    }
+}
 
-          # Show the modified section for debugging
-          echo "Modified build.gradle repositories section:"
-          grep -A 8 "repositories {" build.gradle || true
+SETTINGS_EOF
+          cat settings.gradle >> settings.gradle.tmp
+          mv settings.gradle.tmp settings.gradle
+
+          echo "Updated settings.gradle:"
+          cat settings.gradle
+
+          # Add buildscript block to build.gradle for Android Gradle Plugin version
+          echo "Adding buildscript block to build.gradle..."
+          cat > build.gradle.tmp << 'BUILDSCRIPT_EOF'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.3'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
+    }
+}
+
+BUILDSCRIPT_EOF
+          cat build.gradle >> build.gradle.tmp
+          mv build.gradle.tmp build.gradle
+
+          echo "Updated build.gradle with buildscript"
 
           # Run Gradle build for debug variant
           ./gradlew clean assembleDebug --stacktrace

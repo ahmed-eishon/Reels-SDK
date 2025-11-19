@@ -104,6 +104,12 @@ jobs:
           echo ""
           echo "=== Flutter Module AARs ==="
           find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
+          echo ""
+          echo "=== Searching for Flutter embedding in Gradle cache ==="
+          find ~/.gradle/caches -name "*flutter_embedding*" -type f 2>/dev/null | head -10 || echo "Not found in ~/.gradle/caches"
+          echo ""
+          echo "=== Searching for Flutter embedding in reels_android build ==="
+          find reels_android -name "*flutter_embedding*" -type f 2>/dev/null | head -10 || echo "Not found in reels_android"
 
       - name: Create debug package
         id: package

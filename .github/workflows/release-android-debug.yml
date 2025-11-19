@@ -130,25 +130,13 @@ jobs:
 
           echo "Updated settings.gradle"
 
-          # Add buildscript block to build.gradle for Android Gradle Plugin version
-          echo "Adding buildscript block to build.gradle..."
-          {
-            echo "buildscript {"
-            echo "    repositories {"
-            echo "        google()"
-            echo "        mavenCentral()"
-            echo "    }"
-            echo "    dependencies {"
-            echo "        classpath 'com.android.tools.build:gradle:8.7.3'"
-            echo "        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'"
-            echo "    }"
-            echo "}"
-            echo ""
-            cat build.gradle
-          } > build.gradle.tmp
-          mv build.gradle.tmp build.gradle
+          # Update plugins block in build.gradle to include versions
+          echo "Adding plugin versions to build.gradle..."
+          sed -i "s/id 'com.android.library'/id 'com.android.library' version '8.7.3'/" build.gradle
+          sed -i "s/id 'kotlin-android'/id 'kotlin-android' version '2.1.0'/" build.gradle
+          sed -i "s/id 'kotlin-parcelize'/id 'kotlin-parcelize' version '2.1.0'/" build.gradle
 
-          echo "Updated build.gradle with buildscript"
+          echo "Updated build.gradle with plugin versions"
 
           # Run Gradle build for debug variant
           ./gradlew clean assembleDebug --stacktrace

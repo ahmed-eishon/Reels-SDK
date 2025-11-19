@@ -64,6 +64,10 @@ dependencies {
     debugApi 'com.example.reels_flutter:flutter_debug:1.0'
     releaseApi 'com.example.reels_flutter:flutter_release:1.0'
 
+    // Flutter engine embedding - required for Flutter runtime
+    debugApi 'io.flutter:flutter_embedding_debug:1.0.0-b45fa18946'
+    releaseApi 'io.flutter:flutter_embedding_release:1.0.0-b45fa18946'
+
     // Android X
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.fragment.ktx)

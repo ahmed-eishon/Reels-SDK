@@ -127,14 +127,12 @@ jobs:
               # Copy JAR as classes.jar
               cp "$FLUTTER_EMBEDDING_JAR" classes.jar
 
-              # Create minimal AndroidManifest.xml
-              cat > AndroidManifest.xml <<'MANIFEST'
-<?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="io.flutter.embedding">
-    <uses-sdk android:minSdkVersion="21"/>
-</manifest>
-MANIFEST
+              # Create minimal AndroidManifest.xml using echo to avoid YAML syntax issues
+              echo '<?xml version="1.0" encoding="utf-8"?>' > AndroidManifest.xml
+              echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"' >> AndroidManifest.xml
+              echo '    package="io.flutter.embedding">' >> AndroidManifest.xml
+              echo '    <uses-sdk android:minSdkVersion="21"/>' >> AndroidManifest.xml
+              echo '</manifest>' >> AndroidManifest.xml
 
               # Package as AAR (AAR is a ZIP file)
               zip -q flutter_embedding_debug.aar AndroidManifest.xml classes.jar

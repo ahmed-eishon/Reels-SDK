@@ -62,7 +62,7 @@ android {
 dependencies {
     // Flutter module - using api instead of implementation to expose to consuming apps
     // The Flutter module's transitive dependencies (including flutter_embedding) will be
-    // automatically included and bundled into the fat AAR
+    // automatically included and bundled into the merged AAR
     debugApi 'com.example.reels_flutter:flutter_debug:1.0'
     releaseApi 'com.example.reels_flutter:flutter_release:1.0'
 
@@ -82,37 +82,40 @@ dependencies {
     androidTestImplementation(libs.androidx.test.espresso)
 }
 
-// Fat AAR Configuration - Bundles all dependencies into a single AAR
+// Merged AAR Configuration - Bundles all dependencies into a single AAR
 // This creates a self-contained AAR that includes Flutter embedding and all required libraries
 android.libraryVariants.all { variant ->
     def variantName = variant.name.capitalize()
     def buildType = variant.buildType.name
 
-    // Create fat AAR task for this variant
-    def fatAarTask = tasks.create(name: "bundle${variantName}FatAar", type: Zip) {
-        description = "Creates a fat AAR with all dependencies bundled for ${variantName}"
+    // Create merged AAR task for this variant
+    def mergedAarTask = tasks.create(name: "bundle${variantName}MergedAar", type: Zip) {
+        description = "Creates a merged AAR with all dependencies bundled for ${variantName}"
         group = 'build'
 
         // Set output file name
-        archiveBaseName = "reels-android-fat"
+        archiveBaseName = "reels-android"
         archiveVersion = getVersionName()
         archiveClassifier = buildType
         archiveExtension = "aar"
-        destinationDirectory = file("${project.buildDir}/outputs/fat-aar")
+        destinationDirectory = file("${project.buildDir}/outputs/merged-aar")
 
         // Depend on the regular AAR build
         dependsOn variant.assemble
 
+        // Force task to always run (not be UP-TO-DATE)
+        outputs.upToDateWhen { false }
+
         doFirst {
             println "================================================"
-            println "  Creating Fat AAR for ${variantName}"
+            println "  Creating Merged AAR for ${variantName}"
             println "================================================"
             println "Build Type: ${buildType}"
             println "Output: ${archiveFileName.get()}"
             println ""
 
             // Temporary extraction directory
-            def tempDir = file("${project.buildDir}/fat-aar-tmp/${variantName}")
+            def tempDir = file("${project.buildDir}/merged-aar-tmp/${variantName}")
             delete tempDir
             tempDir.mkdirs()
 
@@ -220,9 +223,9 @@ android.libraryVariants.all { variant ->
         }
     }
 
-    // Make assembleDebug/assembleRelease depend on fat AAR creation
+    // Make assembleDebug/assembleRelease depend on merged AAR creation
     tasks.named("assemble${variantName}").configure {
-        finalizedBy fatAarTask
+        finalizedBy mergedAarTask
     }
 }
 

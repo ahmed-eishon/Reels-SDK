@@ -90,20 +90,20 @@ jobs:
           echo "=== All Maven Repository Contents ==="
           ls -R reels_flutter/build/host/outputs/repo/ | head -100
 
-      - name: Build reels_android Fat AAR (Debug)
+      - name: Build reels_android Merged AAR (Debug)
         working-directory: reels_android
         run: |
-          echo "Building reels_android Fat AAR (includes all Flutter dependencies)..."
+          echo "Building reels_android merged AAR (includes all Flutter dependencies)..."
           ./gradlew assembleDebug --no-daemon --stacktrace -Pandroid.enableJetifier=false -Dorg.gradle.jvmargs="-Xmx4096m -Dfile.encoding=UTF-8"
-          echo "reels_android Fat AAR built successfully"
+          echo "reels_android merged AAR built successfully"
 
       - name: List reels_android build outputs
         run: |
           echo "=== reels_android AAR outputs (regular) ==="
           find reels_android/build/outputs/aar -name "*.aar" -type f
           echo ""
-          echo "=== reels_android Fat AAR outputs ==="
-          find reels_android/build/outputs/fat-aar -name "*.aar" -type f
+          echo "=== reels_android Merged AAR outputs ==="
+          find reels_android/build/outputs/merged-aar -name "*.aar" -type f
 
       - name: Create debug package
         id: package
@@ -112,8 +112,8 @@ jobs:
           PACKAGE_DIR="ReelsSDK-Android-Debug-${VERSION}"
           mkdir -p "$PACKAGE_DIR"
 
-          # Copy fat AAR (includes all dependencies)
-          cp reels_android/build/outputs/fat-aar/reels-android-fat-${VERSION}-debug.aar \
+          # Copy merged AAR (includes all dependencies)
+          cp reels_android/build/outputs/merged-aar/reels-android-${VERSION}-debug.aar \
              "$PACKAGE_DIR/reels-sdk-debug-${VERSION}.aar"
 
           # Create README
@@ -160,7 +160,7 @@ jobs:
 
           ## ✨ What's New
 
-          This is a **Fat AAR** build that includes:
+          This build includes all dependencies in a single AAR:
           - ReelsSDK core functionality
           - Flutter runtime (flutter_embedding)
           - All Flutter dependencies bundled
@@ -212,7 +212,7 @@ jobs:
 
           ## ✨ What's New
 
-          This is a **Fat AAR** build that includes:
+          This build includes all dependencies in a single AAR:
           - ReelsSDK core functionality
           - Flutter runtime (flutter_embedding)
           - All architecture-specific libraries (arm64-v8a, armeabi-v7a)

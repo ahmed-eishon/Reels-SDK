@@ -69,48 +69,90 @@ jobs:
           echo "Extracting Flutter embedding AAR from Flutter SDK..."
           FLUTTER_ENGINE_DIR="$FLUTTER_ROOT/bin/cache/artifacts/engine"
 
-          # Find the Flutter embedding debug AAR in the Flutter SDK
-          EMBEDDING_AAR=$(find "$FLUTTER_ENGINE_DIR" -name "*arm64-v8a-debug.jar" -o -name "flutter.jar" | head -1 | xargs dirname 2>/dev/null)
+          echo "Listing Flutter engine directory structure..."
+          ls -la "$FLUTTER_ENGINE_DIR" | head -30
 
-          if [ -z "$EMBEDDING_AAR" ]; then
+          # Find the main engine directory with flutter.jar
+          EMBEDDING_DIR=$(find "$FLUTTER_ENGINE_DIR" -name "flutter.jar" | head -1 | xargs dirname 2>/dev/null)
+
+          if [ -z "$EMBEDDING_DIR" ]; then
             echo "Checking android-arm-debug directory..."
-            EMBEDDING_AAR="$FLUTTER_ENGINE_DIR/android-arm-debug"
+            EMBEDDING_DIR="$FLUTTER_ENGINE_DIR/android-arm-debug"
           fi
 
-          if [ -d "$EMBEDDING_AAR" ]; then
-            echo "Found Flutter engine at: $EMBEDDING_AAR"
-            ls -la "$EMBEDDING_AAR" | head -20
+          if [ -d "$EMBEDDING_DIR" ] && [ -f "$EMBEDDING_DIR/flutter.jar" ]; then
+            echo "Found Flutter engine at: $EMBEDDING_DIR"
+            ls -la "$EMBEDDING_DIR" | head -20
 
-            # Create Flutter embedding AAR from the engine artifacts
-            cd "$EMBEDDING_AAR"
-            if [ -f "flutter.jar" ]; then
-              # Create a minimal AAR structure
-              mkdir -p flutter_embedding_temp
-              cp flutter.jar flutter_embedding_temp/classes.jar
+            # Create AAR structure
+            mkdir -p flutter_embedding_temp
+            cd flutter_embedding_temp
 
-              # Create AndroidManifest.xml
-              echo '<?xml version="1.0" encoding="utf-8"?>' > flutter_embedding_temp/AndroidManifest.xml
-              echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"' >> flutter_embedding_temp/AndroidManifest.xml
-              echo '    package="io.flutter.embedding">' >> flutter_embedding_temp/AndroidManifest.xml
-              echo '</manifest>' >> flutter_embedding_temp/AndroidManifest.xml
+            # Copy flutter.jar as classes.jar
+            cp "$EMBEDDING_DIR/flutter.jar" classes.jar
+            echo "✓ Copied flutter.jar"
 
-              # Package as AAR
-              cd flutter_embedding_temp
-              jar cf flutter_embedding_debug.aar classes.jar AndroidManifest.xml
+            # Create AndroidManifest.xml
+            echo '<?xml version="1.0" encoding="utf-8"?>' > AndroidManifest.xml
+            echo '<manifest xmlns:android="http://schemas.android.com/apk/res/android"' >> AndroidManifest.xml
+            echo '    package="io.flutter.embedding">' >> AndroidManifest.xml
+            echo '</manifest>' >> AndroidManifest.xml
+            echo "✓ Created AndroidManifest.xml"
 
-              # Move to a known location
-              mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
-              mv flutter_embedding_debug.aar "$GITHUB_WORKSPACE/flutter_artifacts/"
-              cd "$GITHUB_WORKSPACE"
-              rm -rf "$EMBEDDING_AAR/flutter_embedding_temp"
+            # Copy native libraries for all architectures
+            echo "Copying native libraries..."
 
-              echo "✓ Created flutter_embedding_debug.aar"
-            else
-              echo "ERROR: flutter.jar not found in $EMBEDDING_AAR"
+            # Map of architecture directories to ABI names
+            declare -A ARCH_MAP=(
+              ["android-arm-debug"]="armeabi-v7a"
+              ["android-arm64-debug"]="arm64-v8a"
+              ["android-x86-debug"]="x86"
+              ["android-x64-debug"]="x86_64"
+            )
+
+            SO_COUNT=0
+            for ARCH_DIR in "${!ARCH_MAP[@]}"; do
+              ABI="${ARCH_MAP[$ARCH_DIR]}"
+              SO_PATH="$FLUTTER_ENGINE_DIR/$ARCH_DIR/libflutter.so"
+
+              if [ -f "$SO_PATH" ]; then
+                mkdir -p "jni/$ABI"
+                cp "$SO_PATH" "jni/$ABI/libflutter.so"
+                echo "  ✓ Copied libflutter.so for $ABI"
+                ((SO_COUNT++))
+              else
+                echo "  ⚠ libflutter.so not found for $ABI at $SO_PATH"
+              fi
+            done
+
+            if [ $SO_COUNT -eq 0 ]; then
+              echo "ERROR: No libflutter.so files found in any architecture"
+              echo "Searched in:"
+              for ARCH_DIR in "${!ARCH_MAP[@]}"; do
+                echo "  - $FLUTTER_ENGINE_DIR/$ARCH_DIR/libflutter.so"
+              done
               exit 1
             fi
+
+            echo "✓ Packaged $SO_COUNT architecture(s)"
+
+            # List AAR contents before packaging
+            echo "AAR contents:"
+            find . -type f | sort
+
+            # Package as AAR (include all files in current directory)
+            jar cf flutter_embedding_debug.aar -C . .
+
+            # Move to artifacts directory
+            mkdir -p "$GITHUB_WORKSPACE/flutter_artifacts"
+            mv flutter_embedding_debug.aar "$GITHUB_WORKSPACE/flutter_artifacts/"
+            cd "$GITHUB_WORKSPACE"
+            rm -rf flutter_embedding_temp
+
+            echo "✓ Created flutter_embedding_debug.aar with native libraries"
           else
-            echo "ERROR: Could not find Flutter engine directory"
+            echo "ERROR: Could not find Flutter engine directory or flutter.jar"
+            echo "Searched at: $EMBEDDING_DIR"
             exit 1
           fi
 

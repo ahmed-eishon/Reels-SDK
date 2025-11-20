@@ -147,6 +147,7 @@ object ReelsModule {
      * @param accessToken Optional access token for authenticated content
      * @param collectData Optional collect data to pass to Flutter
      * @param generation Generation number for this instance (auto-assigned if not provided)
+     * @param debug Enable debug mode to show SDK info screen (default: false)
      * @return Intent to start the Flutter activity
      */
     fun createReelsIntent(
@@ -154,8 +155,12 @@ object ReelsModule {
         initialRoute: String = "/",
         accessToken: String? = null,
         collectData: CollectData? = null,
-        generation: Int? = null
+        generation: Int? = null,
+        debug: Boolean = false
     ): Intent {
+        // Set debug mode for this launch
+        this.debugMode = debug
+
         // Use provided generation or assign a new one
         val actualGeneration = generation ?: run {
             generationNumber++

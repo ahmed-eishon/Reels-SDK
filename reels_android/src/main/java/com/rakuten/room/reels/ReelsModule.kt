@@ -7,7 +7,6 @@ import android.util.Log
 import androidx.fragment.app.Fragment
 import com.rakuten.room.reels.flutter.FlutterReelsActivity
 import com.rakuten.room.reels.flutter.FlutterReelsFragment
-import com.rakuten.room.reels.flutter.FlutterEngineManager
 import com.rakuten.room.reels.flutter.ReelsFlutterSDK
 import com.rakuten.room.reels.flutter.ReelsListener
 
@@ -94,7 +93,7 @@ object ReelsModule {
         debug: Boolean = false
     ) {
         this.debugMode = debug
-        FlutterEngineManager.getInstance().initializeFlutterEngine(context, accessTokenProvider)
+        ReelsFlutterSDK.initialize(context, accessTokenProvider)
         Log.d(TAG, "🎬 ReelsSDK initialized - Version: $SDK_VERSION, Debug: $debug")
     }
 
@@ -259,16 +258,10 @@ object ReelsModule {
     fun pauseFlutter() {
         Log.d(TAG, "⏸️ pauseFlutter() called")
 
-        val flutterSDK = FlutterEngineManager.getInstance().getFlutterSDK()
-        if (flutterSDK == null) {
-            Log.d(TAG, "❌ Cannot pause - no Flutter SDK")
-            return
-        }
-
         Log.d(TAG, "📞 Calling Flutter pauseAll API")
         try {
             // Call Pigeon API to pause Flutter resources
-            flutterSDK.pauseAll()
+            ReelsFlutterSDK.pauseAll()
             Log.d(TAG, "✅ Flutter resources paused successfully")
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error pausing Flutter resources", e)
@@ -282,16 +275,10 @@ object ReelsModule {
     fun resumeFlutter(generation: Int) {
         Log.d(TAG, "▶️ resumeFlutter(generation: $generation) called")
 
-        val flutterSDK = FlutterEngineManager.getInstance().getFlutterSDK()
-        if (flutterSDK == null) {
-            Log.d(TAG, "❌ Cannot resume - no Flutter SDK")
-            return
-        }
-
         Log.d(TAG, "📞 Calling Flutter resumeAll($generation) API")
         try {
             // Call Pigeon API to resume Flutter resources
-            flutterSDK.resumeAll(generation.toLong())
+            ReelsFlutterSDK.resumeAll(generation.toLong())
             Log.d(TAG, "✅ Flutter resources resumed successfully for generation $generation")
         } catch (e: Exception) {
             Log.e(TAG, "❌ Error resuming Flutter resources", e)
@@ -306,7 +293,7 @@ object ReelsModule {
      * @param properties Event properties
      */
     fun trackEvent(eventName: String, properties: Map<String, String> = emptyMap()) {
-        FlutterEngineManager.getInstance().trackAnalyticsEvent(eventName, properties)
+        ReelsFlutterSDK.trackEvent(eventName, properties)
     }
 
     /**
@@ -316,7 +303,7 @@ object ReelsModule {
      * @param likeCount Updated like count
      */
     fun notifyLikeButtonClick(videoId: String, isLiked: Boolean, likeCount: Int) {
-        FlutterEngineManager.getInstance().notifyLikeButtonClick(videoId, isLiked, likeCount)
+        ReelsFlutterSDK.notifyLikeButtonClick(videoId, isLiked, likeCount)
     }
 
     /**
@@ -334,7 +321,7 @@ object ReelsModule {
         description: String,
         thumbnailUrl: String? = null
     ) {
-        FlutterEngineManager.getInstance().notifyShareButtonClick(
+        ReelsFlutterSDK.notifyShareButtonClick(
             videoId,
             videoUrl,
             title,
@@ -349,7 +336,7 @@ object ReelsModule {
      * @param state State (appeared, disappeared, focused, unfocused)
      */
     fun notifyScreenStateChanged(screenName: String, state: String) {
-        FlutterEngineManager.getInstance().notifyScreenStateChanged(screenName, state)
+        ReelsFlutterSDK.notifyScreenStateChanged(screenName, state)
     }
 
     /**
@@ -365,7 +352,7 @@ object ReelsModule {
         position: Int? = null,
         duration: Int? = null
     ) {
-        FlutterEngineManager.getInstance().notifyVideoStateChanged(videoId, state, position, duration)
+        ReelsFlutterSDK.notifyVideoStateChanged(videoId, state, position, duration)
     }
 
     // MARK: - Advanced
@@ -373,7 +360,7 @@ object ReelsModule {
     /**
      * Get the Flutter SDK for advanced operations
      */
-    fun getFlutterSDK() = FlutterEngineManager.getInstance().getFlutterSDK()
+    fun getFlutterSDK() = ReelsFlutterSDK
 
     /**
      * Clean up collect data for a specific generation when the screen is closed
@@ -396,7 +383,7 @@ object ReelsModule {
      */
     fun cleanup() {
         collectDataByGeneration.clear()
-        FlutterEngineManager.getInstance().destroyFlutterEngine()
+        ReelsFlutterSDK.dispose()
         Log.d(TAG, "🧹 ReelsSDK cleaned up")
     }
 

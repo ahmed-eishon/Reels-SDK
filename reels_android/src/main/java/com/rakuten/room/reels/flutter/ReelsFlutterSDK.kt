@@ -3,6 +3,7 @@ package com.rakuten.room.reels.flutter
 import android.content.Context
 import android.util.Log
 import io.flutter.embedding.engine.FlutterEngine
+import io.flutter.embedding.engine.FlutterEngineCache
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
@@ -44,7 +45,8 @@ import com.rakuten.room.reels.pigeon.CollectData
 class ReelsFlutterSDK private constructor() {
     companion object {
         private const val TAG = "[ReelsSDK-Android]"
-        
+        private const val FLUTTER_ENGINE_ID = "reels_flutter_engine"
+
         private var flutterEngine: FlutterEngine? = null
         private var listener: ReelsListener? = null
         private var accessTokenProvider: (() -> String?)? = null
@@ -167,9 +169,13 @@ class ReelsFlutterSDK private constructor() {
                 // Initialize the Flutter engine
                 val engine = initializeReelsEngine(context)
                 if (engine != null) {
+                    // Cache the FlutterEngine to be used by FlutterActivity or FlutterFragment
+                    FlutterEngineCache.getInstance().put(FLUTTER_ENGINE_ID, engine)
+                    Log.d(TAG, "Flutter engine cached with ID: $FLUTTER_ENGINE_ID")
+
                     // Setup Pigeon APIs after engine is ready
                     setupPigeonAPIs(engine.dartExecutor.binaryMessenger)
-                    
+
                     // Mark as initialized
                     isInitialized = true
                     Log.d(TAG, "ReelsFlutterSDK initialized successfully")
@@ -229,7 +235,7 @@ class ReelsFlutterSDK private constructor() {
          * Get the Flutter engine ID for use with cached engines
          */
         @JvmStatic
-        fun getEngineId(): String = "reels_engine"
+        fun getEngineId(): String = FLUTTER_ENGINE_ID
         
         /**
          * Track analytics event
@@ -359,6 +365,7 @@ class ReelsFlutterSDK private constructor() {
         fun dispose() {
             try {
                 flutterEngine?.destroy()
+                FlutterEngineCache.getInstance().remove(FLUTTER_ENGINE_ID)
                 flutterEngine = null
                 listener = null
                 accessTokenProvider = null
@@ -368,7 +375,7 @@ class ReelsFlutterSDK private constructor() {
                 navigationApi = null
                 lifecycleApi = null
                 isInitialized = false
-                Log.d(TAG, "SDK disposed")
+                Log.d(TAG, "SDK disposed and removed from cache")
             } catch (e: Exception) {
                 Log.e(TAG, "Error disposing SDK", e)
             }

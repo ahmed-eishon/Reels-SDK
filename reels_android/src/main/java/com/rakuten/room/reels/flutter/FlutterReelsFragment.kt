@@ -51,10 +51,9 @@ class FlutterReelsFragment : Fragment() {
         }
 
         // Initialize Flutter engine if not already done
-        FlutterEngineManager.getInstance().initializeFlutterEngine(requireContext())
-        
-        val engineManager = FlutterEngineManager.getInstance()
-        flutterFragment = FlutterFragment.withCachedEngine(engineManager.getFlutterEngineId())
+        ReelsFlutterSDK.initialize(requireContext())
+
+        flutterFragment = FlutterFragment.withCachedEngine(ReelsFlutterSDK.getEngineId())
             .build()
         
         childFragmentManager

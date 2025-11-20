@@ -54,9 +54,9 @@ class FlutterReelsActivity : FlutterActivity() {
     }
     
     override fun getCachedEngineId(): String? {
-        return FlutterEngineManager.getInstance().getFlutterEngineId()
+        return ReelsFlutterSDK.getEngineId()
     }
-    
+
     override fun onCreate(savedInstanceState: Bundle?) {
         Log.d(TAG, "Creating FlutterReelsActivity - Enhanced initialization")
 
@@ -72,18 +72,17 @@ class FlutterReelsActivity : FlutterActivity() {
 
         // Initialize Flutter engine BEFORE calling super.onCreate()
         val accessToken = intent.getStringExtra(ACCESS_TOKEN_EXTRA)
-        val engineManager = FlutterEngineManager.getInstance()
-        
+
         try {
             Log.d(TAG, "Starting Flutter engine initialization...")
-            
+
             if (accessToken != null) {
                 // Initialize with access token provider
-                engineManager.initializeFlutterEngine(this) { accessToken }
+                ReelsFlutterSDK.initialize(this) { accessToken }
                 Log.d(TAG, "Initialized with access token: ${accessToken.take(10)}...")
             } else {
                 // Initialize without access token
-                engineManager.initializeFlutterEngine(this)
+                ReelsFlutterSDK.initialize(this)
                 Log.d(TAG, "Initialized without access token")
             }
             

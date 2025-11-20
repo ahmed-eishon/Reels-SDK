@@ -707,3 +707,4 @@ graph TB
 - [Platform Communication](./01-Platform-Communication.md) - Detailed Pigeon API documentation
 - [Flutter Engine Lifecycle](./02-Flutter-Engine-Lifecycle.md) - Engine management
 - [Generation-Based State Management](./03-Generation-Based-State-Management.md) - State architecture
+- [iOS Coordinator Pattern](./04-iOS-Coordinator-Pattern.md) - iOS integration patterns and coordinator architecture

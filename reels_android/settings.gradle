@@ -1,8 +1,0 @@
-rootProject.name = 'reels-sdk'
-
-// Include Flutter module for local development
-setBinding(new Binding([gradle: this]))
-evaluate(new File(
-    settingsDir.parentFile,
-    'reels_flutter/.android/include_flutter.groovy'
-))

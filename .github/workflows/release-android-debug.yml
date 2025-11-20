@@ -125,10 +125,10 @@ jobs:
           ls -lah reels_android/build/outputs/aar/
 
       - name: Publish reels_android to local Maven repository
-        working-directory: reels_android
+        working-directory: helper-reels-android
         run: |
           echo "Publishing reels_android AAR to Maven repository..."
-          ./gradlew publishDebugPublicationToMavenLocal --stacktrace
+          ./gradlew :reels_android:publishDebugPublicationToMavenLocal --stacktrace
           echo ""
           echo "=== Published reels_android artifacts ===="
           find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom" | head -20

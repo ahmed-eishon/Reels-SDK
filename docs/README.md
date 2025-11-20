@@ -27,7 +27,7 @@ Comprehensive technical documentation for the Reels SDK.
 - [02-Android-Release](./05-Release-Process/02-Android-Release.md)
 
 ### 💻 [06-Dev-Process](./06-Dev-Process/)
-- Development workflows, testing, and contribution guidelines (To be documented)
+- [Android Local Development](./06-Dev-Process/01-Android-Local-Development.md) - Folder-based integration for SDK development
 
 ### 🔧 [07-Scripts](./07-Scripts/)
 - [README](./07-Scripts/README.md) - Scripts overview and structure

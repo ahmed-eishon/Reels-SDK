@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "03-Architecture/04-iOS-Coordinator-Pattern.md",
+                "file": "06-Dev-Process/01-Android-Local-Development.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "04-iOS-Coordinator-Pattern"
+              "title": "01-Android-Local-Development"
             }
           }
         ]
@@ -168,8 +168,9 @@
   },
   "active": "ee9c237cef7479c3",
   "lastOpenFiles": [
-    "04-Build-Process/02-Android-Build.md",
     "03-Architecture/04-iOS-Coordinator-Pattern.md",
+    "06-Dev-Process/01-Android-Local-Development.md",
+    "04-Build-Process/02-Android-Build.md",
     "05-Release-Process/02-Android-Release.md",
     "07-Scripts/README.md",
     "07-Scripts/Android/01-Local-Scripts.md",
@@ -202,7 +203,6 @@
     "05-Release-Process/Android-Release.md",
     "05-Release-Process",
     "04-Build-Process/iOS-Build.md",
-    "04-Build-Process/Android-Build.md",
-    "03-Architecture/README.md"
+    "04-Build-Process/Android-Build.md"
   ]
 }

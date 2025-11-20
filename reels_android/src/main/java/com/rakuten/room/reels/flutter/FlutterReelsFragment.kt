@@ -15,7 +15,7 @@ class FlutterReelsFragment : Fragment() {
     private var flutterFragment: FlutterFragment? = null
 
     companion object {
-        private const val TAG = "FlutterReelsFragment"
+        private const val TAG = "[ReelsSDK-Android]"
         private const val ARG_ROUTE = "initial_route"
         private const val ARG_COLLECT_DATA = "collect_data"
         private const val ARG_GENERATION = "generation"

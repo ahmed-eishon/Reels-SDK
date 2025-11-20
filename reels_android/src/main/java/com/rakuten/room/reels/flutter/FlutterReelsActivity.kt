@@ -22,7 +22,7 @@ import com.rakuten.room.reels.ReelsModule
 class FlutterReelsActivity : FlutterActivity() {
     
     companion object {
-        private const val TAG = "FlutterReelsActivity"
+        private const val TAG = "[ReelsSDK-Android]"
         const val FLUTTER_ROUTE = "flutter_route"
         const val ACCESS_TOKEN_EXTRA = "access_token"
         const val EXTRA_COLLECT_DATA = "collect_data"

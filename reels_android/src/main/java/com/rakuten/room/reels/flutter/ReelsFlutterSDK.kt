@@ -43,7 +43,7 @@ import com.rakuten.room.reels.pigeon.CollectData
  */
 class ReelsFlutterSDK private constructor() {
     companion object {
-        private const val TAG = "ReelsFlutterSDK"
+        private const val TAG = "[ReelsSDK-Android]"
         
         private var flutterEngine: FlutterEngine? = null
         private var listener: ReelsListener? = null
@@ -119,6 +119,33 @@ class ReelsFlutterSDK private constructor() {
             stateApi = ReelsFlutterStateApi(binaryMessenger)
             navigationApi = ReelsFlutterNavigationApi(binaryMessenger)
             lifecycleApi = ReelsFlutterLifecycleApi(binaryMessenger)
+
+            // Setup navigation event listeners from Flutter
+            setupNavigationEventHandlers(binaryMessenger)
+        }
+
+        /**
+         * Setup handlers to receive navigation events from Flutter
+         * Note: dismissReels is defined as @FlutterApi in Pigeon but used as Host API
+         * We manually set up a listener similar to iOS implementation
+         */
+        private fun setupNavigationEventHandlers(binaryMessenger: BinaryMessenger) {
+            val codec = io.flutter.plugin.common.StandardMessageCodec.INSTANCE
+
+            // Handle dismiss reels events
+            val dismissReelsChannel = io.flutter.plugin.common.BasicMessageChannel(
+                binaryMessenger,
+                "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.dismissReels",
+                codec
+            )
+            dismissReelsChannel.setMessageHandler { _, reply ->
+                Log.d(TAG, "Received dismiss reels request")
+
+                // Notify listener that reels screen should be closed
+                listener?.onReelsClosed()
+
+                reply.reply(null)
+            }
         }
         
         /**

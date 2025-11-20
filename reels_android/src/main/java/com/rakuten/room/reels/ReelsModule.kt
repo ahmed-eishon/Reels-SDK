@@ -43,7 +43,7 @@ import com.rakuten.room.reels.flutter.ReelsListener
  */
 object ReelsModule {
 
-    private const val TAG = "ReelsSDK-Android"
+    private const val TAG = "[ReelsSDK-Android]"
 
     // MARK: - SDK Info
 

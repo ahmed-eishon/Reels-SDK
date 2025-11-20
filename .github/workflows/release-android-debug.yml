@@ -94,53 +94,92 @@ jobs:
           echo "MAVEN_REPO=$MAVEN_REPO" >> $GITHUB_ENV
           echo "Maven repository location: $MAVEN_REPO"
 
-      - name: Build reels_android AAR (Debug)
-        working-directory: reels_android
+      - name: Create wrapper project for reels_android build
         run: |
-          echo "Building reels_android AAR in Debug mode..."
+          echo "Creating minimal wrapper project to build reels_android..."
 
-          # Add pluginManagement block to settings.gradle for Android Gradle Plugin
-          echo "Adding pluginManagement to settings.gradle..."
-          {
-            echo "pluginManagement {"
-            echo "    repositories {"
-            echo "        google()"
-            echo "        mavenCentral()"
-            echo "        gradlePluginPortal()"
-            echo "    }"
-            echo "}"
-            echo ""
-            echo "dependencyResolutionManagement {"
-            echo "    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)"
-            echo "    repositories {"
-            echo "        google()"
-            echo "        mavenCentral()"
-            echo "        maven {"
-            echo "            url 'file://${{ env.MAVEN_REPO }}'"
-            echo "        }"
-            echo "        maven {"
-            echo "            url 'https://storage.googleapis.com/download.flutter.io'"
-            echo "        }"
-            echo "    }"
-            echo "}"
-            echo ""
-            cat settings.gradle
-          } > settings.gradle.tmp
-          mv settings.gradle.tmp settings.gradle
+          # Create wrapper directory
+          mkdir -p android_build_wrapper
+          cd android_build_wrapper
 
-          echo "Updated settings.gradle"
+          # Create root settings.gradle
+          cat > settings.gradle << 'EOF'
+pluginManagement {
+    repositories {
+        google()
+        mavenCentral()
+        gradlePluginPortal()
+    }
+}
 
-          # Update plugins block in build.gradle to include versions
-          echo "Adding plugin versions to build.gradle..."
-          sed -i "s/id 'com.android.library'/id 'com.android.library' version '8.7.3'/" build.gradle
-          sed -i "s/id 'kotlin-android'/id 'kotlin-android' version '2.1.0'/" build.gradle
-          sed -i "s/id 'kotlin-parcelize'/id 'kotlin-parcelize' version '2.1.0'/" build.gradle
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+    repositories {
+        google()
+        mavenCentral()
+        maven {
+            url 'file://${{ env.MAVEN_REPO }}'
+        }
+        maven {
+            url 'https://storage.googleapis.com/download.flutter.io'
+        }
+    }
 
-          echo "Updated build.gradle with plugin versions"
+    versionCatalogs {
+        libs {
+            version('androidGradlePlugin', '8.7.3')
+            version('kotlin', '2.1.0')
 
-          # Run Gradle build for debug variant
-          ./gradlew clean assembleDebug --stacktrace
+            library('androidx-appcompat', 'androidx.appcompat:appcompat:1.7.0')
+            library('androidx-fragment-ktx', 'androidx.fragment:fragment-ktx:1.8.5')
+            library('androidx-activity-ktx', 'androidx.activity:activity-ktx:1.9.3')
+            library('androidx-constraintlayout', 'androidx.constraintlayout:constraintlayout:2.2.0')
+            library('google-material-design', 'com.google.android.material:material:1.12.0')
+            library('jetbrains-kotlin-stdlib', 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0')
+            library('junit4', 'junit:junit:4.13.2')
+            library('androidx-test-junit', 'androidx.test.ext:junit:1.2.1')
+            library('androidx-test-espresso', 'androidx.test.espresso:espresso-core:3.6.1')
+        }
+    }
+}
 
+rootProject.name = 'reels-sdk-wrapper'
+include ':reels_android'
+project(':reels_android').projectDir = new File(settingsDir, '../reels_android')
+EOF
+
+          # Create root build.gradle
+          cat > build.gradle << 'EOF'
+buildscript {
+    repositories {
+        google()
+        mavenCentral()
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:8.7.3'
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        mavenCentral()
+    }
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+EOF
+
+          echo "Wrapper project created successfully"
+
+      - name: Build reels_android AAR (Debug)
+        working-directory: android_build_wrapper
+        run: |
+          echo "Building reels_android AAR in Debug mode using wrapper project..."
+          ./gradlew :reels_android:clean :reels_android:assembleDebug --stacktrace
           echo "reels_android AAR built successfully"
 
       - name: List reels_android build outputs

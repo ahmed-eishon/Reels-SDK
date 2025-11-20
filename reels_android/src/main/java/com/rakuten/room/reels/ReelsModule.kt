@@ -163,6 +163,15 @@ object ReelsModule {
             generationNumber
         }
 
+        // Store collect data by generation number if not already stored
+        if (generation == null && collectData != null) {
+            collectDataByGeneration[actualGeneration] = collectData
+            Log.d(TAG, "✅ Stored collect data for generation #$actualGeneration: id=${collectData.id}, name=${collectData.name}")
+        } else if (generation == null) {
+            collectDataByGeneration[actualGeneration] = null
+            Log.d(TAG, "⚠️ No collect data provided for generation #$actualGeneration")
+        }
+
         val intent = FlutterReelsActivity.createIntent(context, initialRoute, accessToken)
 
         // Add collect data and generation to intent

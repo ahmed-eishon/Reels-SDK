@@ -137,6 +137,22 @@ publishing {
                 }
             }
         }
+
+        debug(MavenPublication) {
+            groupId = 'com.rakuten.reels'
+            artifactId = 'reels_android'
+            version = getVersionName()
+
+            afterEvaluate {
+                from components.debug
+            }
+
+            pom {
+                name = 'Reels SDK for Android - Debug'
+                description = 'Flutter-based video reels SDK for Android applications (Debug build)'
+                url = 'https://github.com/ahmed-eishon/Reels-SDK'
+            }
+        }
     }
 
     repositories {

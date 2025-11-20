@@ -124,30 +124,6 @@ jobs:
           echo "=== reels_android build directory ===="
           ls -lah reels_android/build/outputs/aar/
 
-      - name: Create debug publication config
-        working-directory: reels_android
-        run: |
-          echo "Creating debug publication configuration..."
-          echo "" >> build.gradle
-          echo "        debug(MavenPublication) {" >> build.gradle
-          echo "            groupId = 'com.rakuten.reels'" >> build.gradle
-          echo "            artifactId = 'reels_android'" >> build.gradle
-          echo "            version = getVersionName()" >> build.gradle
-          echo "" >> build.gradle
-          echo "            afterEvaluate {" >> build.gradle
-          echo "                from components.debug" >> build.gradle
-          echo "            }" >> build.gradle
-          echo "" >> build.gradle
-          echo "            pom {" >> build.gradle
-          echo "                name = 'Reels SDK for Android - Debug'" >> build.gradle
-          echo "                description = 'Flutter-based video reels SDK for Android applications (Debug build)'" >> build.gradle
-          echo "                url = 'https://github.com/ahmed-eishon/Reels-SDK'" >> build.gradle
-          echo "            }" >> build.gradle
-          echo "        }" >> build.gradle
-          echo "    }" >> build.gradle
-          echo "}" >> build.gradle
-          echo "Debug publication added to build.gradle"
-
       - name: Publish reels_android to local Maven repository
         working-directory: reels_android
         run: |

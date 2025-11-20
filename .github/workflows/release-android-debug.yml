@@ -102,8 +102,8 @@ jobs:
           mkdir -p android_build_wrapper
           cd android_build_wrapper
 
-          # Create root settings.gradle
-          cat > settings.gradle << 'EOF'
+          # Create root settings.gradle with environment variable substitution
+          cat > settings.gradle <<EOF
 pluginManagement {
     repositories {
         google()
@@ -118,7 +118,7 @@ dependencyResolutionManagement {
         google()
         mavenCentral()
         maven {
-            url 'file://${{ env.MAVEN_REPO }}'
+            url 'file://${MAVEN_REPO}'
         }
         maven {
             url 'https://storage.googleapis.com/download.flutter.io'
@@ -149,7 +149,7 @@ project(':reels_android').projectDir = new File(settingsDir, '../reels_android')
 EOF
 
           # Create root build.gradle
-          cat > build.gradle << 'EOF'
+          cat > build.gradle <<'EOF'
 buildscript {
     repositories {
         google()

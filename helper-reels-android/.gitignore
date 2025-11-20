@@ -1,0 +1,7 @@
+# Generated files from templates
+settings.gradle
+local.properties
+
+# Gradle build files
+.gradle/
+build/

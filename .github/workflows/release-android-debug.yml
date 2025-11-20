@@ -103,6 +103,10 @@ jobs:
           cp settings.gradle.template settings.gradle
           sed -i "s|MAVEN_REPO_PLACEHOLDER|${MAVEN_REPO}|g" settings.gradle
 
+          # Create local.properties from template with ANDROID_HOME
+          cp local.properties.template local.properties
+          sed -i "s|ANDROID_SDK_PLACEHOLDER|${ANDROID_HOME}|g" local.properties
+
           echo "Helper project prepared successfully"
 
       - name: Build reels_android AAR (Debug)

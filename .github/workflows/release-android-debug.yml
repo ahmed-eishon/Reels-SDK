@@ -94,94 +94,21 @@ jobs:
           echo "MAVEN_REPO=$MAVEN_REPO" >> $GITHUB_ENV
           echo "Maven repository location: $MAVEN_REPO"
 
-      - name: Create wrapper project for reels_android build
+      - name: Prepare helper project for reels_android build
+        working-directory: helper-reels-android
         run: |
-          echo "Creating minimal wrapper project to build reels_android..."
+          echo "Preparing helper wrapper project to build reels_android..."
 
-          # Create wrapper directory
-          mkdir -p android_build_wrapper
-          cd android_build_wrapper
-
-          # Create root settings.gradle with placeholder for Maven repo
-          cat > settings.gradle << 'SETTINGS_GRADLE'
-pluginManagement {
-    repositories {
-        google()
-        mavenCentral()
-        gradlePluginPortal()
-    }
-}
-
-dependencyResolutionManagement {
-    repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
-    repositories {
-        google()
-        mavenCentral()
-        maven {
-            url 'file://MAVEN_REPO_PLACEHOLDER'
-        }
-        maven {
-            url 'https://storage.googleapis.com/download.flutter.io'
-        }
-    }
-
-    versionCatalogs {
-        libs {
-            version('androidGradlePlugin', '8.7.3')
-            version('kotlin', '2.1.0')
-
-            library('androidx-appcompat', 'androidx.appcompat:appcompat:1.7.0')
-            library('androidx-fragment-ktx', 'androidx.fragment:fragment-ktx:1.8.5')
-            library('androidx-activity-ktx', 'androidx.activity:activity-ktx:1.9.3')
-            library('androidx-constraintlayout', 'androidx.constraintlayout:constraintlayout:2.2.0')
-            library('google-material-design', 'com.google.android.material:material:1.12.0')
-            library('jetbrains-kotlin-stdlib', 'org.jetbrains.kotlin:kotlin-stdlib:2.1.0')
-            library('junit4', 'junit:junit:4.13.2')
-            library('androidx-test-junit', 'androidx.test.ext:junit:1.2.1')
-            library('androidx-test-espresso', 'androidx.test.espresso:espresso-core:3.6.1')
-        }
-    }
-}
-
-rootProject.name = 'reels-sdk-wrapper'
-include ':reels_android'
-project(':reels_android').projectDir = new File(settingsDir, '../reels_android')
-SETTINGS_GRADLE
-
-          # Substitute Maven repository path
+          # Create settings.gradle from template and substitute Maven repo path
+          cp settings.gradle.template settings.gradle
           sed -i "s|MAVEN_REPO_PLACEHOLDER|${MAVEN_REPO}|g" settings.gradle
 
-          # Create root build.gradle
-          cat > build.gradle <<'EOF'
-buildscript {
-    repositories {
-        google()
-        mavenCentral()
-    }
-    dependencies {
-        classpath 'com.android.tools.build:gradle:8.7.3'
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-    }
-}
-
-allprojects {
-    repositories {
-        google()
-        mavenCentral()
-    }
-}
-
-task clean(type: Delete) {
-    delete rootProject.buildDir
-}
-EOF
-
-          echo "Wrapper project created successfully"
+          echo "Helper project prepared successfully"
 
       - name: Build reels_android AAR (Debug)
-        working-directory: android_build_wrapper
+        working-directory: helper-reels-android
         run: |
-          echo "Building reels_android AAR in Debug mode using wrapper project..."
+          echo "Building reels_android AAR in Debug mode using helper project..."
           ./gradlew :reels_android:clean :reels_android:assembleDebug --stacktrace
           echo "reels_android AAR built successfully"
 

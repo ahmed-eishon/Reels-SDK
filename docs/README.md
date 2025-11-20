@@ -1,118 +1,81 @@
 # Reels SDK Documentation
 
-This directory is organized as an Obsidian vault containing comprehensive technical documentation for the Reels SDK, including architecture details, integration guides, and development resources.
+Comprehensive technical documentation for the Reels SDK.
 
-## 📚 Documentation Structure
+## Documentation Structure
 
-### Main Documentation Hub
+### 📖 [01-Overview](./01-Overview/)
+- [01-SDK-Overview](./01-Overview/01-SDK-Overview.md) - What is Reels SDK, features, quick start, architecture, metrics
+- [02-Technology-Stack](./01-Overview/02-Technology-Stack.md) - Dependencies, versions, tools, CI/CD
 
-**Start here:** [00-MOC-Reels-SDK.md](00-MOC-Reels-SDK.md) (Main Hub - Map of Content)
+### 🏗️ [02-Integration](./02-Integration/)
+- [01-iOS-Integration-Guide](./02-Integration/01-iOS-Integration-Guide.md)
+- [02-Android-Integration-Guide](./02-Integration/02-Android-Integration-Guide.md)
 
-### Quick Links
+### 🔧 [03-Architecture](./03-Architecture/)
+- [README](./03-Architecture/README.md) - Architecture overview
+- [01-Platform-Communication](./03-Architecture/01-Platform-Communication.md)
+- [02-Flutter-Engine-Lifecycle](./03-Architecture/02-Flutter-Engine-Lifecycle.md)
+- [03-Generation-Based-State-Management](./03-Architecture/03-Generation-Based-State-Management.md)
+
+### 🔨 [04-Build-Process](./04-Build-Process/)
+- [01-iOS-Build](./04-Build-Process/01-iOS-Build.md)
+- [02-Android-Build](./04-Build-Process/02-Android-Build.md)
+
+### 🚀 [05-Release-Process](./05-Release-Process/)
+- [01-iOS-Release](./05-Release-Process/01-iOS-Release.md)
+- [02-Android-Release](./05-Release-Process/02-Android-Release.md)
+
+### 💻 [06-Dev-Process](./06-Dev-Process/)
+- Development workflows, testing, and contribution guidelines (To be documented)
+
+### 🔧 [07-Scripts](./07-Scripts/)
+- [README](./07-Scripts/README.md) - Scripts overview and structure
+- **Android:**
+  - [Local Scripts](./07-Scripts/Android/01-Local-Scripts.md) - Development and AAR build scripts
+  - [Workflow Scripts](./07-Scripts/Android/02-Workflow-Scripts.md) - GitHub Actions release workflows
+- **iOS:** Coming soon
+
+## Quick Links
 
 **Getting Started:**
-- [Obsidian Setup Guide](00-Obsidian-Setup-Guide.md) - How to view documentation with proper diagram rendering
-- [Quick Overview](QUICK-OVERVIEW.md) - Presentation-ready summary
+- [SDK Overview](./01-Overview/01-SDK-Overview.md)
+- [iOS Integration](./02-Integration/01-iOS-Integration-Guide.md)
+- [Android Integration](./02-Integration/02-Android-Integration-Guide.md)
 
-**Integration Guides:**
-- [iOS Integration Guide](02-Integration/01-iOS-Integration-Guide.md)
-- [Android Integration Guide](02-Integration/02-Android-Integration-Guide.md)
+**Development:**
+- [Technology Stack](./01-Overview/02-Technology-Stack.md)
+- [Architecture](./03-Architecture/README.md)
+- [Build Process](./04-Build-Process/)
+- [Scripts Documentation](./07-Scripts/)
 
-**Architecture Documentation:**
-- [Platform Communication](03-Architecture/01-Platform-Communication.md)
-- [Flutter Engine Lifecycle](03-Architecture/02-Flutter-Engine-Lifecycle.md)
-- [Generation-Based State Management](03-Architecture/03-Generation-Based-State-Management.md)
+**Deployment:**
+- [iOS Release Process](./05-Release-Process/01-iOS-Release.md)
+- [Android Release Process](./05-Release-Process/02-Android-Release.md)
 
-**Development Guides:**
-- [Build Process](Build-Process.md) - Detailed guide on building the SDK with room-ios
-- [Quick Start Guide for AI Agents](Quick-Start-Guide-AI-Agent.md) - Guide for AI agents working with this codebase
+## Viewing Documentation
 
-## 🎯 Viewing Documentation
+### Best Experience: Obsidian
+See [Obsidian-Setup](./Obsidian-Setup.md) for instructions.
 
-### Option 1: Obsidian (Recommended)
+### Alternative: VS Code
+Install Markdown Preview Mermaid Support extension.
 
-For the best experience with Mermaid diagrams and internal links:
+### Alternative: GitHub
+All Mermaid diagrams render natively on GitHub.
 
-1. **Install Obsidian:** https://obsidian.md
-2. **Open Vault:** File → Open folder as vault → Select the `docs` folder
-3. **View:** Switch to Reading View (Cmd/Ctrl + E) to see rendered diagrams
+## Key Information
 
-See [Obsidian Setup Guide](00-Obsidian-Setup-Guide.md) for detailed instructions.
+**Current Version:** 0.1.4
 
-### Option 2: GitHub/Text Editor
+**Supported Platforms:**
+- iOS 16.0+
+- Android SDK 21+
 
-All documentation is in standard Markdown format and can be viewed in any text editor or on GitHub.
-
-**Note:** Mermaid diagrams will appear as code blocks in plain text editors.
-
-### Option 3: VS Code with Extensions
-
-Install these VS Code extensions:
-- Markdown Preview Mermaid Support
-- Markdown All in One
-
-Then use Markdown Preview (Cmd/Ctrl + Shift + V) to view rendered documents.
-
-## 📂 Directory Structure
-
-```
-docs/                                  ← Obsidian vault root
-├── README.md                          ← You are here
-├── 00-MOC-Reels-SDK.md                ← Main Hub (START HERE)
-├── 00-Obsidian-Setup-Guide.md         ← Setup guide
-├── QUICK-OVERVIEW.md                  ← Quick reference
-├── Build-Process.md                   ← Build documentation
-├── Quick-Start-Guide-AI-Agent.md      ← AI agent guide
-├── .obsidian/                         ← Obsidian configuration
-├── 01-Overview/                       ← SDK overview docs
-├── 02-Integration/                    ← Integration guides
-│   ├── 01-iOS-Integration-Guide.md
-│   └── 02-Android-Integration-Guide.md
-└── 03-Architecture/                   ← Architecture docs
-    ├── 01-Platform-Communication.md
-    ├── 02-Flutter-Engine-Lifecycle.md
-    └── 03-Generation-Based-State-Management.md
-```
-
-## 🎨 Documentation Features
-
-- ✅ **Mermaid Diagrams** - Visual architecture and flow diagrams
-- ✅ **Internal Links** - Easy navigation between documents
-- ✅ **Code Examples** - Swift, Kotlin, and Dart code samples
-- ✅ **Callouts** - Info, warning, and tip boxes
-- ✅ **Comprehensive** - 800+ lines of detailed architecture documentation
-- ✅ **Generic** - Platform-agnostic examples for universal use
-
-## 🔧 Contributing to Documentation
-
-When updating documentation:
-
-1. **Follow Structure:** Keep files in appropriate folders
-2. **Update Links:** Update internal links if moving files
-3. **Use Mermaid:** Convert complex ASCII diagrams to Mermaid
-4. **Be Generic:** Use generic examples, not specific implementation details
-5. **Update MOC:** Add new documents to `00-MOC-Reels-SDK.md`
-
-## 📖 Quick Reference
-
-| Topic | Document |
-|-------|----------|
-| **Main Hub** | [00-MOC-Reels-SDK.md](00-MOC-Reels-SDK.md) |
-| **Getting Started** | [QUICK-OVERVIEW.md](QUICK-OVERVIEW.md) |
-| **iOS Integration** | [02-Integration/01-iOS-Integration-Guide.md](02-Integration/01-iOS-Integration-Guide.md) |
-| **Android Integration** | [02-Integration/02-Android-Integration-Guide.md](02-Integration/02-Android-Integration-Guide.md) |
-| **Architecture** | [03-Architecture/](03-Architecture/) |
-| **Build Process** | [Build-Process.md](Build-Process.md) |
-| **Obsidian Setup** | [00-Obsidian-Setup-Guide.md](00-Obsidian-Setup-Guide.md) |
-| **AI Agent Guide** | [Quick-Start-Guide-AI-Agent.md](Quick-Start-Guide-AI-Agent.md) |
-
-## 🆘 Support
-
-For questions or issues with documentation:
-
-- **Internal:** ROOM Team at room-team@rakuten.com
-- **Git:** https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk
+**Repository:**
+- Main: GitPub (Rakuten internal)
+- GitHub: Distribution and releases
 
 ---
 
-**Version:** 1.0.0 | **Last Updated:** November 14, 2025 | **Maintained by:** ROOM Team
+For questions or issues, contact the development team.

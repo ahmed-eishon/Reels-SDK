@@ -27,8 +27,12 @@ ReelsSDK uses **separate workflows** for Debug and Release builds:
 │  (release-android)    │  │  (release-android-    │
 │                       │  │   debug)              │
 │  1. Build Flutter AAR │  │  1. Build Flutter AAR │
-│  2. Build SDK AAR     │  │  2. Build SDK AAR     │
-│  3. Package zip       │  │  3. Package zip       │
+│     (Release)         │  │     (Debug)           │
+│  2. Build reels_      │  │  2. Build reels_      │
+│     android AAR       │  │     android AAR       │
+│     (Release)         │  │     (Debug)           │
+│  3. Package Maven     │  │  3. Package Maven     │
+│     repository        │  │     repository        │
 │  4. Create release    │  │  4. Create release    │
 │  5. Upload assets     │  │  5. Upload assets     │
 └───────────┬───────────┘  └───────────┬───────────┘
@@ -40,6 +44,11 @@ ReelsSDK uses **separate workflows** for Debug and Release builds:
 │  Package:            │    │  Package:            │
 │  ReelsSDK-Android-   │    │  ReelsSDK-Android-   │
 │  0.1.4.zip           │    │  Debug-0.1.4.zip     │
+│  Contains:           │    │  Contains:           │
+│  - Flutter Release   │    │  - Flutter Debug     │
+│  - reels_android     │    │  - reels_android     │
+│    Release           │    │    Debug             │
+│  (Maven repo)        │    │  (Maven repo)        │
 └──────────────────────┘    └──────────────────────┘
             │                          │
             └────────┬─────────────────┘
@@ -48,11 +57,12 @@ ReelsSDK uses **separate workflows** for Debug and Release builds:
 │  End User                                                     │
 │  # For Debug (development):                                  │
 │  Download ReelsSDK-Android-Debug-0.1.4.zip                   │
-│  → Contains Debug AARs                                       │
+│  → Maven repository with Flutter Debug + reels_android Debug │
 │                                                               │
 │  # For Release (production):                                 │
 │  Download ReelsSDK-Android-0.1.4.zip                        │
-│  → Contains Release AARs                                     │
+│  → Maven repository with Flutter Release + reels_android     │
+│    Release                                                   │
 │                                                               │
 │  No Flutter installation required!                           │
 └─────────────────────────────────────────────────────────────┘
@@ -151,10 +161,10 @@ git push origin "v${VERSION}-android-debug"
 
 **What happens:**
 1. ✅ Two independent GitHub Actions workflows are triggered
-2. ✅ Release workflow builds only Release AARs
-3. ✅ Debug workflow builds only Debug AARs
-4. ✅ Each creates its own GitHub release
-5. ✅ Each uploads its AAR zip as a release asset
+2. ✅ Release workflow builds **Flutter AAR (Release) + reels_android AAR (Release)** in Maven repository
+3. ✅ Debug workflow builds **Flutter AAR (Debug) + reels_android AAR (Debug)** in Maven repository
+4. ✅ Each creates its own GitHub release with complete SDK
+5. ✅ Each uploads its package zip as a release asset
 
 ### Step 5: Monitor GitHub Actions
 
@@ -191,9 +201,12 @@ git push origin "v${VERSION}-android-debug"
    unzip ReelsSDK-Android-0.1.4.zip
    ls -lh ReelsSDK-Android-0.1.4/
    # Should see:
-   # - reels-sdk-0.1.4.aar
-   # - flutter-release-0.1.4.aar
+   # - maven-repo/ (Maven repository structure)
    # - README.md
+
+   # Check Maven repository contents
+   find ReelsSDK-Android-0.1.4/maven-repo -name "*.aar" | head -5
+   # Should show Flutter and reels_android Release AARs
 
    # Download Debug package
    curl -L -O https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-android-debug/ReelsSDK-Android-Debug-0.1.4.zip
@@ -201,9 +214,12 @@ git push origin "v${VERSION}-android-debug"
    unzip ReelsSDK-Android-Debug-0.1.4.zip
    ls -lh ReelsSDK-Android-Debug-0.1.4/
    # Should see:
-   # - reels-sdk-debug-0.1.4.aar
-   # - flutter-debug-0.1.4.aar
+   # - maven-repo/ (Maven repository structure)
    # - README.md
+
+   # Check Maven repository contents
+   find ReelsSDK-Android-Debug-0.1.4/maven-repo -name "*.aar" | head -5
+   # Should show Flutter and reels_android Debug AARs
    ```
 
 ## Local Development vs Distribution
@@ -233,34 +249,36 @@ project(':reels_android').projectDir = new File('/absolute/path/to/reels-sdk/ree
 **For external users:**
 
 ```gradle
-// Their app/build.gradle
-android {
-    ...
-}
-
+// settings.gradle or build.gradle (project level)
 repositories {
-    flatDir {
-        dirs 'libs'
+    maven {
+        // Point to extracted Maven repository
+        url "file://${rootProject.projectDir}/../ReelsSDK-Android-0.1.4/maven-repo"
+    }
+    maven {
+        url "https://storage.googleapis.com/download.flutter.io"
     }
 }
+```
 
+```gradle
+// app/build.gradle
 dependencies {
     // Debug version (development)
-    debugImplementation(name: 'reels-sdk-debug-0.1.4', ext: 'aar')
-    debugImplementation(name: 'flutter-debug-0.1.4', ext: 'aar')
+    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
 
     // OR Release version (production)
-    releaseImplementation(name: 'reels-sdk-0.1.4', ext: 'aar')
-    releaseImplementation(name: 'flutter-release-0.1.4', ext: 'aar')
+    releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
 }
 ```
 
 **What happens:**
-- ✅ Download AAR from GitHub release
-- ✅ Copy to `app/libs/` folder
-- ✅ Add to dependencies
+- ✅ Download Maven repository ZIP from GitHub release
+- ✅ Extract to project directory
+- ✅ Add Maven repository URL to Gradle
+- ✅ Add dependency (reels_android pulls Flutter transitively)
 - ✅ Sync and build!
-- ✅ No Flutter required!
+- ✅ No Flutter installation required!
 
 ## Manual AAR Building (Optional)
 
@@ -410,17 +428,24 @@ curl -L -O https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-an
 unzip ReelsSDK-Android-0.1.4.zip
 ```
 
-### Step 2: Copy AARs to Project
+### Step 2: Add Maven Repository
 
-```bash
-# Create libs directory if it doesn't exist
-mkdir -p your-app/app/libs
-
-# Copy AARs
-cp ReelsSDK-Android-0.1.4/*.aar your-app/app/libs/
+```gradle
+// settings.gradle (or project-level build.gradle)
+repositories {
+    maven {
+        // Point to extracted Maven repository
+        url "file://${rootProject.projectDir}/../ReelsSDK-Android-0.1.4/maven-repo"
+    }
+    maven {
+        url "https://storage.googleapis.com/download.flutter.io"
+    }
+    google()
+    mavenCentral()
+}
 ```
 
-### Step 3: Update build.gradle
+### Step 3: Update app/build.gradle
 
 ```gradle
 // app/build.gradle
@@ -438,22 +463,14 @@ android {
     }
 }
 
-repositories {
-    flatDir {
-        dirs 'libs'
-    }
-}
-
 dependencies {
     // For Debug build
-    debugImplementation(name: 'reels-sdk-debug-0.1.4', ext: 'aar')
-    debugImplementation(name: 'flutter-debug-0.1.4', ext: 'aar')
+    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
 
     // For Release build
-    releaseImplementation(name: 'reels-sdk-0.1.4', ext: 'aar')
-    releaseImplementation(name: 'flutter-release-0.1.4', ext: 'aar')
+    releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
 
-    // Required dependencies
+    // Required dependencies (if not already present)
     implementation 'androidx.appcompat:appcompat:1.6.1'
     implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
     implementation 'com.google.android.material:material:1.11.0'
@@ -558,13 +575,15 @@ jobs:
 
 **Key Benefits:**
 - ✅ Separate workflows for Debug and Release builds
-- ✅ Independent releases reduce build times
+- ✅ Both workflows build **complete SDK** (Flutter + reels_android)
+- ✅ Release workflow: Optimized Release AARs for production
+- ✅ Debug workflow: Debug AARs with symbols for development
+- ✅ Maven repository distribution (standard Android approach)
 - ✅ Automated builds via GitHub Actions
-- ✅ No Flutter required for users
+- ✅ No Flutter installation required for users
 - ✅ Fast installation (~30 seconds)
 - ✅ Reproducible builds
 - ✅ Easy version management
-- ✅ Standard Gradle workflow
 
 ---
 

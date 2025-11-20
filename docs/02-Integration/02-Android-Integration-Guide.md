@@ -20,7 +20,7 @@ Before integrating the Reels SDK, ensure you have:
 | **Kotlin** | 1.9+ | Programming language |
 | **Gradle** | 8.0+ | Build tool |
 | **Android Studio** | Latest | Development environment |
-| **Flutter SDK** | 3.9.2+ | Build-time requirement |
+| **Flutter SDK** | 3.35.6 | Build-time requirement (CI/CD version) |
 | **JDK** | 17 | Build requirement |
 
 ## Integration Overview
@@ -201,20 +201,46 @@ implementation 'com.rakuten.room:reels-sdk:1.1.0'
 - ⚠️ May have issues in corporate environments
 - ⚠️ Slower build times
 
-### Method 3: AAR Integration (Recommended for Released Versions)
+### Method 3: Maven Repository Integration (Recommended for Released Versions)
 
-This method is recommended for using **stable releases** without needing the SDK source code.
+This method is recommended for using **stable releases** without needing the SDK source code. The SDK is distributed as a complete Maven repository with proper dependency management.
 
-#### Step 1: Download Released AAR Files
+#### Maven Repository Structure
 
-Download the AAR package from the GitHub Releases page:
+```mermaid
+graph TD
+    A[ReelsSDK-Android-Debug-0.1.4.zip] --> B[maven-repo/]
+    B --> C[com/rakuten/reels_android/0.1.4/]
+    B --> D[com/example/reels_flutter/]
+    B --> E[io/flutter/]
+    B --> F[androidx/media3/]
+
+    C --> C1[reels_android-0.1.4.aar]
+    C --> C2[reels_android-0.1.4.pom]
+
+    D --> D1[flutter_debug-1.0.aar]
+    D --> D2[flutter_debug-1.0.pom]
+
+    E --> E1[flutter_embedding_debug-1.0.0-xxx.aar]
+    E --> E2[armeabi_v7a_debug-1.0.0-xxx.aar]
+    E --> E3[arm64_v8a_debug-1.0.0-xxx.aar]
+    E --> E4[x86_64_debug-1.0.0-xxx.aar]
+
+    F --> F1[media3-exoplayer-1.1.1.aar]
+    F --> F2[media3-common-1.1.1.aar]
+
+    style C fill:#e1f5ff
+    style C1 fill:#b3e0ff
+    style C2 fill:#b3e0ff
+```
+
+#### Step 1: Download Released Maven Package
+
+Download the Maven repository package from the GitHub Releases page:
 
 ```bash
 # Navigate to your project directory
 cd /path/to/your-android-app
-
-# Create libs directory if it doesn't exist
-mkdir -p app/libs
 
 # Download the release (replace VERSION with actual version, e.g., 0.1.4)
 VERSION="0.1.4"
@@ -227,20 +253,20 @@ curl -L -o ReelsSDK-Android-Debug-${VERSION}.zip \
 curl -L -o ReelsSDK-Android-${VERSION}.zip \
   "https://github.com/ahmed-eishon/Reels-SDK/releases/download/v${VERSION}-android/ReelsSDK-Android-${VERSION}.zip"
 
-# Extract the downloaded package
-unzip ReelsSDK-Android-Debug-${VERSION}.zip
+# Extract the downloaded package to your project's parent directory
+unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
 # or
-# unzip ReelsSDK-Android-${VERSION}.zip
-
-# Copy AAR files to your project
-cp ReelsSDK-Android-Debug-${VERSION}/*.aar app/libs/
-# or
-# cp ReelsSDK-Android-${VERSION}/*.aar app/libs/
+# unzip ReelsSDK-Android-${VERSION}.zip -d ..
 ```
 
 **What's included in the package:**
-- `reels-sdk-debug-VERSION.aar` (Debug) or `reels-sdk-VERSION.aar` (Release) - Main SDK AAR
-- `flutter-debug-VERSION.aar` (Debug) or `flutter-release-VERSION.aar` (Release) - Flutter runtime dependencies
+- `maven-repo/` - Complete Maven repository with:
+  - `com.rakuten:reels_android` - Native Android API (main SDK interface)
+  - `com.example.reels_flutter:flutter_debug` or `flutter_release` - Flutter module
+  - `io.flutter:flutter_embedding_*` - Flutter engine artifacts
+  - `io.flutter:armeabi_v7a_*`, `arm64_v8a_*`, `x86_64_*` - Architecture-specific Flutter engines
+  - `androidx.media3:*` - Media player dependencies
+  - All transitive dependencies with proper POM files
 - `README.md` - Integration instructions
 - `.sha256` - Checksum file for verification
 
@@ -253,9 +279,37 @@ shasum -a 256 -c ReelsSDK-Android-Debug-${VERSION}.zip.sha256
 # shasum -a 256 -c ReelsSDK-Android-${VERSION}.zip.sha256
 ```
 
-#### Step 3: Update build.gradle (Project Level)
+#### Step 3: Configure Maven Repository
 
-Ensure your project-level `build.gradle` has the necessary repositories:
+Add the local Maven repository to your project. You can add it in either `settings.gradle` (recommended) or project-level `build.gradle`:
+
+**Option A: settings.gradle (Recommended for Gradle 7.0+)**
+
+```gradle
+// settings.gradle
+dependencyResolutionManagement {
+    repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
+    repositories {
+        google()
+        mavenCentral()
+
+        // ReelsSDK local Maven repository
+        maven {
+            url = uri("file://${rootProject.projectDir}/../ReelsSDK-Android-Debug-0.1.4/maven-repo")
+        }
+
+        // Flutter engine repository (required for Flutter dependencies)
+        maven {
+            url = uri("https://storage.googleapis.com/download.flutter.io")
+        }
+    }
+}
+
+rootProject.name = 'YourApp'
+include ':app'
+```
+
+**Option B: build.gradle (Project level) for older Gradle versions**
 
 ```gradle
 // build.gradle (Project)
@@ -263,13 +317,29 @@ allprojects {
     repositories {
         google()
         mavenCentral()
+
+        // ReelsSDK local Maven repository
+        maven {
+            url "file://${rootProject.projectDir}/../ReelsSDK-Android-Debug-0.1.4/maven-repo"
+        }
+
+        // Flutter engine repository (required for Flutter dependencies)
+        maven {
+            url "https://storage.googleapis.com/download.flutter.io"
+        }
     }
 }
 ```
 
-#### Step 4: Update build.gradle (App Level)
+> [!tip] Repository Path
+> - Adjust the path based on where you extracted the SDK package
+> - The path should point to the `maven-repo` directory inside the extracted package
+> - Use `file://` protocol for local filesystem paths
+> - Use relative paths (`../`) for portability across different machines
 
-Add the following to your `app/build.gradle`:
+#### Step 4: Add SDK Dependency
+
+Add the ReelsSDK dependency to your `app/build.gradle`:
 
 ```gradle
 // app/build.gradle
@@ -281,43 +351,26 @@ android {
         targetSdk 35
         // ... other config
     }
-
-    // Add flatDir repository for local AAR files
-    repositories {
-        flatDir {
-            dirs 'libs'
-        }
-    }
 }
 
 dependencies {
-    // For Debug builds
-    debugImplementation(name: 'reels-sdk-debug-0.1.4', ext: 'aar')
-    debugImplementation(name: 'flutter-debug-0.1.4', ext: 'aar')
+    // ReelsSDK - Native Android API
+    // This single dependency brings in all required Flutter and native dependencies transitively
+    debugImplementation 'com.rakuten:reels_android:0.1.4'
 
-    // For Release builds
-    releaseImplementation(name: 'reels-sdk-0.1.4', ext: 'aar')
-    releaseImplementation(name: 'flutter-release-0.1.4', ext: 'aar')
-
-    // OR use implementation for both (not recommended)
-    // implementation(name: 'reels-sdk-0.1.4', ext: 'aar')
-    // implementation(name: 'flutter-release-0.1.4', ext: 'aar')
-
-    // Required Android dependencies
-    implementation 'androidx.appcompat:appcompat:1.6.1'
-    implementation 'androidx.constraintlayout:constraintlayout:2.1.4'
-    implementation 'com.google.android.material:material:1.11.0'
+    // OR for Release builds
+    // releaseImplementation 'com.rakuten:reels_android:0.1.4'
 }
 ```
 
-> [!tip] Debug vs Release AAR
-> - **Debug AAR**: Use during development for better logging and debugging
-> - **Release AAR**: Use in production for optimized performance
-> - Use `debugImplementation` and `releaseImplementation` to automatically switch between them
+> [!tip] Transitive Dependencies
+> - You only need to declare `com.rakuten:reels_android` as a dependency
+> - Gradle automatically resolves all Flutter dependencies, engine artifacts, and media player libraries through the POM file
+> - No need to manually add Flutter or Media3 dependencies
 
-#### Step 5: Clean Settings.gradle
+#### Step 5: Clean Settings.gradle (If Migrating)
 
-If you were previously using local folder import or Git + Gradle, remove those configurations from `settings.gradle`:
+If you were previously using local folder import or Git + Gradle, remove those configurations:
 
 ```gradle
 // settings.gradle - Remove these lines if present:
@@ -335,13 +388,6 @@ If you were previously using local folder import or Git + Gradle, remove those c
 // }
 ```
 
-Your `settings.gradle` should only contain:
-
-```gradle
-rootProject.name = 'YourApp'
-include ':app'
-```
-
 #### Step 6: Sync and Build
 
 ```bash
@@ -357,38 +403,44 @@ include ':app'
 
 #### Step 7: Verify Installation
 
-Check that the AARs are properly included:
+Check that the SDK and its dependencies are properly resolved:
 
 ```bash
 # List dependencies
-./gradlew app:dependencies | grep reels
+./gradlew app:dependencies --configuration debugCompileClasspath | grep -A 20 "reels_android"
 
-# Should show:
-# debugImplementation - reels-sdk-debug-0.1.4.aar
-# debugImplementation - flutter-debug-0.1.4.aar
-# releaseImplementation - reels-sdk-0.1.4.aar
-# releaseImplementation - flutter-release-0.1.4.aar
+# Should show dependency tree like:
+# debugImplementation - com.rakuten:reels_android:0.1.4
+# +--- com.example.reels_flutter:flutter_debug:1.0
+# +--- io.flutter:flutter_embedding_debug:1.0.0-xxx
+# +--- io.flutter:arm64_v8a_debug:1.0.0-xxx
+# +--- androidx.media3:media3-exoplayer:1.1.1
+# \--- ... (other transitive dependencies)
 ```
 
-**Advantages of AAR Integration:**
+**Advantages of Maven Integration:**
 - ✅ No Git authentication required
-- ✅ Faster build times (pre-compiled)
+- ✅ Automatic dependency resolution via Gradle
+- ✅ Transitive dependency management (no manual dependency tracking)
+- ✅ Faster build times (pre-compiled AARs)
 - ✅ Stable versioned releases
 - ✅ No SDK source code needed
-- ✅ Smaller repository size
-- ✅ Works in air-gapped environments
-- ✅ Easy to version control AAR files
+- ✅ Works in air-gapped/corporate environments
+- ✅ Standard Maven repository structure
+- ✅ Easy version upgrades (change version number only)
 
 **Disadvantages:**
-- ⚠️ Manual download and update process
+- ⚠️ Manual download and extraction required
 - ⚠️ Cannot debug into SDK source code
 - ⚠️ Need to re-download for updates
+- ⚠️ Larger initial download size (includes all dependencies)
 
-**When to use AAR Integration:**
+**When to use Maven Integration:**
 - ✅ Production apps using stable releases
 - ✅ Corporate environments with restricted Git access
-- ✅ CI/CD pipelines with local artifact caching
+- ✅ CI/CD pipelines with artifact caching
 - ✅ Teams not actively developing the SDK
+- ✅ Projects that need reproducible builds with locked versions
 
 ## SDK Usage
 

@@ -30,12 +30,13 @@ class FlutterReelsActivity : FlutterActivity() {
         
         /**
          * Create intent to launch Flutter reels activity
+         * Internal use only - use ReelsModule.createReelsIntent() or ReelsModule.openReels() instead
          * @param context Android context
          * @param initialRoute Flutter route (defaults to reels screen)
          * @param accessToken Optional access token for authenticated content
          */
-        fun createIntent(
-            context: Context, 
+        internal fun createIntent(
+            context: Context,
             initialRoute: String = "/", // Default to reels screen
             accessToken: String? = null
         ): Intent {
@@ -43,13 +44,6 @@ class FlutterReelsActivity : FlutterActivity() {
             intent.putExtra(FLUTTER_ROUTE, initialRoute)
             accessToken?.let { intent.putExtra(ACCESS_TOKEN_EXTRA, it) }
             return intent
-        }
-        
-        /**
-         * Create intent specifically for reels screen
-         */
-        fun createReelsIntent(context: Context, accessToken: String? = null): Intent {
-            return createIntent(context, "/", accessToken) // Loads reels directly
         }
     }
     

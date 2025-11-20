@@ -183,21 +183,6 @@ object ReelsModule {
     }
 
     /**
-     * Create an intent specifically for the reels screen with analytics tracking
-     * @param context Context
-     * @param accessToken Optional access token for authenticated content
-     * @param collectData Optional collect data to pass to Flutter
-     * @return Intent to start the Flutter reels screen
-     */
-    fun createReelsIntent(
-        context: Context,
-        accessToken: String? = null,
-        collectData: CollectData? = null
-    ): Intent {
-        return createReelsIntent(context, "/", accessToken, collectData)
-    }
-
-    /**
      * Create a fragment to embed Flutter Reels in existing screens
      * @param initialRoute Flutter route to navigate to (default: "/")
      * @param collectData Optional collect data to pass to Flutter

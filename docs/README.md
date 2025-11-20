@@ -13,10 +13,11 @@ Comprehensive technical documentation for the Reels SDK.
 - [02-Android-Integration-Guide](./02-Integration/02-Android-Integration-Guide.md)
 
 ### 🔧 [03-Architecture](./03-Architecture/)
-- [README](./03-Architecture/README.md) - Architecture overview
-- [01-Platform-Communication](./03-Architecture/01-Platform-Communication.md)
-- [02-Flutter-Engine-Lifecycle](./03-Architecture/02-Flutter-Engine-Lifecycle.md)
-- [03-Generation-Based-State-Management](./03-Architecture/03-Generation-Based-State-Management.md)
+- [Architecture Overview](./03-Architecture/00-Overview.md)
+- [Platform Communication](./03-Architecture/01-Platform-Communication.md)
+- [Flutter Engine Lifecycle](./03-Architecture/02-Flutter-Engine-Lifecycle.md)
+- [Generation-Based State Management](./03-Architecture/03-Generation-Based-State-Management.md)
+- [iOS Coordinator Pattern](./03-Architecture/04-iOS-Coordinator-Pattern.md)
 
 ### 🔨 [04-Build-Process](./04-Build-Process/)
 - [01-iOS-Build](./04-Build-Process/01-iOS-Build.md)
@@ -30,7 +31,7 @@ Comprehensive technical documentation for the Reels SDK.
 - [Android Local Development](./06-Dev-Process/01-Android-Local-Development.md) - Folder-based integration for SDK development
 
 ### 🔧 [07-Scripts](./07-Scripts/)
-- [README](./07-Scripts/README.md) - Scripts overview and structure
+- [Scripts Overview](./07-Scripts/00-Overview.md)
 - **Android:**
   - [Local Scripts](./07-Scripts/Android/01-Local-Scripts.md) - Development and AAR build scripts
   - [Workflow Scripts](./07-Scripts/Android/02-Workflow-Scripts.md) - GitHub Actions release workflows
@@ -45,9 +46,9 @@ Comprehensive technical documentation for the Reels SDK.
 
 **Development:**
 - [Technology Stack](./01-Overview/02-Technology-Stack.md)
-- [Architecture](./03-Architecture/README.md)
+- [Architecture](./03-Architecture/00-Overview.md)
 - [Build Process](./04-Build-Process/)
-- [Scripts Documentation](./07-Scripts/)
+- [Scripts Documentation](./07-Scripts/00-Overview.md)
 
 **Deployment:**
 - [iOS Release Process](./05-Release-Process/01-iOS-Release.md)

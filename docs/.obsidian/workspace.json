@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "06-Dev-Process/01-Android-Local-Development.md",
+                "file": "README.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "01-Android-Local-Development"
+              "title": "README"
             }
           }
         ]
@@ -168,8 +168,10 @@
   },
   "active": "ee9c237cef7479c3",
   "lastOpenFiles": [
-    "03-Architecture/04-iOS-Coordinator-Pattern.md",
     "06-Dev-Process/01-Android-Local-Development.md",
+    "07-Scripts/00-Overview.md",
+    "03-Architecture/00-Overview.md",
+    "03-Architecture/04-iOS-Coordinator-Pattern.md",
     "04-Build-Process/02-Android-Build.md",
     "05-Release-Process/02-Android-Release.md",
     "07-Scripts/README.md",
@@ -201,8 +203,6 @@
     "Architecture/README.md",
     "05-Release-Process/iOS-Release.md",
     "05-Release-Process/Android-Release.md",
-    "05-Release-Process",
-    "04-Build-Process/iOS-Build.md",
-    "04-Build-Process/Android-Build.md"
+    "05-Release-Process"
   ]
 }

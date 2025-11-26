@@ -149,6 +149,7 @@ jobs:
 
           # Copy reels_android AAR from local Maven
           echo "Copying reels_android AAR from local Maven..."
+          mkdir -p "$PACKAGE_DIR/maven-repo/com/rakuten"
           cp -r ~/.m2/repository/com/rakuten/reels_android "$PACKAGE_DIR/maven-repo/com/rakuten/"
 
           echo ""

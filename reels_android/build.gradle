@@ -139,7 +139,7 @@ publishing {
         }
 
         debug(MavenPublication) {
-            groupId = 'com.rakuten'
+            groupId = 'com.rakuten.reels'
             artifactId = 'reels_android'
             version = getVersionName()
 

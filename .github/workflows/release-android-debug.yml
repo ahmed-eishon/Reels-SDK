@@ -145,8 +145,10 @@ jobs:
           cp -r reels_flutter/build/host/outputs/repo/* "$PACKAGE_DIR/maven-repo/"
 
           # Copy reels_android AAR from local Maven
+          # Ensure the parent directory exists, then copy without trailing slash
           echo "Copying reels_android AAR from local Maven..."
-          cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten/"
+          mkdir -p "$PACKAGE_DIR/maven-repo/com/rakuten"
+          cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten"
 
           echo ""
           echo "=== Package Maven structure ===="

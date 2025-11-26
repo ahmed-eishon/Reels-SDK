@@ -68,15 +68,29 @@ repositories {
 }
 
 dependencies {
-    // Flutter module - using local project for development (source-based integration)
-    // When include_flutter.groovy is evaluated in settings.gradle, it creates a :flutter project
-    // This allows direct compilation from Dart source instead of pre-built AAR
-    // The :flutter project automatically includes all dependencies transitively:
-    // - Flutter engine (embedding, architecture-specific libs)
-    // - Flutter plugins (video_player, package_info_plus, etc.) with their native deps
-    // - Media3 (from video_player_android plugin)
-    // - ReLinker (from Flutter embedding)
-    api project(':flutter')
+    // Flutter module - using api instead of implementation to expose to consuming apps
+    debugApi 'com.example.reels_flutter:flutter_debug:1.0'
+    releaseApi 'com.example.reels_flutter:flutter_release:1.0'
+
+    // Flutter engine embedding - required for Flutter runtime
+    debugApi 'io.flutter:flutter_embedding_debug:1.0.0-b45fa18946'
+    releaseApi 'io.flutter:flutter_embedding_release:1.0.0-b45fa18946'
+
+    // Architecture-specific Flutter engine artifacts
+    debugApi 'io.flutter:armeabi_v7a_debug:1.0.0-b45fa18946'
+    debugApi 'io.flutter:arm64_v8a_debug:1.0.0-b45fa18946'
+    debugApi 'io.flutter:x86_64_debug:1.0.0-b45fa18946'
+    releaseApi 'io.flutter:armeabi_v7a_release:1.0.0-b45fa18946'
+    releaseApi 'io.flutter:arm64_v8a_release:1.0.0-b45fa18946'
+    releaseApi 'io.flutter:x86_64_release:1.0.0-b45fa18946'
+
+    // Media3 dependencies required by video_player plugin
+    api 'androidx.media3:media3-exoplayer:1.1.1'
+    api 'androidx.media3:media3-common:1.1.1'
+    api 'androidx.media3:media3-datasource:1.1.1'
+
+    // ReLinker required by Flutter embedding
+    api 'com.getkeepsafe.relinker:relinker:1.4.5'
 
     // Android X
     implementation(libs.androidx.appcompat)
@@ -125,7 +139,7 @@ publishing {
         }
 
         debug(MavenPublication) {
-            groupId = 'com.rakuten'
+            groupId = 'com.rakuten.reels'
             artifactId = 'reels_android'
             version = getVersionName()
 

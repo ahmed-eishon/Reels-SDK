@@ -34,13 +34,24 @@ if ! clean_flutter_build "$FLUTTER_DIR"; then
     exit 1
 fi
 
-# Step 4: Remove .android directory
-log_step "4" "Removing .android directory"
+# Step 4: Remove .android directory and Flutter build cache
+log_step "4" "Removing .android directory and Flutter build cache"
 if [ -d "$FLUTTER_DIR/.android" ]; then
     rm -rf "$FLUTTER_DIR/.android"
     log_success ".android directory removed"
 else
     log_info ".android directory already clean"
+fi
+
+# Also remove Flutter's Dart build cache to force complete rebuild
+if [ -d "$FLUTTER_DIR/.dart_tool/flutter_build" ]; then
+    rm -rf "$FLUTTER_DIR/.dart_tool/flutter_build"
+    log_success "Flutter build cache cleared"
+fi
+
+if [ -d "$FLUTTER_DIR/build" ]; then
+    rm -rf "$FLUTTER_DIR/build"
+    log_success "Flutter build directory cleared"
 fi
 
 # Step 5: Run flutter pub get
@@ -116,6 +127,40 @@ log_success "local.properties configured"
 log_info "sdk.dir=$SDK_DIR"
 log_info "flutter.sdk=$FLUTTER_SDK_DIR"
 
+# Step 11: Clean ROOM Android app build cache (if it exists)
+log_step "11" "Cleaning ROOM Android app build cache"
+ROOM_ANDROID_DIR="$(dirname "$(dirname "$(dirname "$SDK_ROOT")")")/room-android"
+if [ -d "$ROOM_ANDROID_DIR" ]; then
+    log_info "Found ROOM Android app at: $ROOM_ANDROID_DIR"
+
+    # Stop Gradle daemon first
+    if command -v cd >/dev/null 2>&1; then
+        cd "$ROOM_ANDROID_DIR" 2>/dev/null && ./gradlew --stop 2>/dev/null || true
+        log_success "Stopped Gradle daemon"
+    fi
+
+    # Remove build directories
+    if [ -d "$ROOM_ANDROID_DIR/app/build" ]; then
+        rm -rf "$ROOM_ANDROID_DIR/app/build"
+        log_success "Removed app/build"
+    fi
+
+    if [ -d "$ROOM_ANDROID_DIR/build" ]; then
+        rm -rf "$ROOM_ANDROID_DIR/build"
+        log_success "Removed build"
+    fi
+
+    # Remove Gradle cache
+    if [ -d "$ROOM_ANDROID_DIR/.gradle" ]; then
+        rm -rf "$ROOM_ANDROID_DIR/.gradle"
+        log_success "Removed .gradle cache"
+    fi
+
+    log_success "ROOM Android app build cache cleaned"
+else
+    log_info "ROOM Android app not found at expected location, skipping"
+fi
+
 # Success summary
 track_script_end
 log_footer "✅ Android Development Setup Complete!"
@@ -125,6 +170,7 @@ log_success "Flutter clean & pub get"
 log_success "Android platform files regenerated"
 log_success "Pigeon code regenerated"
 log_success "All files verified"
+log_success "ROOM Android build cache cleaned"
 echo ""
 
 echo "📝 Integration Instructions for Your Android App:"

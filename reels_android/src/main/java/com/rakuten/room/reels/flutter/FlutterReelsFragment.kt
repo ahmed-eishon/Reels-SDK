@@ -53,14 +53,32 @@ class FlutterReelsFragment : Fragment() {
         // Initialize Flutter engine if not already done
         ReelsFlutterSDK.initialize(requireContext())
 
-        flutterFragment = FlutterFragment.withCachedEngine(ReelsFlutterSDK.getEngineId())
+        // Get or create engine ID for this generation
+        val engineId = if (generation > 0) {
+            // Try to get existing engine for this generation
+            val existingEngineId = ReelsFlutterSDK.getEngineIdForGeneration(generation)
+            if (existingEngineId != null) {
+                Log.d(TAG, "Using existing engine for generation $generation: $existingEngineId")
+                existingEngineId
+            } else {
+                // Create new engine for this generation
+                val newEngineId = ReelsFlutterSDK.createEngineForGeneration(requireContext(), generation, initialRoute)
+                Log.d(TAG, "Created new engine for generation $generation: $newEngineId")
+                newEngineId
+            }
+        } else {
+            Log.w(TAG, "No generation number provided, falling back to primary engine")
+            ReelsFlutterSDK.getEngineId()
+        }
+
+        flutterFragment = FlutterFragment.withCachedEngine(engineId)
             .build()
-        
+
         childFragmentManager
             .beginTransaction()
             .add(android.R.id.content, flutterFragment!!)
             .commit()
-        
+
         return flutterFragment?.view
     }
     
@@ -95,15 +113,22 @@ class FlutterReelsFragment : Fragment() {
     }
 
     override fun onDestroy() {
+        Log.d(TAG, "🗑️ FlutterReelsFragment destroyed")
+
         // Clean up generation data if fragment is being removed (not just recreating)
         if (isRemoving) {
             val generation = arguments?.getInt(ARG_GENERATION, 0) ?: 0
             if (generation > 0) {
+                // Clean up collect data
                 ReelsModule.cleanupGeneration(generation)
-                Log.d(TAG, "Fragment being removed, cleaned up generation #$generation")
+                Log.d(TAG, "✅ Fragment being removed, cleaned up collect data for generation #$generation")
+
+                // Clean up Flutter engine for this generation
+                ReelsFlutterSDK.cleanupEngineForGeneration(generation)
+                Log.d(TAG, "✅ Cleaned up Flutter engine for generation #$generation")
             }
         } else {
-            Log.d(TAG, "Fragment destroyed but not removing (config change?) - keeping data")
+            Log.d(TAG, "⚠️ Fragment destroyed but not removing (config change?) - keeping data and engine")
         }
 
         super.onDestroy()

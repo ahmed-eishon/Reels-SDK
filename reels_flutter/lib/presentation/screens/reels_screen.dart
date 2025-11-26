@@ -46,110 +46,107 @@ class _ReelsScreenState extends State<ReelsScreen>
     _stateEventsService = sl<StateEventsService>();
     WidgetsBinding.instance.addObserver(this);
 
-    // Set up lifecycle callbacks to manage state and resources
-    final lifecycleService = sl<LifecycleService>();
+    // IMPORTANT: Fetch generation FIRST, then register lifecycle callbacks
+    // This ensures each ReelsScreen instance registers its own callbacks under its generation number
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      print('[ReelsSDK-Flutter] ReelsScreen.initState: Fetching generation and registering lifecycle callbacks');
 
-    // Reset state callback - triggered by native when screen is presented
-    // This ensures each screen presentation gets fresh collect data
-    lifecycleService.setOnResetState(() async {
-      print('[ReelsSDK-Flutter] ReelsScreen: Resetting state via lifecycle callback');
-
-      // Fetch and store THIS screen's generation number
+      // Fetch THIS screen's generation number
       final collectContextService = sl<CollectContextService>();
       final generation = await collectContextService.getCurrentGeneration();
       _screenGeneration = generation;
-      print('[ReelsSDK-Flutter] ReelsScreen: Stored screen generation: $_screenGeneration');
+      print('[ReelsSDK-Flutter] ReelsScreen.initState: Screen generation: $_screenGeneration');
 
-      final videoProvider = context.read<VideoProvider>();
+      // Now register lifecycle callbacks FOR THIS GENERATION
+      final lifecycleService = sl<LifecycleService>();
 
-      // Reset to clear any stale data from previous screen
-      videoProvider.reset();
+      // Reset state callback - triggered by native when screen is presented
+      lifecycleService.setOnResetState(() async {
+        print('[ReelsSDK-Flutter] ReelsScreen(gen:$_screenGeneration): Resetting state via lifecycle callback');
 
-      // Load fresh videos and collect data for THIS screen's generation
-      videoProvider.loadVideos(generation: _screenGeneration);
-
-      // Recreate PageController for fresh presentation
-      if (mounted) {
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (mounted) {
-            setState(() {
-              _pageController?.dispose();
-              _pageController = PageController();
-              _currentIndex = 0;
-              _isScreenActive = true;
-              _pageViewGeneration++;
-              print('[ReelsSDK-Flutter] PageController recreated in resetState (generation: $_pageViewGeneration)');
-            });
-          }
-        });
-      }
-
-      print('[ReelsSDK-Flutter] ReelsScreen: Reset and reload triggered');
-    });
-
-    // Pause all resources when screen loses focus
-    lifecycleService.setOnPauseAll(() {
-      print('[ReelsSDK-Flutter] ReelsScreen: Pausing all resources');
-      if (mounted) {
-        // Set inactive to stop video playback immediately
-        setState(() {
-          _isScreenActive = false;
-          _currentIndex = 0;  // Reset to first video for next session
-        });
-
-        // Dispose PageController synchronously to prevent race conditions
-        // This ensures old video players are fully released before any resume call
-        _pageController?.dispose();
-        _pageController = null;
-        print('[ReelsSDK-Flutter] PageController disposed synchronously to cleanup video players');
-      }
-    });
-
-    // Resume all resources when screen gains focus
-    // iOS passes the generation of the specific screen being resumed
-    lifecycleService.setOnResumeAll((int generation) async {
-      print('[ReelsSDK-Flutter] ReelsScreen: Resuming all resources for generation: $generation');
-      if (mounted) {
         final videoProvider = context.read<VideoProvider>();
 
-        // Reload videos using the generation passed from iOS
-        // This may use cached state for instant resume
-        await videoProvider.loadVideos(generation: generation);
+        // Reset to clear any stale data from previous screen
+        videoProvider.reset();
 
-        // Get saved position for this generation
-        final savedIndex = videoProvider.getCurrentIndex();
-        print('[ReelsSDK-Flutter] ReelsScreen: Restoring to index $savedIndex');
+        // Load fresh videos and collect data for THIS screen's generation
+        videoProvider.loadVideos(generation: _screenGeneration);
 
-        // Wait for current frame to complete disposal
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          // Then wait ONE MORE frame to ensure widget tree cleanup is complete
-          // This prevents creating new video players before old ones are fully disposed
+        // Recreate PageController for fresh presentation
+        if (mounted) {
           WidgetsBinding.instance.addPostFrameCallback((_) {
             if (mounted) {
               setState(() {
+                _pageController?.dispose();
+                _pageController = PageController();
+                _currentIndex = 0;
                 _isScreenActive = true;
-                _currentIndex = savedIndex;  // Restore saved position
-                _pageViewGeneration++;  // Increment generation to force PageView recreation
-                // Create new PageController at saved position
-                _pageController = PageController(initialPage: savedIndex);
-                print('[ReelsSDK-Flutter] New PageController created at index $savedIndex (generation: $_pageViewGeneration)');
+                _pageViewGeneration++;
+                print('[ReelsSDK-Flutter] PageController recreated in resetState (generation: $_pageViewGeneration)');
               });
             }
           });
-        });
-      }
-    });
+        }
 
-    // Reset provider state for fresh screen presentation
-    // This ensures collect data is fetched fresh each time
-    WidgetsBinding.instance.addPostFrameCallback((_) async {
-      print('[ReelsSDK-Flutter] ReelsScreen.initState: Resetting and loading videos');
+        print('[ReelsSDK-Flutter] ReelsScreen(gen:$_screenGeneration): Reset and reload triggered');
+      }, generation: _screenGeneration);
 
-      // Fetch and store THIS screen's generation number on initial load
-      final collectContextService = sl<CollectContextService>();
-      final generation = await collectContextService.getCurrentGeneration();
-      _screenGeneration = generation;
-      print('[ReelsSDK-Flutter] ReelsScreen.initState: Stored screen generation: $_screenGeneration');
+      // Pause all resources when screen loses focus
+      lifecycleService.setOnPauseAll(() {
+        print('[ReelsSDK-Flutter] ReelsScreen(gen:$_screenGeneration): Pausing all resources');
+        if (mounted) {
+          // Save current index to cache before pausing
+          final videoProvider = context.read<VideoProvider>();
+          videoProvider.updateCurrentIndex(_currentIndex);
+
+          // Set inactive to stop video playback immediately
+          setState(() {
+            _isScreenActive = false;
+          });
+
+          // Dispose PageController synchronously to prevent race conditions
+          _pageController?.dispose();
+          _pageController = null;
+          print('[ReelsSDK-Flutter] PageController disposed, saved index: $_currentIndex');
+        }
+      }, generation: _screenGeneration);
+
+      // Resume all resources when screen gains focus
+      lifecycleService.setOnResumeAll((int generation) async {
+        print('[ReelsSDK-Flutter] ReelsScreen(gen:$_screenGeneration): Resuming for generation: $generation');
+        // Only handle resume if it's for THIS generation
+        if (generation != _screenGeneration) {
+          print('[ReelsSDK-Flutter] ⚠️  Resume called for gen $generation but THIS is gen $_screenGeneration, ignoring');
+          return;
+        }
+
+        if (mounted) {
+          final videoProvider = context.read<VideoProvider>();
+
+          // Get saved position BEFORE loading (from previous pause)
+          final savedIndex = videoProvider.getCurrentIndex();
+          print('[ReelsSDK-Flutter] ReelsScreen(gen:$_screenGeneration): Will restore to index $savedIndex');
+
+          // Recreate PageController immediately in current frame
+          // This prevents showing loading spinner
+          setState(() {
+            _isScreenActive = true;
+            _currentIndex = savedIndex;
+            _pageViewGeneration++;
+            _pageController = PageController(initialPage: savedIndex);
+            print('[ReelsSDK-Flutter] PageController recreated at index $savedIndex (gen: $_pageViewGeneration)');
+          });
+
+          // Then reload videos asynchronously (will use cache for instant restore)
+          await videoProvider.loadVideos(generation: generation);
+          print('[ReelsSDK-Flutter] ReelsScreen(gen:$_screenGeneration): Videos reloaded');
+        }
+      }, generation: _screenGeneration);
+
+      print('[ReelsSDK-Flutter] ReelsScreen: Lifecycle callbacks registered for generation $_screenGeneration');
+
+      // Now load initial videos
+      print('[ReelsSDK-Flutter] ReelsScreen.initState: Loading initial videos');
 
       final videoProvider = context.read<VideoProvider>();
 

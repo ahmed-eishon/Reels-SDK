@@ -64,6 +64,13 @@ object ReelsModule {
     private val collectDataByGeneration: MutableMap<Int, CollectData?> = mutableMapOf()
 
     /**
+     * Cache for video scroll positions by generation
+     * Stores the last known video index for each generation to enable instant resume
+     * This is stored in native (not Flutter) because each engine has separate Dart isolates
+     */
+    private val videoIndexCache: MutableMap<Int, Int> = mutableMapOf()
+
+    /**
      * Debug mode flag
      */
     private var debugMode: Boolean = false
@@ -209,6 +216,25 @@ object ReelsModule {
      * @param listener Listener to receive events from Flutter
      */
     fun setListener(listener: ReelsListener?) {
+        Log.d(TAG, "[CODE_VERSION=4] setListener() called - updating global listener")
+        ReelsFlutterSDK.setListener(listener)
+    }
+
+    /**
+     * Re-register the listener
+     * Call this from your fragment's onResume() to ensure the listener is current
+     * This fixes issues with detached fragments in nested navigation
+     *
+     * Usage in your fragment:
+     * ```kotlin
+     * override fun onResume() {
+     *     super.onResume()
+     *     ReelsModule.reregisterListener(yourListener)
+     * }
+     * ```
+     */
+    fun reregisterListener(listener: ReelsListener?) {
+        Log.d(TAG, "[CODE_VERSION=4] reregisterListener() called from fragment resume")
         ReelsFlutterSDK.setListener(listener)
     }
 
@@ -221,7 +247,12 @@ object ReelsModule {
      */
     internal fun getInitialCollect(generation: Int): CollectData? {
         val collectData = collectDataByGeneration[generation]
-        Log.d(TAG, "📦 getInitialCollect(generation: $generation) called, returning: ${collectData?.id ?: "null"}")
+        Log.d(TAG, "📦 getInitialCollect(generation: $generation) called")
+        Log.d(TAG, "   Requested generation: $generation")
+        Log.d(TAG, "   Returning collect ID: ${collectData?.id ?: "null"}")
+        Log.d(TAG, "   Returning collect name: ${collectData?.name ?: "null"}")
+        Log.d(TAG, "   Total generations in map: ${collectDataByGeneration.size}")
+        Log.d(TAG, "   All generations in map: ${collectDataByGeneration.keys.joinToString()}")
         return collectData
     }
 

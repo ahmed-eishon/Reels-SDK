@@ -305,6 +305,21 @@ class _VideoPlayerWidgetState extends State<VideoPlayerWidget> {
       _safeSetState(() {
         _isInitialized = true;
       });
+
+      // IMPORTANT: Explicitly start playback if widget is active
+      // This ensures video plays when returning to screen from background
+      // autoPlay in ChewieController sometimes doesn't trigger reliably
+      if (widget.isActive && !_isDisposed) {
+        print('[VideoPlayer] ▶️  Widget is active after init, explicitly starting playback');
+        try {
+          await _videoPlayerController!.play();
+          _safeSetState(() {
+            _showPlayButton = false;
+          });
+        } catch (e) {
+          print('[VideoPlayer] ⚠️  Error starting playback: $e');
+        }
+      }
     } catch (e) {
       print('VideoPlayerWidget: Error initializing player: $e');
       _safeSetState(() {

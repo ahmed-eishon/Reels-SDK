@@ -66,18 +66,6 @@ class ReelsPigeonHandler: NSObject {
             reply(nil)
         }
 
-        // Handle swipe right events
-        let swipeRightChannel = FlutterBasicMessageChannel(
-            name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeRight",
-            binaryMessenger: messenger,
-            codec: codec
-        )
-        swipeRightChannel.setMessageHandler { message, reply in
-            print("[ReelsSDK-iOS] Received swipe right event")
-            ReelsModule.getListener()?.onSwipeRight()
-            reply(nil)
-        }
-
         // Handle user profile click events
         let userProfileClickChannel = FlutterBasicMessageChannel(
             name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick",

@@ -1,333 +1,413 @@
----
-title: SDK Overview
-type: overview
-tags: [sdk, overview, reels]
----
+# Reels SDK - Overview
 
-# 🎥 SDK Overview
-
-> [!info] Reels SDK
-> Multi-platform SDK for integrating vertical video reels functionality into iOS and Android applications using Flutter's Add-to-App pattern
+> **Version:** 0.1.4
+> **Status:** Active Development
+> **Platforms:** iOS 16.0+ | Android SDK 21+
 
 ## What is Reels SDK?
 
-The Reels SDK is a **multi-platform video reels solution** that provides a TikTok-style vertical video experience for iOS and Android applications. It leverages Flutter's "Add-to-App" approach to share core functionality between platforms while providing native Swift and Kotlin bridges for seamless integration.
-
-## Key Characteristics
-
-### Multi-Platform Architecture
+Reels SDK is a multi-platform video reels solution that provides a TikTok-style vertical video experience for iOS and Android applications. It uses Flutter's "Add-to-App" pattern to share core functionality between platforms while providing native Swift and Kotlin bridges for seamless integration.
 
 ```mermaid
 graph TB
+    subgraph "Native Applications"
+        IOS[iOS App<br/>Swift/UIKit]
+        ANDROID[Android App<br/>Kotlin]
+    end
+
     subgraph "Reels SDK"
-        FLUTTER[reels_flutter<br/>Shared Core<br/>Flutter/Dart]
-        IOS_BRIDGE[reels_ios<br/>iOS Bridge<br/>Swift]
-        ANDROID_BRIDGE[reels_android<br/>Android Bridge<br/>Kotlin]
+        subgraph "Native Bridges"
+            IOS_BRIDGE[reels_ios<br/>Swift Bridge]
+            ANDROID_BRIDGE[reels_android<br/>Kotlin Bridge]
+        end
+
+        subgraph "Shared Core"
+            FLUTTER[reels_flutter<br/>Flutter Module<br/>Dart]
+        end
+
+        PIGEON[Pigeon<br/>Type-Safe Channels]
     end
 
-    subgraph "Native Apps"
-        IOS_APP[iOS App]
-        ANDROID_APP[Android App]
-    end
+    IOS -->|Initialize & Open| IOS_BRIDGE
+    ANDROID -->|Initialize & Open| ANDROID_BRIDGE
 
-    IOS_APP -->|CocoaPods| IOS_BRIDGE
-    ANDROID_APP -->|Gradle| ANDROID_BRIDGE
-    IOS_BRIDGE -->|Pigeon| FLUTTER
-    ANDROID_BRIDGE -->|Pigeon| FLUTTER
+    IOS_BRIDGE <-->|Platform Calls| PIGEON
+    ANDROID_BRIDGE <-->|Platform Calls| PIGEON
 
+    PIGEON <-->|Bidirectional| FLUTTER
+
+    style IOS fill:#87CEEB
+    style ANDROID fill:#90EE90
+    style IOS_BRIDGE fill:#FFB6C1
+    style ANDROID_BRIDGE fill:#FFD700
     style FLUTTER fill:#9370DB
-    style IOS_BRIDGE fill:#87CEEB
-    style ANDROID_BRIDGE fill:#90EE90
+    style PIGEON fill:#FFA500
 ```
 
-### Core Components
+## Key Features
 
-| Component | Technology | Purpose | Size |
-|-----------|-----------|---------|------|
-| **reels_flutter** | Flutter/Dart | Shared UI and business logic | ~5,000 LOC |
-| **reels_ios** | Swift 5.9+ | iOS native bridge | ~800 LOC |
-| **reels_android** | Kotlin 1.9+ | Android native bridge | ~900 LOC |
-| **Pigeon** | Code Generation | Type-safe communication | Auto-generated |
-
-## Features
-
-### User-Facing Features
-
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Vertical Video Feed** | Swipeable vertical reels (TikTok-style) | ✅ |
-| **Like/Unlike** | Like button with like count | ✅ |
-| **Share** | Share videos to social platforms | ✅ |
-| **Comments** | Comment on videos | ✅ |
-| **User Profiles** | Navigate to user profiles | ✅ |
-| **Product Tags** | Shopping integration with products | ✅ |
-| **Autoplay** | Automatic video playback on view | ✅ |
-| **Video Controls** | Play/pause, seek, volume | ✅ |
-| **Video Descriptions** | Show video title, description | ✅ |
+### User Features
+- **Vertical Video Feed** - TikTok-style swipeable video experience
+- **Engagement Actions** - Like, share, and comment functionality
+- **User Profiles** - Navigate to user profile pages
+- **Product Integration** - Shopping features with product tags
+- **Video Playback** - Smooth autoplay with controls
 
 ### Technical Features
+- **Type-Safe Communication** - Pigeon-generated platform channels
+- **Clean Architecture** - Domain-driven design with clear separation
+- **Cross-Platform** - Single Flutter codebase for iOS and Android
+- **Native Performance** - Native bridges ensure optimal performance
+- **Analytics Support** - Built-in event tracking
+- **State Management** - Generation-based state for independent screen instances
 
-| Feature | Description | Status |
-|---------|-------------|--------|
-| **Type-Safe Communication** | Pigeon-generated platform channels | ✅ |
-| **Clean Architecture** | Domain-driven design pattern | ✅ |
-| **Dependency Injection** | GetIt for IoC container | ✅ |
-| **State Management** | Provider pattern | ✅ |
-| **Async Access Tokens** | Support for async token providers | ✅ |
-| **Event Callbacks** | ReelsListener interface | ✅ |
-| **Analytics Tracking** | Built-in event tracking | ✅ |
-| **Screen State Monitoring** | Lifecycle tracking | ✅ |
-| **Video State Monitoring** | Playback state tracking | ✅ |
-| **Mock Data Support** | Development/testing support | ✅ |
-
-## Platform Support
-
-### iOS Requirements
-
-| Requirement | Value | Notes |
-|-------------|-------|-------|
-| **Minimum iOS** | 16.0 | Modern iOS support |
-| **Swift Version** | 5.9+ | Native bridge language |
-| **Xcode** | 15.0+ | Development environment |
-| **CocoaPods** | Latest | Dependency manager (required) |
-| **Flutter SDK** | 3.9.2+ | Build-time requirement |
-
-### Android Requirements
-
-| Requirement | Value | Notes |
-|-------------|-------|-------|
-| **Min SDK** | 21 | Android 5.0 (Lollipop) |
-| **Target SDK** | 35 | Android 15 |
-| **Kotlin** | 1.9+ | Native bridge language |
-| **Gradle** | 8.0+ | Build tool |
-| **Android Studio** | Latest | Development environment |
-| **Flutter SDK** | 3.9.2+ | Build-time requirement |
-
-## Distribution Model
-
-### Version Control
+## Architecture at a Glance
 
 ```mermaid
 graph LR
-    GIT[Git Repository<br/>Private Rakuten GitPub] --> TAGS[Version Tags<br/>v1.0.0, v1.1.0, etc.]
-    TAGS --> IOS[iOS Integration<br/>CocoaPods]
-    TAGS --> ANDROID[Android Integration<br/>Gradle]
+    subgraph "Presentation Layer"
+        UI[Screens & Widgets]
+        STATE[State Providers]
+    end
 
-    style GIT fill:#FFB6C1
-    style TAGS fill:#FFD700
-    style IOS fill:#87CEEB
-    style ANDROID fill:#90EE90
+    subgraph "Domain Layer"
+        ENTITIES[Entities]
+        USECASES[Use Cases]
+        REPOS_INTERFACE[Repository<br/>Interfaces]
+    end
+
+    subgraph "Data Layer"
+        DATASOURCES[Data Sources]
+        MODELS[Models]
+        REPOS_IMPL[Repository<br/>Implementations]
+    end
+
+    subgraph "Core Layer"
+        DI[Dependency<br/>Injection]
+        SERVICES[Platform<br/>Services]
+        PIGEON_GEN[Pigeon<br/>Generated]
+    end
+
+    UI --> USECASES
+    STATE --> USECASES
+    USECASES --> REPOS_INTERFACE
+    REPOS_INTERFACE --> REPOS_IMPL
+    REPOS_IMPL --> DATASOURCES
+    REPOS_IMPL --> MODELS
+
+    UI --> SERVICES
+    USECASES --> DI
+    SERVICES --> PIGEON_GEN
+
+    style UI fill:#FFB6C1
+    style USECASES fill:#87CEEB
+    style REPOS_IMPL fill:#90EE90
+    style SERVICES fill:#FFD700
 ```
 
-| Aspect | Details |
-|--------|---------|
-| **Repository** | Private Rakuten GitPub |
-| **URL** | `https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git` |
-| **Versioning** | Semantic Versioning (SemVer) |
-| **Current Version** | 1.0.0 |
-| **Distribution** | Git tags + Git repository |
-| **Access** | Private (Rakuten only) |
+## SDK Components
 
-### Integration Methods
+### 1. reels_flutter (Flutter Core)
+**Purpose:** Shared UI and business logic
 
-#### iOS Integration Options
+**Technologies:**
+- Flutter 3.35.6
+- Dart SDK ^3.9.2
+- Provider (State Management)
+- GetIt (Dependency Injection)
+- Video Player & Chewie (Video Playback)
+- Pigeon (Platform Communication)
 
-| Method | Use Case | Pros | Cons |
-|--------|----------|------|------|
-| **Git + CocoaPods** | Production builds | ✅ Version control<br/>✅ Easy updates<br/>✅ CI/CD friendly | ⚠️ Git auth required<br/>⚠️ Network needed |
-| **Local Folder** | Development | ✅ No auth issues<br/>✅ Instant changes<br/>✅ Easy debugging | ⚠️ Manual version mgmt |
+### 2. reels_ios (iOS Bridge)
+**Purpose:** Native Swift wrapper for iOS apps
 
-#### Android Integration Options
+**Technologies:**
+- Swift 5.9+
+- iOS 16.0+
+- CocoaPods
+- Pigeon-generated channels
 
-| Method | Use Case | Pros | Cons |
-|--------|----------|------|------|
-| **Git + Gradle** | Production builds | ✅ Version control<br/>✅ Gradle managed<br/>✅ CI/CD friendly | ⚠️ Git auth required<br/>⚠️ Slower builds |
-| **Local Folder** | Development | ✅ No auth issues<br/>✅ Fast builds<br/>✅ Easy debugging | ⚠️ Manual version mgmt |
+**Key Files:**
+- `ReelsModule.swift` - Main public API
+- `ReelsCoordinator.swift` - Navigation coordinator
+- `ReelsEngineManager.swift` - Flutter engine lifecycle
+- `ReelsPigeonHandler.swift` - Platform communication
+- `PigeonGenerated.swift` - Auto-generated type-safe channels
 
-## SDK Size & Performance
+### 3. reels_android (Android Bridge)
+**Purpose:** Native Kotlin wrapper for Android apps
 
-### Size Metrics
+**Technologies:**
+- Kotlin 2.1.0
+- Android SDK 21+ (Android 5.0+)
+- Target SDK 35 (Android 15)
+- Gradle 8.14
+- Pigeon-generated channels
 
-| Platform | SDK Size | Notes |
-|----------|----------|-------|
-| **iOS** | ~300 KB | Swift bridge + Flutter source |
-| **Android** | ~370 KB | Kotlin bridge + Flutter source |
-| **Flutter Engine** | Shared | Built into app, not counted in SDK size |
+**Key Files:**
+- `ReelsModule.kt` - Main public API
+- `FlutterReelsActivity.kt` - Full-screen activity
+- `FlutterReelsFragment.kt` - Embeddable fragment
+- `FlutterEngineManager.kt` - Flutter engine lifecycle
+- `FlutterMethodChannelHandler.kt` - Platform communication
+- `PigeonGenerated.kt` - Auto-generated type-safe channels
 
-### Performance Metrics
+## Platform Communication Flow
 
-| Metric | iOS | Android | Notes |
-|--------|-----|---------|-------|
-| **Initialization** | ~500ms | ~600ms | First launch |
-| **Memory Overhead** | ~50 MB | ~60 MB | Flutter engine + UI |
-| **Video Playback** | 60 FPS | 60 FPS | Smooth scrolling |
-| **Startup Time** | <1s | <1s | After initialization |
+```mermaid
+sequenceDiagram
+    participant App as Native App
+    participant Bridge as Native Bridge<br/>(Swift/Kotlin)
+    participant Pigeon as Pigeon Channels
+    participant Flutter as Flutter Module
 
-## Use Cases
+    App->>Bridge: 1. Initialize SDK<br/>with accessTokenProvider
+    App->>Bridge: 2. Set ReelsListener
+    App->>Bridge: 3. openReels()
 
-### Primary Use Cases
+    Bridge->>Flutter: 4. Launch Flutter View
+    activate Flutter
 
-1. **In-App Content Discovery**
-   - Browse video reels within your app
-   - Discover new content and creators
-   - Engage with videos (like, share, comment)
+    Note over Flutter: Flutter initializes<br/>and requests token
 
-2. **User-Generated Content**
-   - Display user-created video reels
-   - Enable social interactions
-   - Track engagement metrics
+    Flutter->>Pigeon: 5. getAccessToken()
+    Pigeon->>Bridge: Host API Call
+    Bridge->>App: accessTokenProvider()
+    App-->>Bridge: return token
+    Bridge-->>Pigeon: return token
+    Pigeon-->>Flutter: return token
 
-3. **Product Showcase**
-   - Show products in video format
-   - Interactive shopping experience
-   - Direct product links
+    Note over Flutter: User interacts<br/>with reels
 
-4. **Marketing Campaigns**
-   - Promotional video content
-   - Campaign-specific reels
-   - Track campaign performance
+    Flutter->>Pigeon: 6. onLikeButtonClick()
+    Pigeon->>Bridge: Flutter API Call
+    Bridge->>App: listener.onLikeButtonClick()
 
-### Integration Scenarios
+    Flutter->>Pigeon: 7. onAnalyticsEvent()
+    Pigeon->>Bridge: Flutter API Call
+    Bridge->>App: listener.onAnalyticsEvent()
 
-#### Scenario 1: Full-Screen Experience
+    App->>Bridge: 8. User dismisses
+    Bridge->>Flutter: Cleanup & Dispose
+    deactivate Flutter
+```
+
+## Quick Start
+
+### iOS (Swift)
 
 ```swift
-// iOS: Open full-screen reels
-ReelsCoordinator.openReels(from: viewController)
-```
+import ReelsIOS
 
-```kotlin
-// Android: Open full-screen activity
-ReelsModule.openReels(context = this)
-```
+// 1. Initialize (in AppDelegate)
+ReelsModule.initialize(
+    accessTokenProvider: { completion in
+        LoginManager.shared.getAccessToken { token in
+            completion(token)
+        }
+    },
+    debug: true
+)
 
-#### Scenario 2: Embedded Experience (Android Only)
+// 2. Set listener
+ReelsModule.setListener(self)
 
-```kotlin
-// Android: Embed in existing activity
-val fragment = ReelsModule.createReelsFragment()
-supportFragmentManager
-    .beginTransaction()
-    .replace(R.id.container, fragment)
-    .commit()
-```
-
-#### Scenario 3: Context-Aware Reels (iOS)
-
-```swift
-// iOS: Open reels with collect context
+// 3. Open reels
 ReelsModule.openReels(
     from: viewController,
-    collect: collectObject,  // Pass collect/item data
+    initialRoute: "/",
     animated: true
 )
 ```
 
-## Benefits
+### Android (Kotlin)
 
-### For Mobile Teams
+```kotlin
+import com.rakuten.room.reels.ReelsModule
 
-✅ **Reduced Development Time** - Single Flutter codebase for both platforms
-✅ **Consistent UX** - Same UI and behavior across iOS/Android
-✅ **Easy Integration** - Simple API with minimal setup
-✅ **Type Safety** - Compile-time safety with Pigeon
-✅ **Flexible Integration** - Multiple integration options
-✅ **Maintainable** - Clean architecture with clear boundaries
+// 1. Initialize (in Application.onCreate)
+ReelsModule.initialize(
+    context = applicationContext,
+    accessTokenProvider = { UserSession.accessToken },
+    debug: true
+)
 
-### For Product Teams
+// 2. Set listener
+ReelsModule.setListener(this)
 
-✅ **Faster Time-to-Market** - Quick feature deployment
-✅ **Cross-Platform Consistency** - Same features everywhere
-✅ **Rich Analytics** - Built-in event tracking
-✅ **Easy Customization** - Configurable behavior
-✅ **Production Ready** - Version 1.0.0, battle-tested
+// 3. Open reels
+ReelsModule.openReels(
+    activity = this,
+    initialRoute = "/",
+    animated = true
+)
+```
 
-### For Users
-
-✅ **Smooth Experience** - 60 FPS video playback
-✅ **Familiar Interface** - TikTok-style UX
-✅ **Fast Loading** - Optimized performance
-✅ **Native Feel** - Native bridges for seamless integration
-
-## Architecture Highlights
-
-### Clean Architecture
+## Integration Options
 
 ```mermaid
 graph TB
-    PRESENTATION[🎨 Presentation Layer<br/>UI + State Management]
-    DOMAIN[💼 Domain Layer<br/>Business Logic]
-    DATA[📦 Data Layer<br/>Repositories]
+    subgraph "Production Integration"
+        GIT_IOS[iOS: CocoaPods + Git Tag]
+        GIT_ANDROID[Android: Gradle + Git Tag]
+    end
 
-    PRESENTATION --> DOMAIN
-    DOMAIN --> DATA
+    subgraph "Development Integration"
+        LOCAL_IOS[iOS: CocoaPods + Local Folder]
+        LOCAL_ANDROID[Android: Gradle + Local Folder]
+    end
 
-    style PRESENTATION fill:#FFB6C1
-    style DOMAIN fill:#87CEEB
-    style DATA fill:#90EE90
+    SDK[Reels SDK Repository]
+
+    SDK -->|Version Tag| GIT_IOS
+    SDK -->|Version Tag| GIT_ANDROID
+    SDK -->|Direct Path| LOCAL_IOS
+    SDK -->|Direct Path| LOCAL_ANDROID
+
+    GIT_IOS -->|Downloads<br/>Frameworks| IOS_APP[iOS App]
+    GIT_ANDROID -->|Downloads<br/>AARs| ANDROID_APP[Android App]
+    LOCAL_IOS -->|Immediate<br/>Access| IOS_DEV[iOS Development]
+    LOCAL_ANDROID -->|Immediate<br/>Access| ANDROID_DEV[Android Development]
+
+    style GIT_IOS fill:#FFB6C1
+    style GIT_ANDROID fill:#FFD700
+    style LOCAL_IOS fill:#87CEEB
+    style LOCAL_ANDROID fill:#90EE90
 ```
 
-- **Presentation Layer:** Screens, widgets, state providers
-- **Domain Layer:** Use cases, entities, repository interfaces
-- **Data Layer:** Data sources, models, repository implementations
+### Integration Comparison
 
-### Communication Architecture
+| Method | Use Case | Advantages | Disadvantages |
+|--------|----------|------------|---------------|
+| **Git + CocoaPods/Gradle** | Production | ✅ Version control<br/>✅ Reproducible builds<br/>✅ CI/CD friendly | ⚠️ Requires Git auth<br/>⚠️ Slower updates |
+| **Local Folder Import** | Development | ✅ No auth needed<br/>✅ Instant updates<br/>✅ Full debugging<br/>✅ Fast iteration | ⚠️ Manual version control<br/>⚠️ Requires local SDK |
+
+## SDK Metrics
 
 ```mermaid
 graph LR
-    NATIVE[Native App] -->|Method Calls| PIGEON[Pigeon<br/>Type-Safe Channels]
-    PIGEON -->|Platform Calls| FLUTTER[Flutter Module]
-    FLUTTER -->|Callbacks| PIGEON
-    PIGEON -->|Events| NATIVE
+    subgraph "Size"
+        IOS_SIZE[iOS: ~300 KB]
+        ANDROID_SIZE[Android: ~370 KB]
+        FLUTTER_ENGINE[Flutter Engine<br/>~50-60 MB<br/>Shared Runtime]
+    end
 
-    style NATIVE fill:#90EE90
-    style PIGEON fill:#FFD700
-    style FLUTTER fill:#9370DB
+    subgraph "Requirements"
+        IOS_REQ[iOS 16.0+<br/>Swift 5.9+]
+        ANDROID_REQ[Android 21+<br/>Kotlin 2.1.0]
+        FLUTTER_REQ[Flutter 3.35.6]
+    end
+
+    subgraph "Performance"
+        INIT_IOS[Init: ~500ms<br/>iOS]
+        INIT_ANDROID[Init: ~600ms<br/>Android]
+        PLAYBACK[60 FPS Video<br/>Smooth Scrolling]
+    end
+
+    style IOS_SIZE fill:#87CEEB
+    style ANDROID_SIZE fill:#90EE90
+    style FLUTTER_ENGINE fill:#9370DB
 ```
 
-**Key Communication Patterns:**
-- **Host API:** Flutter calls native (e.g., get access token)
-- **Flutter API:** Native calls Flutter (e.g., analytics events)
-- **Type-Safe:** Compile-time safety with Pigeon code generation
-- **Bidirectional:** Two-way communication
+| Metric | iOS | Android |
+|--------|-----|---------|
+| **Bridge Size** | ~300 KB | ~370 KB |
+| **Min Version** | iOS 16.0 | SDK 21 (Android 5.0) |
+| **Target Version** | iOS 18 | SDK 35 (Android 15) |
+| **Language** | Swift 5.9+ | Kotlin 2.1.0 |
+| **Init Time** | ~500ms | ~600ms |
+| **Memory** | ~50 MB | ~60 MB |
 
-📖 **See:** [[03-Architecture/05-Platform-Communication|Platform Communication]]
+## Repository Structure
 
-## Getting Started
+```
+reels-sdk/
+├── reels_flutter/              # Flutter module (shared)
+│   ├── lib/
+│   │   ├── presentation/       # UI layer
+│   │   ├── domain/             # Business logic
+│   │   ├── data/               # Data sources
+│   │   └── core/               # DI, services, pigeon
+│   ├── assets/                 # Mock data
+│   └── pubspec.yaml
+│
+├── reels_ios/                  # iOS bridge
+│   └── Sources/ReelsIOS/
+│       ├── ReelsModule.swift
+│       ├── ReelsCoordinator.swift
+│       ├── ReelsEngineManager.swift
+│       └── PigeonGenerated.swift
+│
+├── reels_android/              # Android bridge
+│   └── src/main/java/com/rakuten/room/reels/
+│       ├── ReelsModule.kt
+│       ├── flutter/
+│       └── pigeon/
+│
+├── scripts/                    # Build & release scripts
+│   ├── sdk/ios/
+│   ├── sdk/android/
+│   └── dev/
+│
+├── docs/                       # Documentation
+└── .github/workflows/          # CI/CD workflows
+```
 
-### Quick Start
+## Distribution Model
 
-1. **Clone the repository:**
-   ```bash
-   git clone https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git
-   ```
+```mermaid
+graph TB
+    DEV[Developer] -->|1. Update VERSION| VERSION[VERSION file]
+    DEV -->|2. Commit & Push| GIT[Git Repository]
 
-2. **For iOS:**
-   ```bash
-   cd reels-sdk
-   ./scripts/init-ios.sh /path/to/reels-sdk /path/to/your-ios-app
-   ```
+    GIT -->|3. Push Tags| WORKFLOWS
 
-3. **For Android:**
-   ```bash
-   cd reels-sdk
-   ./scripts/init-android.sh /path/to/reels-sdk
-   ```
+    subgraph "GitHub Actions"
+        WORKFLOWS[Workflows Triggered]
 
-4. **Integrate into your app:**
-   - [[02-Integration/01-iOS-Integration-Guide|iOS Integration Guide]]
-   - [[02-Integration/05-Android-Integration-Guide|Android Integration Guide]]
+        subgraph "iOS"
+            IOS_DEBUG[release-ios-debug.yml]
+            IOS_RELEASE[release-ios.yml]
+        end
 
-## Related Documentation
+        subgraph "Android"
+            ANDROID_DEBUG[release-android-debug.yml]
+            ANDROID_RELEASE[release-android.yml]
+        end
+    end
 
-- [[02-Architecture-Overview|Architecture Overview]]
-- [[03-Technology-Stack|Technology Stack]]
-- [[04-Project-Structure|Project Structure]]
-- [[02-Integration/01-iOS-Integration-Guide|iOS Integration]]
-- [[02-Integration/05-Android-Integration-Guide|Android Integration]]
+    WORKFLOWS --> IOS_DEBUG
+    WORKFLOWS --> IOS_RELEASE
+    WORKFLOWS --> ANDROID_DEBUG
+    WORKFLOWS --> ANDROID_RELEASE
 
----
+    IOS_DEBUG -->|Build| IOS_DEBUG_RELEASE[v0.1.4-ios-debug<br/>Frameworks ZIP]
+    IOS_RELEASE -->|Build| IOS_RELEASE_RELEASE[v0.1.4-ios<br/>Frameworks ZIP]
+    ANDROID_DEBUG -->|Build| ANDROID_DEBUG_RELEASE[v0.1.4-android-debug<br/>AARs ZIP]
+    ANDROID_RELEASE -->|Build| ANDROID_RELEASE_RELEASE[v0.1.4-android<br/>AARs ZIP]
 
-Back to [[00-MOC-Reels-SDK|Main Hub]]
+    IOS_DEBUG_RELEASE -->|Download| USERS[End Users]
+    IOS_RELEASE_RELEASE -->|Download| USERS
+    ANDROID_DEBUG_RELEASE -->|Download| USERS
+    ANDROID_RELEASE_RELEASE -->|Download| USERS
 
-#sdk #overview #reels #flutter #ios #android
+    style DEV fill:#FFB6C1
+    style WORKFLOWS fill:#87CEEB
+    style USERS fill:#90EE90
+```
+
+**Distribution Features:**
+- ✅ Automated builds via GitHub Actions
+- ✅ Separate Debug and Release artifacts
+- ✅ No Flutter required for end users
+- ✅ Fast installation (~30 seconds vs ~30 minutes)
+- ✅ Version-tagged releases
+
+## Next Steps
+
+- **Integration:** See [iOS Integration Guide](../02-Integration/01-iOS-Integration-Guide.md) or [Android Integration Guide](../02-Integration/02-Android-Integration-Guide.md)
+- **Architecture:** Learn about [Platform Communication](../03-Architecture/01-Platform-Communication.md) and [Architecture Overview](../03-Architecture/README.md)
+- **Build Process:** Check [iOS Build Process](../04-Build-Process/01-iOS-Build.md) and [Android Build Process](../04-Build-Process/02-Android-Build.md)
+- **Release Process:** Review [iOS Release](../05-Release-Process/01-iOS-Release.md) and [Android Release](../05-Release-Process/02-Android-Release.md)
+- **Technology Stack:** Review [Technology Stack](./02-Technology-Stack.md) for detailed dependency information
+

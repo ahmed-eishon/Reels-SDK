@@ -542,6 +542,280 @@ class ReelsConfig {
 
 ---
 
+## Memory Leak Fix: Generation Data Cleanup
+
+### The Problem
+
+While the generation-based state management system effectively isolates screen instances, we discovered a memory leak where `collectDataByGeneration` maps grew indefinitely across repeated screen presentations.
+
+**Issue Location:**
+- **Android:** `ReelsModule.kt:65` - `collectDataByGeneration: MutableMap<Int, CollectData>`
+- **iOS:** `ReelsModule.swift:54` - `collectDataByGeneration: [Int: CollectData]`
+
+**Memory Leak Timeline:**
+
+```
+T1: Open Reels #1 (gen=1)
+    └─ collectDataByGeneration = {1: CollectData}  // ~1-2KB
+
+T2: Close Reels #1
+    └─ collectDataByGeneration = {1: CollectData}  // ❌ NOT CLEANED!
+
+T3: Open Reels #2 (gen=2)
+    └─ collectDataByGeneration = {1: CollectData, 2: CollectData}  // ~2-4KB
+
+T4: Close Reels #2
+    └─ collectDataByGeneration = {1: CollectData, 2: CollectData}  // ❌ STILL THERE!
+
+T5: After 1000 presentations
+    └─ collectDataByGeneration = {1...1000: CollectData}  // ~1-2MB 💥
+```
+
+**Root Cause:**
+- Generation data was only cleared by `cleanup()` method called at app shutdown
+- Individual screen dismissals did NOT trigger cleanup of their generation data
+- Both iOS and Android had identical architectural limitation
+
+### The Solution: Per-Generation Cleanup
+
+We implemented **Option 1: Per-generation cleanup on dismissal** which cleans up specific generation data when that screen instance is truly dismissed (not just paused for config changes).
+
+#### Android Implementation
+
+**1. Added cleanup method to ReelsModule.kt:**
+
+```kotlin
+/**
+ * Clean up collect data for a specific generation when the screen is closed
+ * This prevents memory leaks from accumulating collectData across many screen instances
+ *
+ * @param generation The generation number to clean up
+ */
+fun cleanupGeneration(generation: Int) {
+    val removed = collectDataByGeneration.remove(generation)
+    if (removed != null) {
+        Log.d(TAG, "🗑️ Cleaned up collectData for generation #$generation (id=${removed.id})")
+    } else {
+        Log.d(TAG, "⚠️ No collectData found for generation #$generation")
+    }
+    Log.d(TAG, "   Remaining generations in memory: ${collectDataByGeneration.size}")
+}
+```
+
+**2. Updated FlutterReelsActivity.onDestroy():**
+
+```kotlin
+override fun onDestroy() {
+    Log.d(TAG, "FlutterReelsActivity destroyed")
+
+    // Clean up generation data if activity is truly finishing (not just recreating)
+    if (isFinishing) {
+        val generation = intent.getIntExtra(EXTRA_GENERATION, 0)
+        if (generation > 0) {
+            ReelsModule.cleanupGeneration(generation)
+            Log.d(TAG, "Activity finishing, cleaned up generation #$generation")
+        }
+    } else {
+        Log.d(TAG, "Activity destroyed but not finishing (config change?) - keeping data")
+    }
+
+    super.onDestroy()
+}
+```
+
+**3. Updated FlutterReelsFragment.onDestroy():**
+
+```kotlin
+override fun onDestroy() {
+    // Clean up generation data if fragment is being removed (not just recreating)
+    if (isRemoving) {
+        val generation = arguments?.getInt(ARG_GENERATION, 0) ?: 0
+        if (generation > 0) {
+            ReelsModule.cleanupGeneration(generation)
+            Log.d(TAG, "Fragment being removed, cleaned up generation #$generation")
+        }
+    } else {
+        Log.d(TAG, "Fragment destroyed but not removing (config change?) - keeping data")
+    }
+
+    super.onDestroy()
+}
+```
+
+#### iOS Implementation
+
+**1. Added cleanup method to ReelsModule.swift:**
+
+```swift
+/// Clean up collect data for a specific generation when the screen is closed
+/// This prevents memory leaks from accumulating collectData across many screen instances
+///
+/// - Parameter generation: The generation number to clean up
+internal static func cleanupGeneration(_ generation: Int) {
+    if let removed = collectDataByGeneration.removeValue(forKey: generation) {
+        print("[ReelsSDK-iOS] 🗑️ Cleaned up collectData for generation #\(generation) (id=\(removed.id))")
+    } else {
+        print("[ReelsSDK-iOS] ⚠️ No collectData found for generation #\(generation)")
+    }
+    print("[ReelsSDK-iOS]    Remaining generations in memory: \(collectDataByGeneration.count)")
+}
+```
+
+**2. Updated FlutterViewControllerWrapper.viewDidDisappear():**
+
+```swift
+override func viewDidDisappear(_ animated: Bool) {
+    super.viewDidDisappear(animated)
+
+    print("[ReelsSDK-DEBUG] 🔴 viewDidDisappear - START")
+    print("[ReelsSDK-DEBUG]   isBeingDismissed: \(isBeingDismissed)")
+    print("[ReelsSDK-DEBUG]   isMovingFromParent: \(isMovingFromParent)")
+
+    // If this is the final dismissal (not just navigation to another screen)
+    if isBeingDismissed || isMovingFromParent {
+        print("[ReelsSDK-DEBUG]   🗑️ Cleaning up Flutter view controller")
+
+        // Clean up generation data to prevent memory leaks
+        if generation > 0 {
+            ReelsModule.cleanupGeneration(generation)
+            print("[ReelsSDK-DEBUG]   View controller being dismissed, cleaned up generation #\(generation)")
+        }
+
+        // Remove Flutter view controller as child
+        flutterViewController.willMove(toParent: nil)
+        flutterViewController.view.removeFromSuperview()
+        flutterViewController.removeFromParent()
+    } else {
+        print("[ReelsSDK-DEBUG]   ℹ️ Keeping Flutter view controller in hierarchy (navigation?) - keeping data")
+    }
+
+    print("[ReelsSDK-DEBUG] 🔴 viewDidDisappear - END")
+}
+```
+
+### Key Design Decisions
+
+#### 1. Detecting True Dismissal vs Recreation
+
+**Android:**
+- **Activity:** Use `isFinishing` flag in `onDestroy()`
+  - `isFinishing == true` → Activity truly closing (cleanup)
+  - `isFinishing == false` → Configuration change like rotation (keep data)
+
+- **Fragment:** Use `isRemoving` flag in `onDestroy()`
+  - `isRemoving == true` → Fragment being removed from stack (cleanup)
+  - `isRemoving == false` → Recreation scenario (keep data)
+
+**iOS:**
+- **ViewController:** Check `isBeingDismissed || isMovingFromParent` in `viewDidDisappear()`
+  - `true` → View controller truly dismissed (cleanup)
+  - `false` → Navigation to another screen (keep data)
+
+#### 2. Nested Modal Support
+
+The cleanup strategy preserves support for nested modals:
+
+```
+T1: Open Reels #1 (gen=1)
+    └─ collectDataByGeneration = {1: data}
+
+T2: Open Reels #2 (gen=2) from within Reels #1
+    └─ collectDataByGeneration = {1: data, 2: data}  // Both exist!
+
+T3: Close Reels #2
+    └─ collectDataByGeneration = {1: data}  // Gen 2 cleaned up
+
+T4: Resume Reels #1
+    └─ Still has data! ✅ Works perfectly
+```
+
+**Why it works:**
+- Each screen tracks its own generation number
+- Cleanup only happens when THAT specific screen dismisses
+- Parent screens remain unaffected by child screen cleanup
+
+#### 3. Configuration Change Handling
+
+The fix preserves data across configuration changes:
+
+```
+SCENARIO: Screen rotation (Android)
+
+T1: Activity with generation=5 displayed
+    └─ collectDataByGeneration = {5: data}
+
+T2: User rotates device
+    ├─ onDestroy() called with isFinishing=false
+    ├─ Data NOT cleaned up (configuration change detected)
+    └─ collectDataByGeneration = {5: data}  // Preserved!
+
+T3: Activity recreated
+    ├─ New Activity instance created
+    ├─ Same generation=5 from saved state
+    └─ Calls getInitialCollect(5) → Returns cached data ✅
+```
+
+### Memory Impact
+
+**Before Fix:**
+```
+After N screen presentations:
+- Memory used: N × ~1-2KB
+- Example (1000 presentations): ~1-2MB leaked
+```
+
+**After Fix:**
+```
+At any given time:
+- Memory used: Active screens × ~1-2KB
+- Example (2 nested screens): ~2-4KB
+- Memory freed on each dismissal: ~1-2KB
+```
+
+**Worst Case Scenario (Before Fix):**
+In a long-running app session with many reels presentations, memory could accumulate significantly over time, potentially contributing to out-of-memory crashes on memory-constrained devices.
+
+### Testing Checklist
+
+- [ ] **Android Activity**
+  - [ ] Open and close reels 10 times → Memory stable
+  - [ ] Rotate device → Data preserved
+  - [ ] Check logs for cleanup messages
+
+- [ ] **Android Fragment**
+  - [ ] Embed in host, open/close 10 times → Memory stable
+  - [ ] Navigate away and back → Data preserved
+  - [ ] Check logs for cleanup messages
+
+- [ ] **iOS**
+  - [ ] Present and dismiss reels 10 times → Memory stable
+  - [ ] Nested modals → Each cleans up independently
+  - [ ] Check console for cleanup messages
+
+- [ ] **Nested Modals**
+  - [ ] Open Reels #1 → Reels #2 → Reels #3
+  - [ ] Dismiss Reels #3 → Reels #2 still works
+  - [ ] Dismiss Reels #2 → Reels #1 still works
+  - [ ] Each dismissal logs cleanup of its generation
+
+### Related Files Modified
+
+**Android:**
+- `reels_android/src/main/java/com/rakuten/room/reels/ReelsModule.kt` (lines 369-383)
+- `reels_android/src/main/java/com/rakuten/room/reels/flutter/FlutterReelsActivity.kt` (lines 206-229)
+- `reels_android/src/main/java/com/rakuten/room/reels/flutter/FlutterReelsFragment.kt` (lines 98-111)
+
+**iOS:**
+- `reels_ios/Sources/ReelsIOS/ReelsModule.swift` (lines 247-258, 543-562)
+
+### Version History
+
+- **v0.1.4** - Memory leak fix implemented (generation cleanup on dismissal)
+- **v0.1.3** - Memory leak identified but not fixed
+- **v0.1.0-0.1.2** - Original implementation without cleanup
+
+---
+
 ## Viewport-Aware Player Recycling
 
 ### The Memory Problem

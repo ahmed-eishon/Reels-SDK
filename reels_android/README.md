@@ -279,6 +279,58 @@ The Flutter integration is handled transparently by the build system.
 
 This SDK is designed for **iOS and Android only** (not desktop, web, or other platforms).
 
+## Troubleshooting
+
+### Profile Navigation Issues
+
+**Problem**: When clicking a user profile button in reels, the wrong user profile opens.
+
+**Solution**: Ensure your app's navigation handler uses the user ID passed from the profile click event, not cached data.
+
+**Correct Implementation**:
+```kotlin
+override fun onUserProfileClick(userId: String, userName: String) {
+    // ✅ Use the clicked user's ID directly
+    openUserProfile(userId.toLong(), userName)
+}
+```
+
+**Incorrect Implementation**:
+```kotlin
+override fun onUserProfileClick(userId: String, userName: String) {
+    // ❌ Don't use cached collectModel data
+    collectModel?.rootUser?.let {
+        openUserProfile(it.id, it.name)  // Wrong - uses collect owner, not clicked user
+    }
+}
+```
+
+**Why**: The `collectModel.rootUser` refers to the owner of the collect that was clicked to open the reels screen, not the user whose profile button was clicked in the video. Always use the `userId` parameter provided by the event.
+
+### Multimodal Navigation
+
+**Problem**: Navigation fails when opening reels from a profile, then clicking a profile button in those reels.
+
+**Solution**: The SDK handles nested modal navigation automatically through generation-based state management. Ensure your listener is properly registered:
+
+```kotlin
+class MyFragment : Fragment(), ReelsListener {
+    override fun onResume() {
+        super.onResume()
+        // Re-register listener when fragment resumes
+        ReelsModule.reregisterListener(this)
+    }
+}
+```
+
+### Flutter Engine Initialization Warnings
+
+**Symptom**: Seeing "Unable to establish connection on channel" errors during app launch.
+
+**Explanation**: These are harmless timing warnings that occur when Android tries to communicate with Flutter before the engine is fully initialized (typically takes 20-50ms). They don't affect functionality.
+
+**Solution**: No action needed - these are benign race conditions during startup. All subsequent communication works correctly.
+
 ## Benefits
 
 1. **Clean Separation**: Main app stays clean, all Flutter code isolated

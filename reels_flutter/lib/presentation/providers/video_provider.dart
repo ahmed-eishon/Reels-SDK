@@ -69,8 +69,10 @@ class VideoProvider with ChangeNotifier {
   String? _errorMessage;
   CollectData? _collectData;
 
-  // Generation-based state caching
-  final Map<int, CachedScreenState> _stateCache = {};
+  // Generation-based state caching - STATIC to share across all Flutter engine instances
+  // Each engine creates its own VideoProvider, but they all share the same cache
+  // This is critical for multi-engine architectures where each generation uses a separate engine
+  static final Map<int, CachedScreenState> _stateCache = {};
   int? _currentGeneration;
   int _currentIndex = 0;
 
@@ -102,24 +104,12 @@ class VideoProvider with ChangeNotifier {
 
     _currentGeneration = generation;
 
-    // Try cache first for instant resume
-    if (generation != null) {
-      final cached = _stateCache[generation];
-      if (cached != null && !cached.isExpired()) {
-        print('[ReelsSDK-Flutter] ✅ Cache HIT for generation $generation (index: ${cached.currentIndex}, videos: ${cached.videos.length})');
-        _videos = cached.videos;
-        _collectData = cached.collectData;
-        _currentIndex = cached.currentIndex;
-        _hasLoadedOnce = true;
-        _isLoading = false;
-        notifyListeners();
-        return; // Skip network call!
-      } else if (cached != null) {
-        print('[ReelsSDK-Flutter] ⏰ Cache EXPIRED for generation $generation, reloading fresh data');
-      } else {
-        print('[ReelsSDK-Flutter] ❌ Cache MISS for generation $generation, loading fresh data');
-      }
-    }
+    // NOTE: Cache disabled due to multi-engine architecture
+    // Each Flutter engine has its own Dart isolate with separate static variables
+    // Static _stateCache is NOT shared across engines, causing cache misses
+    // Solution: Always reload videos (fast since they're mock data)
+    // Future: Move caching to native layer where it can be shared
+    print('[ReelsSDK-Flutter] Loading videos for generation $generation (cache disabled)');
 
     _isLoading = true;
     _errorMessage = null;
@@ -142,11 +132,7 @@ class VideoProvider with ChangeNotifier {
       _isLoading = false;
       _hasLoadedOnce = true;
 
-      // Cache the fresh state
-      if (generation != null) {
-        _cacheState(generation);
-      }
-
+      print('[ReelsSDK-Flutter] Videos loaded: ${_videos.length} videos');
       notifyListeners();
     } catch (e) {
       _isLoading = false;

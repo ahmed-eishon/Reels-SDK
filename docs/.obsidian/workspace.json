@@ -11,10 +11,14 @@
             "id": "ee9c237cef7479c3",
             "type": "leaf",
             "state": {
-              "type": "empty",
-              "state": {},
+              "type": "markdown",
+              "state": {
+                "file": "README.md",
+                "mode": "preview",
+                "source": false
+              },
               "icon": "lucide-file",
-              "title": "New tab"
+              "title": "README"
             }
           }
         ]
@@ -162,9 +166,43 @@
       "bases:Create new base": false
     }
   },
-  "active": "fdf5138f622f423c",
+  "active": "ee9c237cef7479c3",
   "lastOpenFiles": [
-    "Release-Process.md",
-    "README.md"
+    "06-Dev-Process/01-Android-Local-Development.md",
+    "07-Scripts/00-Overview.md",
+    "03-Architecture/00-Overview.md",
+    "03-Architecture/04-iOS-Coordinator-Pattern.md",
+    "04-Build-Process/02-Android-Build.md",
+    "05-Release-Process/02-Android-Release.md",
+    "07-Scripts/README.md",
+    "07-Scripts/Android/01-Local-Scripts.md",
+    "07-Scripts/01-Android-Workflow-Scripts.md",
+    "07-Scripts/Android/02-Workflow-Scripts.md",
+    "07-Scripts/Android",
+    "07-Scripts/02-Android-Scripts.md",
+    "README.md.tmp.35022.1763625414928",
+    "07-Scripts/README.md.tmp.35022.1763625406700",
+    "07-Scripts/01-Android-Scripts.md",
+    "01-Overview/01-SDK-Overview.md",
+    "README.md.tmp.35022.1763624665929",
+    "07-Scripts/02-iOS-Scripts.md",
+    "07-Scripts",
+    "01-Overview/02-Technology-Stack.md",
+    "01-Overview/02-Technology-Stack.md.tmp.35022.1763621636914",
+    "01-Overview/02-Technology-Stack.md.tmp.35022.1763621616839",
+    "01-Overview/02-Technology-Stack.md.tmp.35022.1763621604114",
+    "06-Dev-Process",
+    "06-Dev-Process/README.md",
+    "05-Release-Process/01-iOS-Release.md",
+    "04-Build-Process/01-iOS-Build.md",
+    "03-Architecture/03-Generation-Based-State-Management.md",
+    "03-Architecture/02-Flutter-Engine-Lifecycle.md",
+    "03-Architecture/01-Platform-Communication.md",
+    "02-Integration/02-Android-Integration-Guide.md",
+    "02-Integration/01-iOS-Integration-Guide.md",
+    "Architecture/README.md",
+    "05-Release-Process/iOS-Release.md",
+    "05-Release-Process/Android-Release.md",
+    "05-Release-Process"
   ]
 }

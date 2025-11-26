@@ -1,6 +1,7 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
+    id 'kotlin-parcelize'
     id 'maven-publish'
 }
 
@@ -58,9 +59,24 @@ android {
     }
 }
 
+repositories {
+    google()
+    mavenCentral()
+    maven {
+        url 'https://storage.googleapis.com/download.flutter.io'
+    }
+}
+
 dependencies {
-    // Flutter module
-    implementation project(':flutter')
+    // Flutter module - using local project for development (source-based integration)
+    // When include_flutter.groovy is evaluated in settings.gradle, it creates a :flutter project
+    // This allows direct compilation from Dart source instead of pre-built AAR
+    // The :flutter project automatically includes all dependencies transitively:
+    // - Flutter engine (embedding, architecture-specific libs)
+    // - Flutter plugins (video_player, package_info_plus, etc.) with their native deps
+    // - Media3 (from video_player_android plugin)
+    // - ReLinker (from Flutter embedding)
+    api project(':flutter')
 
     // Android X
     implementation(libs.androidx.appcompat)
@@ -87,7 +103,7 @@ ext.getVersionName = { ->
 publishing {
     publications {
         release(MavenPublication) {
-            groupId = 'com.rakuten.room'
+            groupId = 'com.ahmed-eishon'
             artifactId = 'reels-sdk'
             version = getVersionName()
 
@@ -98,28 +114,40 @@ publishing {
             pom {
                 name = 'Reels SDK for Android'
                 description = 'Flutter-based video reels SDK for Android applications'
-                url = 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk'
-
-                licenses {
-                    license {
-                        name = 'Proprietary'
-                        url = 'https://rakuten.com'
-                    }
-                }
-
-                developers {
-                    developer {
-                        id = 'rakuten-room'
-                        name = 'Rakuten ROOM Team'
-                        email = 'room-team@rakuten.com'
-                    }
-                }
+                url = 'https://github.com/ahmed-eishon/Reels-SDK'
 
                 scm {
-                    connection = 'scm:git:git://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git'
-                    developerConnection = 'scm:git:ssh://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk.git'
-                    url = 'https://gitpub.rakuten-it.com/scm/~ahmed.eishon/reels-sdk'
+                    connection = 'scm:git:git://github.com/ahmed-eishon/Reels-SDK.git'
+                    developerConnection = 'scm:git:ssh://github.com/ahmed-eishon/Reels-SDK.git'
+                    url = 'https://github.com/ahmed-eishon/Reels-SDK'
                 }
+            }
+        }
+
+        debug(MavenPublication) {
+            groupId = 'com.rakuten'
+            artifactId = 'reels_android'
+            version = getVersionName()
+
+            afterEvaluate {
+                from components.debug
+            }
+
+            pom {
+                name = 'Reels SDK for Android - Debug'
+                description = 'Flutter-based video reels SDK for Android applications (Debug build)'
+                url = 'https://github.com/ahmed-eishon/Reels-SDK'
+            }
+        }
+    }
+
+    repositories {
+        maven {
+            name = "GitHubPackages"
+            url = uri("https://maven.pkg.github.com/ahmed-eishon/Reels-SDK")
+            credentials {
+                username = System.getenv("GITHUB_ACTOR") ?: project.findProperty("gpr.user") ?: ""
+                password = System.getenv("GITHUB_TOKEN") ?: project.findProperty("gpr.key") ?: ""
             }
         }
     }

@@ -1,181 +1,200 @@
 #!/bin/bash
 set -e
 
-# Colors
-GREEN='\033[0;32m'
-RED='\033[0;31m'
-YELLOW='\033[1;33m'
-BLUE='\033[0;34m'
-NC='\033[0m' # No Color
-
-echo "============================================"
-echo "🧹 Reels SDK - Android Clean Install"
-echo "============================================"
-echo ""
-
-# Get script directory and SDK root
+# Source common utilities
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SDK_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
+source "$SCRIPT_DIR/../../lib/common.sh"
 
-echo -e "${BLUE}📁 SDK Root: $SDK_ROOT${NC}"
-echo ""
+# Get SDK root
+SDK_ROOT=$(get_sdk_root "$0")
+
+log_header "🚀 Reels SDK - Android Development Setup"
+log_info "SDK Root: $SDK_ROOT"
+track_script_start
 
 # Step 1: Check Flutter installation
-echo "1️⃣  Checking Flutter installation..."
-if ! command -v flutter &> /dev/null; then
-    echo -e "${RED}❌ Flutter not found in PATH${NC}"
-    echo "Please install Flutter: https://flutter.dev/docs/get-started/install"
+log_step "1" "Checking Flutter installation"
+if ! check_flutter_installed; then
     exit 1
 fi
-FLUTTER_VERSION=$(flutter --version | head -n 1)
-echo -e "${GREEN}✅ $FLUTTER_VERSION${NC}"
-echo ""
+FLUTTER_VERSION=$(get_flutter_version)
+log_success "Flutter $FLUTTER_VERSION"
 
 # Step 2: Verify Flutter module exists
-echo "2️⃣  Verifying Flutter module..."
-if [ ! -f "$SDK_ROOT/reels_flutter/pubspec.yaml" ]; then
-    echo -e "${RED}❌ Flutter module not found at $SDK_ROOT/reels_flutter${NC}"
+log_step "2" "Verifying Flutter module"
+FLUTTER_DIR=$(get_flutter_module_dir "$SDK_ROOT")
+if ! verify_file_exists "$FLUTTER_DIR/pubspec.yaml" "Flutter module pubspec.yaml"; then
     exit 1
 fi
-echo -e "${GREEN}✅ Flutter module found${NC}"
-echo ""
+log_success "Flutter module found"
 
 # Step 3: Clean Flutter build artifacts
-echo "3️⃣  Cleaning Flutter build artifacts..."
-cd "$SDK_ROOT/reels_flutter"
-if flutter clean; then
-    echo -e "${GREEN}✅ Flutter clean completed${NC}"
-else
-    echo -e "${RED}❌ Flutter clean failed${NC}"
+log_step "3" "Cleaning Flutter build artifacts"
+if ! clean_flutter_build "$FLUTTER_DIR"; then
     exit 1
 fi
-echo ""
 
-# Step 4: Remove .android directory
-echo "4️⃣  Removing .android directory..."
-if [ -d "$SDK_ROOT/reels_flutter/.android" ]; then
-    rm -rf "$SDK_ROOT/reels_flutter/.android"
-    echo -e "${GREEN}✅ .android directory removed${NC}"
+# Step 4: Remove .android directory and Flutter build cache
+log_step "4" "Removing .android directory and Flutter build cache"
+if [ -d "$FLUTTER_DIR/.android" ]; then
+    rm -rf "$FLUTTER_DIR/.android"
+    log_success ".android directory removed"
 else
-    echo -e "${YELLOW}ℹ️  .android directory already clean${NC}"
+    log_info ".android directory already clean"
 fi
-echo ""
+
+# Also remove Flutter's Dart build cache to force complete rebuild
+if [ -d "$FLUTTER_DIR/.dart_tool/flutter_build" ]; then
+    rm -rf "$FLUTTER_DIR/.dart_tool/flutter_build"
+    log_success "Flutter build cache cleared"
+fi
+
+if [ -d "$FLUTTER_DIR/build" ]; then
+    rm -rf "$FLUTTER_DIR/build"
+    log_success "Flutter build directory cleared"
+fi
 
 # Step 5: Run flutter pub get
-echo "5️⃣  Running flutter pub get..."
-cd "$SDK_ROOT/reels_flutter"
-if flutter pub get; then
-    echo -e "${GREEN}✅ Flutter dependencies resolved${NC}"
-else
-    echo -e "${RED}❌ Failed to get Flutter dependencies${NC}"
+log_step "5" "Running flutter pub get"
+if ! flutter_pub_get "$FLUTTER_DIR"; then
     exit 1
 fi
-echo ""
 
 # Step 6: Verify .android directory was created
-echo "6️⃣  Verifying Android platform files..."
-if [ ! -f "$SDK_ROOT/reels_flutter/.android/include_flutter.groovy" ]; then
-    echo -e "${RED}❌ Android platform files not generated${NC}"
+log_step "6" "Verifying Android platform files"
+if ! verify_file_exists "$FLUTTER_DIR/.android/include_flutter.groovy" "include_flutter.groovy"; then
     exit 1
 fi
-echo -e "${GREEN}✅ Android platform files generated${NC}"
-echo ""
+log_success "Android platform files generated"
 
 # Step 7: Regenerate Pigeon files
-echo "7️⃣  Regenerating Pigeon platform channel code..."
-cd "$SDK_ROOT/reels_flutter"
-if flutter pub run pigeon --input pigeons/messages.dart; then
-    echo -e "${GREEN}✅ Pigeon code generated${NC}"
-else
-    echo -e "${RED}❌ Failed to generate Pigeon code${NC}"
+log_step "7" "Regenerating Pigeon platform channel code"
+if ! regenerate_pigeon "$FLUTTER_DIR"; then
     exit 1
 fi
-echo ""
 
 # Step 8: Verify Pigeon generated files for Android
-echo "8️⃣  Verifying Pigeon files for Android..."
-PIGEON_ERRORS=0
-
-# Check Flutter pigeon_generated.dart
-if [ ! -f "$SDK_ROOT/reels_flutter/lib/core/pigeon_generated.dart" ]; then
-    echo -e "${RED}❌ lib/core/pigeon_generated.dart not found${NC}"
-    PIGEON_ERRORS=$((PIGEON_ERRORS + 1))
-else
-    echo -e "${GREEN}✅ lib/core/pigeon_generated.dart${NC}"
-fi
-
-# Check Android PigeonGenerated.kt
-if [ ! -f "$SDK_ROOT/reels_android/src/main/java/com/rakuten/room/reels/pigeon/PigeonGenerated.kt" ]; then
-    echo -e "${RED}❌ reels_android/.../PigeonGenerated.kt not found${NC}"
-    PIGEON_ERRORS=$((PIGEON_ERRORS + 1))
-else
-    echo -e "${GREEN}✅ reels_android/src/main/java/com/rakuten/room/reels/pigeon/PigeonGenerated.kt${NC}"
-fi
-
-if [ $PIGEON_ERRORS -gt 0 ]; then
-    echo -e "${RED}❌ Pigeon file verification failed${NC}"
-    exit 1
-fi
-echo ""
-
-# Step 9: Verify Android module structure
-echo "9️⃣  Verifying Android module structure..."
-if [ ! -f "$SDK_ROOT/reels_android/build.gradle" ]; then
-    echo -e "${RED}❌ reels_android/build.gradle not found${NC}"
+log_step "8" "Verifying Pigeon files for Android"
+if ! verify_pigeon_files "$SDK_ROOT"; then
     exit 1
 fi
 
-KOTLIN_FILES=$(find "$SDK_ROOT/reels_android/src/main/java" -name "*.kt" 2>/dev/null | wc -l | tr -d ' ')
+# Step 9: Verify reels_android module
+log_step "9" "Verifying reels_android module"
+ANDROID_DIR=$(get_android_module_dir "$SDK_ROOT")
+if ! verify_file_exists "$ANDROID_DIR/build.gradle" "reels_android build.gradle"; then
+    exit 1
+fi
+
+KOTLIN_FILES=$(find "$ANDROID_DIR/src/main/java" -name "*.kt" 2>/dev/null | wc -l | tr -d ' ')
 if [ "$KOTLIN_FILES" -eq 0 ]; then
-    echo -e "${RED}❌ No Kotlin files found in reels_android${NC}"
+    log_error "No Kotlin files found in reels_android"
     exit 1
 fi
-echo -e "${GREEN}✅ Android module structure verified ($KOTLIN_FILES Kotlin files)${NC}"
-echo ""
+log_success "reels_android module verified ($KOTLIN_FILES Kotlin files)"
 
-# Step 10: Check Gradle
-echo "🔟  Checking Android build tools..."
-if command -v gradle &> /dev/null; then
-    GRADLE_VERSION=$(gradle --version | grep "Gradle" | head -n 1)
-    echo -e "${GREEN}✅ $GRADLE_VERSION${NC}"
+# Step 10: Setup local.properties for .android build
+log_step "10" "Setting up local.properties for build"
+LOCAL_PROPS="$FLUTTER_DIR/.android/local.properties"
+
+# Find Android SDK location
+if [ -n "$ANDROID_HOME" ]; then
+    SDK_DIR="$ANDROID_HOME"
+elif [ -n "$ANDROID_SDK_ROOT" ]; then
+    SDK_DIR="$ANDROID_SDK_ROOT"
+elif [ -d "$HOME/Library/Android/sdk" ]; then
+    SDK_DIR="$HOME/Library/Android/sdk"
+elif [ -d "$HOME/Android/Sdk" ]; then
+    SDK_DIR="$HOME/Android/Sdk"
 else
-    echo -e "${YELLOW}ℹ️  Gradle wrapper will be used from Android project${NC}"
+    log_error "Android SDK not found"
+    log_info "Please set ANDROID_HOME or ANDROID_SDK_ROOT environment variable"
+    exit 1
 fi
-echo ""
+
+# Find Flutter SDK location
+if [ -n "$FLUTTER_ROOT" ]; then
+    FLUTTER_SDK_DIR="$FLUTTER_ROOT"
+else
+    # Get Flutter SDK path from flutter command
+    FLUTTER_SDK_DIR=$(which flutter | xargs dirname | xargs dirname)
+fi
+
+# Create local.properties
+echo "sdk.dir=$SDK_DIR" > "$LOCAL_PROPS"
+echo "flutter.sdk=$FLUTTER_SDK_DIR" >> "$LOCAL_PROPS"
+log_success "local.properties configured"
+log_info "sdk.dir=$SDK_DIR"
+log_info "flutter.sdk=$FLUTTER_SDK_DIR"
+
+# Step 11: Clean ROOM Android app build cache (if it exists)
+log_step "11" "Cleaning ROOM Android app build cache"
+ROOM_ANDROID_DIR="$(dirname "$(dirname "$(dirname "$SDK_ROOT")")")/room-android"
+if [ -d "$ROOM_ANDROID_DIR" ]; then
+    log_info "Found ROOM Android app at: $ROOM_ANDROID_DIR"
+
+    # Stop Gradle daemon first
+    if command -v cd >/dev/null 2>&1; then
+        cd "$ROOM_ANDROID_DIR" 2>/dev/null && ./gradlew --stop 2>/dev/null || true
+        log_success "Stopped Gradle daemon"
+    fi
+
+    # Remove build directories
+    if [ -d "$ROOM_ANDROID_DIR/app/build" ]; then
+        rm -rf "$ROOM_ANDROID_DIR/app/build"
+        log_success "Removed app/build"
+    fi
+
+    if [ -d "$ROOM_ANDROID_DIR/build" ]; then
+        rm -rf "$ROOM_ANDROID_DIR/build"
+        log_success "Removed build"
+    fi
+
+    # Remove Gradle cache
+    if [ -d "$ROOM_ANDROID_DIR/.gradle" ]; then
+        rm -rf "$ROOM_ANDROID_DIR/.gradle"
+        log_success "Removed .gradle cache"
+    fi
+
+    log_success "ROOM Android app build cache cleaned"
+else
+    log_info "ROOM Android app not found at expected location, skipping"
+fi
 
 # Success summary
-echo "============================================"
-echo "✅ Android Clean Install Complete!"
-echo "============================================"
-echo ""
+track_script_end
+log_footer "✅ Android Development Setup Complete!"
+
 echo "📊 Summary:"
-echo -e "  ${GREEN}✓${NC} Flutter clean & pub get"
-echo -e "  ${GREEN}✓${NC} Android platform files regenerated"
-echo -e "  ${GREEN}✓${NC} Pigeon code regenerated"
-echo -e "  ${GREEN}✓${NC} All files verified"
+log_success "Flutter clean & pub get"
+log_success "Android platform files regenerated"
+log_success "Pigeon code regenerated"
+log_success "All files verified"
+log_success "ROOM Android build cache cleaned"
 echo ""
-echo "📝 Next Steps for Client Integration:"
+
+echo "📝 Integration Instructions for Your Android App:"
 echo ""
-echo "1️⃣  If you have an Android app that needs to integrate this SDK:"
+echo "1️⃣  Add to your project's settings.gradle:"
 echo ""
-echo "   Add to your settings.gradle:"
-echo -e "   ${BLUE}// Reels SDK - External folder import"
-echo "   include ':reels_android'"
-echo "   project(':reels_android').projectDir = new File('$SDK_ROOT/reels_android')"
+echo -e "${BLUE}// ReelsSDK - Local folder integration"
+echo "include ':reels_android'"
+echo "project(':reels_android').projectDir = new File('$SDK_ROOT/reels_android')"
 echo ""
-echo "   // Flutter module from reels-sdk"
-echo "   setBinding(new Binding([gradle: this]))"
-echo "   evaluate(new File("
-echo "     '$SDK_ROOT/reels_flutter/.android/include_flutter.groovy'"
-echo "   ))${NC}"
+echo "// Flutter module from reels_flutter"
+echo "setBinding(new Binding([gradle: this]))"
+echo "evaluate(new File("
+echo "    '$SDK_ROOT/reels_flutter/.android/include_flutter.groovy'"
+echo "))${NC}"
 echo ""
 echo "2️⃣  Add to your app/build.gradle dependencies:"
-echo -e "   ${BLUE}dependencies {"
-echo "       implementation project(':reels_android')"
-echo "   }${NC}"
 echo ""
-echo "3️⃣  Sync and build your Android project:"
-echo -e "   ${BLUE}./gradlew clean build${NC}"
+echo -e "${BLUE}dependencies {"
+echo "    implementation project(':reels_android')"
+echo "}${NC}"
 echo ""
-echo -e "${GREEN}🎉 Ready for Android integration!${NC}"
+echo "3️⃣  Sync Gradle and build your project:"
 echo ""
+echo -e "${BLUE}./gradlew clean assembleDebug${NC}"
+echo ""
+log_success "🎉 Ready for local Android development!"

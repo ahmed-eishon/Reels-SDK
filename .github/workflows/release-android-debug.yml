@@ -1,0 +1,353 @@
+name: Build and Release Android AAR (Debug)
+
+on:
+  push:
+    tags:
+      - 'v*.*.*-android-debug'  # Matches v0.1.4-android-debug
+
+jobs:
+  build-debug-aar:
+    name: Build Debug AAR
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Extract version from tag
+        id: get_version
+        run: |
+          TAG=${GITHUB_REF#refs/tags/v}
+          VERSION=${TAG%-android-debug}
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "TAG=$TAG" >> $GITHUB_OUTPUT
+          echo "Building version: $VERSION"
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          flutter-version: '3.35.6'
+          channel: 'stable'
+          cache: true
+
+      - name: Cache Flutter dependencies
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.pub-cache
+            reels_flutter/.dart_tool
+          key: ${{ runner.os }}-flutter-${{ hashFiles('reels_flutter/pubspec.lock') }}
+          restore-keys: |
+            ${{ runner.os }}-flutter-
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+            reels_android/.gradle
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
+          restore-keys: |
+            ${{ runner.os }}-gradle-
+
+      - name: Verify Flutter installation
+        run: |
+          flutter --version
+          flutter doctor -v
+
+      - name: Get Flutter dependencies
+        working-directory: reels_flutter
+        run: flutter pub get
+
+      - name: Run Pigeon code generation
+        working-directory: reels_flutter
+        run: flutter pub run pigeon --input pigeons/messages.dart
+
+      - name: Build Flutter AAR (Debug)
+        working-directory: reels_flutter
+        run: |
+          echo "Building Flutter AAR in Debug mode..."
+          flutter build aar --debug --no-release --no-profile
+          echo "Flutter AAR built successfully"
+
+      - name: List Flutter build outputs
+        run: |
+          echo "=== Flutter AAR outputs ===="
+          find reels_flutter/build/host/outputs/repo -name "*.aar" -type f
+          echo ""
+          echo "=== Directory structure ===="
+          ls -lah reels_flutter/build/host/outputs/repo/
+
+      - name: Setup local Maven repository for reels_android build
+        run: |
+          echo "Setting up local Maven repository for reels_android dependency resolution..."
+          MAVEN_REPO="$(pwd)/reels_flutter/build/host/outputs/repo"
+          echo "MAVEN_REPO=$MAVEN_REPO" >> $GITHUB_ENV
+          echo "Maven repository location: $MAVEN_REPO"
+
+      - name: Prepare helper project for reels_android build
+        working-directory: helper-reels-android
+        run: |
+          echo "Preparing helper wrapper project to build reels_android..."
+
+          # Create settings.gradle from template and substitute Maven repo path
+          cp settings.gradle.template settings.gradle
+          sed -i "s|MAVEN_REPO_PLACEHOLDER|${MAVEN_REPO}|g" settings.gradle
+
+          # Create local.properties from template with ANDROID_HOME
+          cp local.properties.template local.properties
+          sed -i "s|ANDROID_SDK_PLACEHOLDER|${ANDROID_HOME}|g" local.properties
+
+          echo "Helper project prepared successfully"
+
+      - name: Build reels_android AAR (Debug)
+        working-directory: helper-reels-android
+        run: |
+          echo "Building reels_android AAR in Debug mode using helper project..."
+          ./gradlew :reels_android:clean :reels_android:assembleDebug --stacktrace
+          echo "reels_android AAR built successfully"
+
+      - name: List reels_android build outputs
+        run: |
+          echo "=== reels_android AAR outputs ===="
+          find reels_android/build/outputs -name "*.aar" -type f
+          echo ""
+          echo "=== reels_android build directory ===="
+          ls -lah reels_android/build/outputs/aar/
+
+      - name: Publish reels_android to local Maven repository
+        working-directory: helper-reels-android
+        run: |
+          echo "Publishing reels_android AAR to Maven repository..."
+          ./gradlew :reels_android:publishDebugPublicationToMavenLocal --stacktrace
+          echo ""
+          echo "=== Published reels_android artifacts ===="
+          find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom" | head -20
+
+      - name: Create debug package
+        id: package
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+          PACKAGE_DIR="ReelsSDK-Android-Debug-${VERSION}"
+          mkdir -p "$PACKAGE_DIR/maven-repo"
+
+          # Copy entire Flutter AAR Maven repository
+          echo "Copying Flutter AAR Maven repository..."
+          cp -r reels_flutter/build/host/outputs/repo/* "$PACKAGE_DIR/maven-repo/"
+
+          # Copy reels_android AAR from local Maven
+          echo "Copying reels_android AAR from local Maven..."
+          cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten/"
+
+          echo ""
+          echo "=== Package Maven structure ===="
+          find "$PACKAGE_DIR/maven-repo" -name "*.aar" -o -name "reels_android*.pom"
+
+          # Create README
+          cat > "$PACKAGE_DIR/README.md" <<EOF
+          # ReelsSDK Android - Debug Build
+
+          Version: ${VERSION}
+          Build: Debug
+
+          ## Contents
+
+          - \`maven-repo/\` - Complete Maven repository with:
+            - Flutter SDK (reels_flutter) and dependencies
+            - Native Android API (reels_android)
+
+          ## Integration
+
+          1. Extract the zip file
+
+          2. Add to your project's \`build.gradle\` or \`settings.gradle\`:
+
+          \`\`\`gradle
+          repositories {
+              maven {
+                  url "file://\${rootProject.projectDir}/../ReelsSDK-Android-Debug-${VERSION}/maven-repo"
+              }
+              maven {
+                  url "https://storage.googleapis.com/download.flutter.io"
+              }
+          }
+          \`\`\`
+
+          3. Add to your \`app/build.gradle\`:
+
+          \`\`\`gradle
+          dependencies {
+              // ReelsSDK - Native Android API (includes Flutter dependencies transitively)
+              debugImplementation 'com.rakuten.reels:reels_android:${VERSION}'
+          }
+          \`\`\`
+
+          4. Sync Gradle and build
+
+          ## API Usage
+
+          Use the native Android API provided by reels_android:
+
+          \`\`\`kotlin
+          import com.rakuten.reels.pigeon.ReelsHostApi
+          import com.rakuten.reels.pigeon.ReelsFlutterApi
+
+          // Implement ReelsHostApi interface
+          class MyReelsHost : ReelsHostApi {
+              override fun getUserProfile(): UserProfile {
+                  // Return user profile data
+              }
+              // ... implement other methods
+          }
+          \`\`\`
+
+          ## ⚠️ Debug Build Notice
+
+          This is a DEBUG build intended for development only:
+          - Larger file size
+          - Not optimized
+          - Includes debug symbols
+          - More verbose logging
+
+          For production, use the Release build instead: \`v${VERSION}-android\`
+
+          ## Documentation
+
+          See: https://github.com/ahmed-eishon/Reels-SDK/blob/master/docs/02-Integration/02-Android-Integration-Guide.md
+          EOF
+
+          # Create zip
+          ZIP_NAME="ReelsSDK-Android-Debug-${VERSION}.zip"
+          zip -r "$ZIP_NAME" "$PACKAGE_DIR"
+
+          # Calculate checksum
+          shasum -a 256 "$ZIP_NAME" > "${ZIP_NAME}.sha256"
+
+          echo "PACKAGE_DIR=$PACKAGE_DIR" >> $GITHUB_OUTPUT
+          echo "ZIP_NAME=$ZIP_NAME" >> $GITHUB_OUTPUT
+
+          # Show package contents
+          echo "=== Package Contents ===="
+          du -h -d 2 "$PACKAGE_DIR" | head -20
+          echo ""
+          echo "=== AAR Files (first 10) ===="
+          find "$PACKAGE_DIR" -name "*.aar" | head -10
+          echo ""
+          echo "=== Package Size ===="
+          du -h "$ZIP_NAME"
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          VERSION=${{ steps.get_version.outputs.VERSION }}
+
+          # Create release notes
+          cat > release_notes.md <<'EOF'
+          # ReelsSDK Android Debug v${{ steps.get_version.outputs.VERSION }}
+
+          **Build Type:** Debug (Development only)
+
+          ## 📦 What's Included
+
+          - Complete Maven repository with:
+            - **Flutter SDK** (reels_flutter) - Flutter module with UI
+            - **Native Android API** (reels_android) - Kotlin/Java interfaces for native integration
+          - Ready-to-use AAR files with Gradle integration
+          - Debug build with symbols and verbose logging
+
+          ## 🚀 Quick Start
+
+          ### Installation
+
+          1. Download `ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}.zip`
+          2. Extract to your project directory
+          3. Update your `build.gradle` or `settings.gradle`:
+
+          ```gradle
+          repositories {
+              maven {
+                  url "path/to/ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}/maven-repo"
+              }
+              maven {
+                  url "https://storage.googleapis.com/download.flutter.io"
+              }
+          }
+          ```
+
+          4. Add dependency in `app/build.gradle`:
+
+          ```gradle
+          dependencies {
+              // ReelsSDK - Native Android API (includes Flutter dependencies transitively)
+              debugImplementation 'com.rakuten.reels:reels_android:${{ steps.get_version.outputs.VERSION }}'
+          }
+          ```
+
+          5. Sync and build!
+
+          ## 💻 Usage
+
+          Implement the ReelsHostApi interface to integrate with your app:
+
+          ```kotlin
+          import com.rakuten.reels.pigeon.ReelsHostApi
+          import com.rakuten.reels.pigeon.UserProfile
+
+          class MyReelsHost : ReelsHostApi {
+              override fun getUserProfile(): UserProfile {
+                  // Return user data
+              }
+              // Implement other methods...
+          }
+          ```
+
+          ## ⚠️ Debug Build
+
+          This is a **Debug build** for development only:
+          - ❌ Not optimized for production
+          - ✅ Includes debug symbols
+          - ✅ Verbose logging enabled
+          - ✅ Easier debugging
+
+          **For production, use the Release build:** `v${{ steps.get_version.outputs.VERSION }}-android`
+
+          ## 📚 Documentation
+
+          - [Integration Guide](https://github.com/ahmed-eishon/Reels-SDK/blob/master/docs/02-Integration/02-Android-Integration-Guide.md)
+          - [API Reference](https://github.com/ahmed-eishon/Reels-SDK/blob/master/docs/05-API/02-Android-API-Reference.md)
+
+          ## ✅ Verification
+
+          ```bash
+          # Verify checksums
+          shasum -a 256 -c ReelsSDK-Android-Debug-${{ steps.get_version.outputs.VERSION }}.zip.sha256
+          ```
+
+          ---
+
+          🤖 Generated with [GitHub Actions](https://github.com/ahmed-eishon/Reels-SDK/actions)
+          EOF
+
+          # Create release with assets
+          gh release create "${{ github.ref_name }}" \
+            --title "Android Debug ${VERSION}" \
+            --notes-file release_notes.md \
+            "${{ steps.package.outputs.ZIP_NAME }}" \
+            "${{ steps.package.outputs.ZIP_NAME }}.sha256"
+
+      - name: Release Summary
+        run: |
+          echo "✅ Debug AAR build completed successfully!"
+          echo "📦 Package: ${{ steps.package.outputs.ZIP_NAME }}"
+          echo "🏷️ Tag: ${{ github.ref_name }}"
+          echo "📋 Version: ${{ steps.get_version.outputs.VERSION }}"

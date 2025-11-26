@@ -138,8 +138,13 @@ private class DefaultReelsListener: ReelsListener {
 
     func onSwipeLeft(userId: String, userName: String) {
         print("[ReelsSDK] User swiped left - opening My Room for userId: \(userId), userName: \(userName)")
+
+        // MULTIMODAL FIX: Use root delegate to ensure navigation works even in nested modals
+        // Get the captured delegate or fall back to current delegate
+        let targetDelegate = delegate ?? (ReelsModule.getRootListener() as? ReelsCoordinatorDelegate)
+
         let navController = ReelsModule.getFlutterNavigationController()
-        delegate?.reelsDidRequestUserProfile(userId: userId, userName: userName, navigationController: navController)
+        targetDelegate?.reelsDidRequestUserProfile(userId: userId, userName: userName, navigationController: navController)
     }
 
     func onSwipeRight() {
@@ -149,8 +154,13 @@ private class DefaultReelsListener: ReelsListener {
 
     func onUserProfileClick(userId: String, userName: String) {
         print("[ReelsSDK] User profile clicked - userId: \(userId), userName: \(userName)")
+
+        // MULTIMODAL FIX: Use root delegate to ensure navigation works even in nested modals
+        // Get the captured delegate or fall back to current delegate
+        let targetDelegate = delegate ?? (ReelsModule.getRootListener() as? ReelsCoordinatorDelegate)
+
         let navController = ReelsModule.getFlutterNavigationController()
-        delegate?.reelsDidRequestUserProfile(userId: userId, userName: userName, navigationController: navController)
+        targetDelegate?.reelsDidRequestUserProfile(userId: userId, userName: userName, navigationController: navController)
     }
 
     func onAnalyticsEvent(eventName: String, properties: [String: String]) {

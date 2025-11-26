@@ -259,6 +259,17 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
 # unzip ReelsSDK-Android-${VERSION}.zip -d ..
 ```
 
+> [!tip] Latest Release (v0.1.4)
+> The v0.1.4 release includes:
+> - ✅ Multimodal navigation support (nested native/Flutter screens)
+> - ✅ Root listener pattern for complex navigation flows
+> - ✅ Generation-based state management
+> - ✅ Profile navigation fixes
+>
+> **Download links:**
+> - Debug: https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-android-debug/ReelsSDK-Android-Debug-0.1.4.zip
+> - Release: https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-android/ReelsSDK-Android-0.1.4.zip
+
 **What's included in the package:**
 - `maven-repo/` - Complete Maven repository with:
   - `com.rakuten:reels_android` - Native Android API (main SDK interface)
@@ -567,6 +578,14 @@ class MainActivity : AppCompatActivity(), ReelsListener {
 
         Log.d("Reels", "Analytics event: $eventName, properties: $properties")
     }
+
+    override fun onUserProfileClick(userId: String, userName: String) {
+        // ✅ IMPORTANT: Use the userId parameter, NOT cached data
+        // Navigate to the clicked user's profile
+        openUserProfile(userId.toLong(), userName)
+
+        Log.d("Reels", "User profile clicked: $userId ($userName)")
+    }
 }
 ```
 
@@ -828,6 +847,90 @@ If using ProGuard or R8, add these rules:
 -keepattributes *Annotation*
 ```
 
+## Profile Navigation Implementation
+
+### Critical: Use Event Parameters, Not Cached Data
+
+When implementing `onUserProfileClick()`, it's essential to use the `userId` and `userName` parameters from the event itself, **not** any cached data from your app.
+
+#### ✅ Correct Implementation
+
+```kotlin
+override fun onUserProfileClick(userId: String, userName: String) {
+    // ✅ Use the parameters from the event
+    openUserProfile(userId.toLong(), userName)
+}
+```
+
+#### ❌ Incorrect Implementation
+
+```kotlin
+override fun onUserProfileClick(userId: String, userName: String) {
+    // ❌ DON'T use cached item/content data
+    cachedItemData?.owner?.let {
+        openUserProfile(it.id, it.name)  // WRONG!
+    }
+}
+```
+
+### Why This Matters
+
+Consider this navigation flow:
+
+1. User opens reels for content owned by **User A** (opens reels screen f1)
+2. In f1, user sees a video created by **User B**
+3. User clicks **User B's** profile button in the video
+4. Expected: Opens **User B's** profile ✅
+5. If using cached `itemData.owner`: Opens **User A's** profile ❌
+
+**Root Cause**: Cached item/content data refers to the owner of the content that was initially selected to open the reels screen (User A), NOT the creator of the video whose profile button was clicked (User B).
+
+**Solution**: Always use the `userId` parameter from `onUserProfileClick()` - it contains the correct user ID for the profile that was actually clicked.
+
+### Complete Example
+
+```kotlin
+class MyFragment : Fragment(), ReelsListener {
+
+    private var currentItemData: ItemModel? = null  // Cached item/content data
+
+    fun openReelsForItem(item: ItemModel) {
+        this.currentItemData = item  // Cache for other purposes
+
+        // Register listener and open reels
+        ReelsModule.setListener(this)
+        ReelsModule.openReels(context = requireContext(), itemId = item.id)
+    }
+
+    // ✅ CORRECT: Use event parameters directly
+    override fun onUserProfileClick(userId: String, userName: String) {
+        // Use the userId from the event - this is the clicked user
+        navigateToUserProfile(userId.toLong(), userName)
+    }
+
+    // ❌ INCORRECT: Don't use cached data
+    // override fun onUserProfileClick(userId: String, userName: String) {
+    //     // DON'T do this - uses cached item owner, not clicked user
+    //     currentItemData?.owner?.let {
+    //         navigateToUserProfile(it.id, it.name)
+    //     }
+    // }
+}
+```
+
+### Testing Profile Navigation
+
+Test these scenarios to ensure correct implementation:
+
+1. **Single-level navigation**: Open reels for content → View video → Click profile button
+   - Should open the video creator's profile, not the initial content owner's profile
+
+2. **Multi-level navigation**: Open reels (User A) → Click profile button (User B) → Open reels → Click profile button (User C)
+   - Each profile click should navigate to the correct user's profile
+
+3. **Same user videos**: Open reels for User A's content → View User A's video → Click User A's profile
+   - Should work correctly even when video creator matches the initial content owner
+
 ## Best Practices
 
 ### ✅ Do's
@@ -836,8 +939,10 @@ If using ProGuard or R8, add these rules:
 - ✅ Set listener before opening reels
 - ✅ Use application context for initialization
 - ✅ Implement all `ReelsListener` methods
+- ✅ Use event parameters in `onUserProfileClick()`, not cached data
 - ✅ Handle errors gracefully
 - ✅ Test on real devices, not just emulators
+- ✅ Test multi-level profile navigation flows
 - ✅ Use local folder import for development
 - ✅ Use Git + Gradle for production
 
@@ -846,6 +951,7 @@ If using ProGuard or R8, add these rules:
 - ❌ Don't initialize multiple times
 - ❌ Don't open reels without setting listener
 - ❌ Don't use activity context for initialization
+- ❌ Don't use cached item/content data in `onUserProfileClick()`
 - ❌ Don't forget to handle lifecycle events
 - ❌ Don't modify generated Pigeon code
 - ❌ Don't include Flutter dependencies manually

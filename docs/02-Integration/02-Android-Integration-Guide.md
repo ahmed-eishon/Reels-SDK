@@ -203,14 +203,14 @@ implementation 'com.rakuten.room:reels-sdk:1.1.0'
 
 ### Method 3: Maven Repository Integration (Recommended for Released Versions)
 
-This method is recommended for using **stable releases** without needing the SDK source code. The SDK is distributed as a complete Maven repository with proper dependency management.
+This method is **recommended for production use** with stable releases. The SDK is distributed as a complete Maven repository with proper dependency management, allowing Gradle to automatically resolve all transitive dependencies.
 
 #### Maven Repository Structure
 
 ```mermaid
 graph TD
     A[ReelsSDK-Android-Debug-0.1.4.zip] --> B[maven-repo/]
-    B --> C[com/rakuten/reels_android/0.1.4/]
+    B --> C[com/rakuten/reels/reels_android/0.1.4/]
     B --> D[com/example/reels_flutter/]
     B --> E[io/flutter/]
     B --> F[androidx/media3/]
@@ -272,7 +272,7 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
 
 **What's included in the package:**
 - `maven-repo/` - Complete Maven repository with:
-  - `com.rakuten:reels_android` - Native Android API (main SDK interface)
+  - `com.rakuten.reels:reels_android` - Native Android API (main SDK interface) with correct groupId structure
   - `com.example.reels_flutter:flutter_debug` or `flutter_release` - Flutter module
   - `io.flutter:flutter_embedding_*` - Flutter engine artifacts
   - `io.flutter:armeabi_v7a_*`, `arm64_v8a_*`, `x86_64_*` - Architecture-specific Flutter engines
@@ -280,6 +280,9 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
   - All transitive dependencies with proper POM files
 - `README.md` - Integration instructions
 - `.sha256` - Checksum file for verification
+
+> [!important] Maven GroupId Structure
+> The SDK uses `com.rakuten.reels:reels_android` as the Maven coordinate. This corresponds to the directory structure `com/rakuten/reels/reels_android/` in the Maven repository. The groupId includes the full package path to avoid conflicts and follow Maven best practices.
 
 #### Step 2: Verify Checksums (Optional but Recommended)
 
@@ -367,15 +370,15 @@ android {
 dependencies {
     // ReelsSDK - Native Android API
     // This single dependency brings in all required Flutter and native dependencies transitively
-    debugImplementation 'com.rakuten:reels_android:0.1.4'
+    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
 
     // OR for Release builds
-    // releaseImplementation 'com.rakuten:reels_android:0.1.4'
+    // releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
 }
 ```
 
 > [!tip] Transitive Dependencies
-> - You only need to declare `com.rakuten:reels_android` as a dependency
+> - You only need to declare `com.rakuten.reels:reels_android` as a dependency
 > - Gradle automatically resolves all Flutter dependencies, engine artifacts, and media player libraries through the POM file
 > - No need to manually add Flutter or Media3 dependencies
 
@@ -421,13 +424,100 @@ Check that the SDK and its dependencies are properly resolved:
 ./gradlew app:dependencies --configuration debugCompileClasspath | grep -A 20 "reels_android"
 
 # Should show dependency tree like:
-# debugImplementation - com.rakuten:reels_android:0.1.4
+# debugImplementation - com.rakuten.reels:reels_android:0.1.4
 # +--- com.example.reels_flutter:flutter_debug:1.0
 # +--- io.flutter:flutter_embedding_debug:1.0.0-xxx
 # +--- io.flutter:arm64_v8a_debug:1.0.0-xxx
 # +--- androidx.media3:media3-exoplayer:1.1.1
 # \--- ... (other transitive dependencies)
 ```
+
+#### Maven Integration Precautions
+
+Based on production deployment experience, here are critical precautions to avoid common Maven integration issues:
+
+> [!warning] GroupId Structure Must Match Directory Structure
+> **Critical**: Maven groupId must match the actual directory structure in the repository.
+>
+> **❌ Wrong Structure (causes "Could not find" errors):**
+> ```
+> POM declares: groupId = "com.rakuten.reels"
+> But directory is: com/rakuten/reels_android/
+> → Gradle looks for: com/rakuten/reels/reels_android/ (doesn't exist!)
+> ```
+>
+> **✅ Correct Structure:**
+> ```
+> POM declares: groupId = "com.rakuten.reels"
+> Directory is: com/rakuten/reels/reels_android/
+> → Gradle finds: com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar ✓
+> ```
+>
+> **How we fixed this:**
+> - Debug workflow uses `groupId = 'com.rakuten.reels'` (matching release workflow)
+> - Directory structure is `com/rakuten/reels/reels_android/0.1.4/`
+> - Maven coordinates: `com.rakuten.reels:reels_android:0.1.4`
+
+> [!warning] Shell Copy Commands and Trailing Slashes
+> **Critical**: When copying Maven directories, trailing slashes affect behavior.
+>
+> **❌ Wrong (flattens structure):**
+> ```bash
+> # If com/rakuten/ already exists, this copies CONTENTS of reels/ into com/rakuten/
+> cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten/"
+> #                                                                              ^ trailing slash!
+> # Result: com/rakuten/reels_android/ (missing reels directory level!)
+> ```
+>
+> **✅ Correct (preserves structure):**
+> ```bash
+> # This copies the reels/ DIRECTORY itself into com/rakuten/
+> cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten"
+> #                                                                              ^ no trailing slash
+> # Result: com/rakuten/reels/reels_android/ (correct structure!)
+> ```
+>
+> **Lesson learned**: Always remove trailing slashes when copying directories to preserve structure.
+
+> [!tip] Verify Maven Structure Before Release
+> Always verify the Maven directory structure matches the POM groupId before publishing:
+>
+> ```bash
+> # After building, verify structure:
+> find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom"
+>
+> # Should show:
+> # ~/.m2/repository/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+> # ~/.m2/repository/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.pom
+>
+> # Verify in package:
+> unzip -l ReelsSDK-Android-Debug-0.1.4.zip | grep "reels_android.*\.aar"
+>
+> # Should show:
+> # ReelsSDK-Android-Debug-0.1.4/maven-repo/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+> ```
+
+> [!important] Alignment Between Debug and Release Workflows
+> Debug and Release workflows must use identical groupId and artifactId:
+>
+> **In `build.gradle`:**
+> ```gradle
+> publishing {
+>     publications {
+>         release(MavenPublication) {
+>             groupId = 'com.rakuten.reels'  // Must match
+>             artifactId = 'reels_android'
+>         }
+>
+>         debug(MavenPublication) {
+>             groupId = 'com.rakuten.reels'  // Same as release!
+>             artifactId = 'reels_android'
+>         }
+>     }
+> }
+> ```
+>
+> This ensures consumers can easily switch between debug and release versions by changing only the variant.
 
 **Advantages of Maven Integration:**
 - ✅ No Git authentication required

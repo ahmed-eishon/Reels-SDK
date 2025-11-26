@@ -131,7 +131,10 @@ jobs:
           ./gradlew :reels_android:publishDebugPublicationToMavenLocal --stacktrace
           echo ""
           echo "=== Published reels_android artifacts ===="
-          find ~/.m2/repository/com/rakuten/reels_android -name "*.aar" -o -name "*.pom" | head -20
+          find ~/.m2/repository/com/rakuten -type f | head -30
+          echo ""
+          echo "=== Directory structure ===="
+          ls -R ~/.m2/repository/com/rakuten/ | head -50
 
       - name: Create debug package
         id: package

@@ -149,22 +149,7 @@ jobs:
 
           # Copy reels_android AAR from local Maven
           echo "Copying reels_android AAR from local Maven..."
-          echo "Source directory contents:"
-          ls -la ~/.m2/repository/com/rakuten/
-          echo ""
-          echo "Destination before copy:"
-          ls -la "$PACKAGE_DIR/maven-repo/com/" || echo "com/ does not exist yet"
-
-          mkdir -p "$PACKAGE_DIR/maven-repo/com/rakuten"
-
-          echo "Destination com/rakuten/ before copy:"
-          ls -la "$PACKAGE_DIR/maven-repo/com/rakuten/"
-
           cp -r ~/.m2/repository/com/rakuten/reels_android "$PACKAGE_DIR/maven-repo/com/rakuten/"
-
-          echo ""
-          echo "Destination com/rakuten/ after copy:"
-          ls -la "$PACKAGE_DIR/maven-repo/com/rakuten/"
 
           echo ""
           echo "=== Package Maven structure ===="

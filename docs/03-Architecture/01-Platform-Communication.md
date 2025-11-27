@@ -336,7 +336,7 @@ import 'package:pigeon/pigeon.dart';
   dartOut: 'lib/core/pigeon_generated.dart',
   swiftOut: '../reels_ios/Sources/ReelsIOS/PigeonGenerated.swift',
   kotlinOut: '../reels_android/src/main/java/com/rakuten/room/reels/pigeon/PigeonGenerated.kt',
-  kotlinOptions: KotlinOptions(package: 'com.rakuten.room.reels.pigeon'),
+  kotlinOptions: KotlinOptions(package: 'com.eishon.reels.pigeon'),
 ))
 
 // Data models

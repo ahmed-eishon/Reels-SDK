@@ -272,7 +272,7 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
 
 **What's included in the package:**
 - `maven-repo/` - Complete Maven repository with:
-  - `com.rakuten.reels:reels_android` - Native Android API (main SDK interface) with correct groupId structure
+  - `com.eishon.reels:reels_android` - Native Android API (main SDK interface) with correct groupId structure
   - `com.example.reels_flutter:flutter_debug` or `flutter_release` - Flutter module
   - `io.flutter:flutter_embedding_*` - Flutter engine artifacts
   - `io.flutter:armeabi_v7a_*`, `arm64_v8a_*`, `x86_64_*` - Architecture-specific Flutter engines
@@ -282,7 +282,7 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
 - `.sha256` - Checksum file for verification
 
 > [!important] Maven GroupId Structure
-> The SDK uses `com.rakuten.reels:reels_android` as the Maven coordinate. This corresponds to the directory structure `com/rakuten/reels/reels_android/` in the Maven repository. The groupId includes the full package path to avoid conflicts and follow Maven best practices.
+> The SDK uses `com.eishon.reels:reels_android` as the Maven coordinate. This corresponds to the directory structure `com/rakuten/reels/reels_android/` in the Maven repository. The groupId includes the full package path to avoid conflicts and follow Maven best practices.
 
 #### Step 2: Verify Checksums (Optional but Recommended)
 
@@ -370,15 +370,15 @@ android {
 dependencies {
     // ReelsSDK - Native Android API
     // This single dependency brings in all required Flutter and native dependencies transitively
-    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
+    debugImplementation 'com.eishon.reels:reels_android:0.1.4'
 
     // OR for Release builds
-    // releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
+    // releaseImplementation 'com.eishon.reels:reels_android:0.1.4'
 }
 ```
 
 > [!tip] Transitive Dependencies
-> - You only need to declare `com.rakuten.reels:reels_android` as a dependency
+> - You only need to declare `com.eishon.reels:reels_android` as a dependency
 > - Gradle automatically resolves all Flutter dependencies, engine artifacts, and media player libraries through the POM file
 > - No need to manually add Flutter or Media3 dependencies
 
@@ -424,7 +424,7 @@ Check that the SDK and its dependencies are properly resolved:
 ./gradlew app:dependencies --configuration debugCompileClasspath | grep -A 20 "reels_android"
 
 # Should show dependency tree like:
-# debugImplementation - com.rakuten.reels:reels_android:0.1.4
+# debugImplementation - com.eishon.reels:reels_android:0.1.4
 # +--- com.example.reels_flutter:flutter_debug:1.0
 # +--- io.flutter:flutter_embedding_debug:1.0.0-xxx
 # +--- io.flutter:arm64_v8a_debug:1.0.0-xxx
@@ -441,22 +441,22 @@ Based on production deployment experience, here are critical precautions to avoi
 >
 > **❌ Wrong Structure (causes "Could not find" errors):**
 > ```
-> POM declares: groupId = "com.rakuten.reels"
+> POM declares: groupId = "com.eishon.reels"
 > But directory is: com/rakuten/reels_android/
 > → Gradle looks for: com/rakuten/reels/reels_android/ (doesn't exist!)
 > ```
 >
 > **✅ Correct Structure:**
 > ```
-> POM declares: groupId = "com.rakuten.reels"
+> POM declares: groupId = "com.eishon.reels"
 > Directory is: com/rakuten/reels/reels_android/
 > → Gradle finds: com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar ✓
 > ```
 >
 > **How we fixed this:**
-> - Debug workflow uses `groupId = 'com.rakuten.reels'` (matching release workflow)
+> - Debug workflow uses `groupId = 'com.eishon.reels'` (matching release workflow)
 > - Directory structure is `com/rakuten/reels/reels_android/0.1.4/`
-> - Maven coordinates: `com.rakuten.reels:reels_android:0.1.4`
+> - Maven coordinates: `com.eishon.reels:reels_android:0.1.4`
 
 > [!warning] Shell Copy Commands and Trailing Slashes
 > **Critical**: When copying Maven directories, trailing slashes affect behavior.
@@ -505,12 +505,12 @@ Based on production deployment experience, here are critical precautions to avoi
 > publishing {
 >     publications {
 >         release(MavenPublication) {
->             groupId = 'com.rakuten.reels'  // Must match
+>             groupId = 'com.eishon.reels'  // Must match
 >             artifactId = 'reels_android'
 >         }
 >
 >         debug(MavenPublication) {
->             groupId = 'com.rakuten.reels'  // Same as release!
+>             groupId = 'com.eishon.reels'  // Same as release!
 >             artifactId = 'reels_android'
 >         }
 >     }
@@ -548,9 +548,9 @@ Based on production deployment experience, here are critical precautions to avoi
 ### Step 1: Import the SDK
 
 ```kotlin
-import com.rakuten.room.reels.ReelsModule
-import com.rakuten.room.reels.flutter.ReelsListener
-import com.rakuten.room.reels.pigeon.ShareData
+import com.eishon.reels.ReelsModule
+import com.eishon.reels.flutter.ReelsListener
+import com.eishon.reels.pigeon.ShareData
 ```
 
 ### Step 2: Initialize the SDK
@@ -561,7 +561,7 @@ Initialize the SDK early in your app lifecycle (in `Application` class or main `
 
 ```kotlin
 import android.app.Application
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.ReelsModule
 
 class MyApplication : Application() {
 
@@ -597,7 +597,7 @@ Don't forget to add your Application class to `AndroidManifest.xml`:
 ```kotlin
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.ReelsModule
 
 class MainActivity : AppCompatActivity() {
 
@@ -621,9 +621,9 @@ class MainActivity : AppCompatActivity() {
 Implement the `ReelsListener` interface to receive callbacks:
 
 ```kotlin
-import com.rakuten.room.reels.ReelsModule
-import com.rakuten.room.reels.flutter.ReelsListener
-import com.rakuten.room.reels.pigeon.ShareData
+import com.eishon.reels.ReelsModule
+import com.eishon.reels.flutter.ReelsListener
+import com.eishon.reels.pigeon.ShareData
 import android.content.Intent
 import android.util.Log
 
@@ -684,7 +684,7 @@ class MainActivity : AppCompatActivity(), ReelsListener {
 #### Option A: Full-Screen Activity (Recommended)
 
 ```kotlin
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.ReelsModule
 
 class MainActivity : AppCompatActivity(), ReelsListener {
 
@@ -718,7 +718,7 @@ class MainActivity : AppCompatActivity(), ReelsListener {
 #### Option B: Embedded Fragment
 
 ```kotlin
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.ReelsModule
 
 class MainActivity : AppCompatActivity(), ReelsListener {
 
@@ -929,8 +929,8 @@ If using ProGuard or R8, add these rules:
 -keep class io.flutter.embedding.** { *; }
 
 # Reels SDK
--keep class com.rakuten.room.reels.** { *; }
--keepclassmembers class com.rakuten.room.reels.** { *; }
+-keep class com.eishon.reels.** { *; }
+-keepclassmembers class com.eishon.reels.** { *; }
 
 # Pigeon
 -keepattributes Signature

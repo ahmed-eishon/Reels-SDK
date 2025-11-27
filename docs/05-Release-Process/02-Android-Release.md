@@ -265,15 +265,15 @@ repositories {
 // app/build.gradle
 dependencies {
     // Debug version (development)
-    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
+    debugImplementation 'com.eishon.reels:reels_android:0.1.4'
 
     // OR Release version (production)
-    releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
+    releaseImplementation 'com.eishon.reels:reels_android:0.1.4'
 }
 ```
 
 > [!important] Maven Coordinates
-> The correct Maven coordinates are `com.rakuten.reels:reels_android` (not `com.rakuten:reels_android`). This ensures the groupId matches the directory structure in the Maven repository: `com/rakuten/reels/reels_android/`.
+> The correct Maven coordinates are `com.eishon.reels:reels_android` (not `com.rakuten:reels_android`). This ensures the groupId matches the directory structure in the Maven repository: `com/rakuten/reels/reels_android/`.
 
 **What happens:**
 - ✅ Download Maven repository ZIP from GitHub release
@@ -312,20 +312,20 @@ cd ../reels_android
 
 ### Maven Structure Mismatch (CRITICAL)
 
-**Problem:** Users reported `Could not find com.rakuten.reels:reels_android:0.1.4` error even though the package was downloaded correctly.
+**Problem:** Users reported `Could not find com.eishon.reels:reels_android:0.1.4` error even though the package was downloaded correctly.
 
 **Root Cause:** Maven groupId in POM file didn't match the actual directory structure in the repository.
 
 **Example of the Issue:**
 ```
 ❌ Wrong Structure:
-POM file declares: groupId = "com.rakuten.reels"
+POM file declares: groupId = "com.eishon.reels"
 Directory structure: com/rakuten/reels_android/0.1.4/
 Gradle looks for: com/rakuten/reels/reels_android/0.1.4/ (doesn't exist!)
 Result: "Could not find" error
 
 ✅ Correct Structure:
-POM file declares: groupId = "com.rakuten.reels"
+POM file declares: groupId = "com.eishon.reels"
 Directory structure: com/rakuten/reels/reels_android/0.1.4/
 Gradle finds: com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
 Result: Dependency resolves successfully
@@ -338,7 +338,7 @@ Result: Dependency resolves successfully
    publishing {
        publications {
            debug(MavenPublication) {
-               groupId = 'com.rakuten.reels'  // Changed from 'com.rakuten'
+               groupId = 'com.eishon.reels'  // Changed from 'com.rakuten'
                artifactId = 'reels_android'
                version = getVersionName()
            }
@@ -391,7 +391,7 @@ unzip -p ReelsSDK-Android-Debug-0.1.4.zip \
   | grep -A 1 "<groupId>"
 
 # Expected output:
-# <groupId>com.rakuten.reels</groupId>
+# <groupId>com.eishon.reels</groupId>
 ```
 
 ### Debug and Release Workflow Alignment
@@ -399,8 +399,8 @@ unzip -p ReelsSDK-Android-Debug-0.1.4.zip \
 **Problem:** Debug and Release workflows initially used different groupIds, causing confusion and integration issues.
 
 **Solution:** Ensured both workflows use identical Maven coordinates:
-- Debug: `com.rakuten.reels:reels_android`
-- Release: `com.rakuten.reels:reels_android`
+- Debug: `com.eishon.reels:reels_android`
+- Release: `com.eishon.reels:reels_android`
 
 **Best Practice:**
 ```gradle
@@ -408,12 +408,12 @@ unzip -p ReelsSDK-Android-Debug-0.1.4.zip \
 publishing {
     publications {
         release(MavenPublication) {
-            groupId = 'com.rakuten.reels'  // Same
+            groupId = 'com.eishon.reels'  // Same
             artifactId = 'reels_android'    // Same
         }
 
         debug(MavenPublication) {
-            groupId = 'com.rakuten.reels'  // Same
+            groupId = 'com.eishon.reels'  // Same
             artifactId = 'reels_android'    // Same
         }
     }
@@ -453,7 +453,7 @@ cp -r source/reels dest/com/rakuten
    ```
 
 2. **Ensure groupId matches directory structure:**
-   - GroupId: `com.rakuten.reels`
+   - GroupId: `com.eishon.reels`
    - Directory: `com/rakuten/reels/reels_android/`
    - POM file must declare exact groupId
 
@@ -633,10 +633,10 @@ android {
 
 dependencies {
     // For Debug build
-    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
+    debugImplementation 'com.eishon.reels:reels_android:0.1.4'
 
     // For Release build
-    releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
+    releaseImplementation 'com.eishon.reels:reels_android:0.1.4'
 
     // Required dependencies (if not already present)
     implementation 'androidx.appcompat:appcompat:1.6.1'
@@ -657,7 +657,7 @@ cd your-app
 ### Step 5: Use in Code
 
 ```kotlin
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.ReelsModule
 
 class MainActivity : AppCompatActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {

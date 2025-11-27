@@ -121,10 +121,10 @@ repositories {
 // app/build.gradle
 dependencies {
     // For Release build
-    releaseImplementation 'com.rakuten.reels:reels_android:{VERSION}'
+    releaseImplementation 'com.eishon.reels:reels_android:{VERSION}'
 
     // For Debug build
-    debugImplementation 'com.rakuten.reels:reels_android:{VERSION}'
+    debugImplementation 'com.eishon.reels:reels_android:{VERSION}'
 }
 ```
 

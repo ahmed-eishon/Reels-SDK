@@ -1,6 +1,6 @@
 # Reels SDK - Overview
 
-> **Version:** 0.1.4
+> **Version:** 0.1.5
 > **Status:** Active Development
 > **Platforms:** iOS 16.0+ | Android SDK 21+
 
@@ -223,7 +223,7 @@ ReelsModule.openReels(
 ### Android (Kotlin)
 
 ```kotlin
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.ReelsModule
 
 // 1. Initialize (in Application.onCreate)
 ReelsModule.initialize(

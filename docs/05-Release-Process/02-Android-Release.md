@@ -272,6 +272,9 @@ dependencies {
 }
 ```
 
+> [!important] Maven Coordinates
+> The correct Maven coordinates are `com.rakuten.reels:reels_android` (not `com.rakuten:reels_android`). This ensures the groupId matches the directory structure in the Maven repository: `com/rakuten/reels/reels_android/`.
+
 **What happens:**
 - ✅ Download Maven repository ZIP from GitHub release
 - ✅ Extract to project directory
@@ -304,6 +307,171 @@ cd ../reels_android
 # Flutter: reels_flutter/build/host/outputs/repo/...
 # Android: reels_android/build/outputs/aar/reels_android-release.aar
 ```
+
+## Critical Release Issues & Lessons Learned
+
+### Maven Structure Mismatch (CRITICAL)
+
+**Problem:** Users reported `Could not find com.rakuten.reels:reels_android:0.1.4` error even though the package was downloaded correctly.
+
+**Root Cause:** Maven groupId in POM file didn't match the actual directory structure in the repository.
+
+**Example of the Issue:**
+```
+❌ Wrong Structure:
+POM file declares: groupId = "com.rakuten.reels"
+Directory structure: com/rakuten/reels_android/0.1.4/
+Gradle looks for: com/rakuten/reels/reels_android/0.1.4/ (doesn't exist!)
+Result: "Could not find" error
+
+✅ Correct Structure:
+POM file declares: groupId = "com.rakuten.reels"
+Directory structure: com/rakuten/reels/reels_android/0.1.4/
+Gradle finds: com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+Result: Dependency resolves successfully
+```
+
+**How We Fixed It:**
+
+1. **Updated `build.gradle` to use correct groupId:**
+   ```gradle
+   publishing {
+       publications {
+           debug(MavenPublication) {
+               groupId = 'com.rakuten.reels'  // Changed from 'com.rakuten'
+               artifactId = 'reels_android'
+               version = getVersionName()
+           }
+       }
+   }
+   ```
+
+2. **Fixed workflow copy command to preserve directory structure:**
+   ```yaml
+   # ❌ Wrong (had trailing slash):
+   cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten/"
+
+   # ✅ Correct (no trailing slash):
+   cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten"
+   ```
+
+3. **Verification steps added to workflow:**
+   ```yaml
+   - name: List published artifacts
+     run: |
+       echo "=== Published reels_android artifacts ===="
+       find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom"
+
+   - name: Verify package structure
+     run: |
+       echo "=== Package Maven structure ===="
+       find "$PACKAGE_DIR/maven-repo" -name "*.aar" -o -name "reels_android*.pom"
+   ```
+
+**Verification Checklist:**
+```bash
+# After building, always verify:
+
+# 1. Check Maven local repository structure
+find ~/.m2/repository/com/rakuten/reels -type f
+
+# Expected output:
+# ~/.m2/repository/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+# ~/.m2/repository/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.pom
+
+# 2. Check package structure
+unzip -l ReelsSDK-Android-Debug-0.1.4.zip | grep "reels_android.*\.aar"
+
+# Expected output:
+# ReelsSDK-Android-Debug-0.1.4/maven-repo/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+
+# 3. Verify POM groupId matches directory
+unzip -p ReelsSDK-Android-Debug-0.1.4.zip \
+  ReelsSDK-Android-Debug-0.1.4/maven-repo/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.pom \
+  | grep -A 1 "<groupId>"
+
+# Expected output:
+# <groupId>com.rakuten.reels</groupId>
+```
+
+### Debug and Release Workflow Alignment
+
+**Problem:** Debug and Release workflows initially used different groupIds, causing confusion and integration issues.
+
+**Solution:** Ensured both workflows use identical Maven coordinates:
+- Debug: `com.rakuten.reels:reels_android`
+- Release: `com.rakuten.reels:reels_android`
+
+**Best Practice:**
+```gradle
+// In reels_android/build.gradle
+publishing {
+    publications {
+        release(MavenPublication) {
+            groupId = 'com.rakuten.reels'  // Same
+            artifactId = 'reels_android'    // Same
+        }
+
+        debug(MavenPublication) {
+            groupId = 'com.rakuten.reels'  // Same
+            artifactId = 'reels_android'    // Same
+        }
+    }
+}
+```
+
+This allows users to easily switch between debug and release by changing only the variant in their `build.gradle`.
+
+### Shell Copy Commands and Trailing Slashes
+
+**Problem:** Trailing slashes in shell copy commands caused directory flattening.
+
+**Explanation:**
+```bash
+# If com/rakuten/ already exists:
+
+# ❌ With trailing slash - copies CONTENTS
+cp -r source/reels/ dest/com/rakuten/
+# Result: dest/com/rakuten/reels_android/ (flattened!)
+
+# ✅ Without trailing slash - copies DIRECTORY
+cp -r source/reels dest/com/rakuten
+# Result: dest/com/rakuten/reels/reels_android/ (correct!)
+```
+
+**Prevention:**
+- Always use paths without trailing slashes when preserving directory structure
+- Test copy commands locally before pushing to CI/CD
+- Add verification steps to workflow to catch structure issues early
+
+### Precautions for Future Releases
+
+1. **Always verify Maven structure before release:**
+   ```bash
+   ./scripts/sdk/android/test-release-locally.sh
+   # Then manually verify structure before pushing tags
+   ```
+
+2. **Ensure groupId matches directory structure:**
+   - GroupId: `com.rakuten.reels`
+   - Directory: `com/rakuten/reels/reels_android/`
+   - POM file must declare exact groupId
+
+3. **Test dependency resolution locally:**
+   ```bash
+   # After building package, test in a sample project
+   ./gradlew app:dependencies --configuration debugCompileClasspath | grep reels_android
+   ```
+
+4. **Keep debug and release workflows aligned:**
+   - Same groupId
+   - Same artifactId
+   - Only variant differs (debug vs release)
+
+5. **Document structure in README:**
+   - Include Maven coordinates
+   - Show expected directory structure
+   - Provide verification commands
 
 ## Troubleshooting
 

@@ -37,8 +37,13 @@ public class ReelsModule {
     /// Access token provider closure (async)
     private static var accessTokenProvider: ((@escaping (String?) -> Void) -> Void)?
 
-    /// Reels event listener
+    /// Reels event listener (current listener, may be from nested modal)
     private static weak var listener: ReelsListener?
+
+    /// Root listener - the original app listener that can handle navigation
+    /// This is captured when first opening reels and never changed
+    /// Used to fix multimodal Y-pattern navigation where f2→n3 needs to bypass f1's listener
+    private static weak var rootListener: ReelsListener?
 
     /// Presenting view controller (used for navigation from Flutter)
     private static weak var presentingViewController: UIViewController?
@@ -150,12 +155,26 @@ public class ReelsModule {
     /// - Parameter listener: Listener to receive events from Flutter
     public static func setListener(_ listener: ReelsListener?) {
         self.listener = listener
+
+        // Capture root listener on first set (when rootListener is nil)
+        // This is the original app listener that can handle navigation
+        if rootListener == nil && listener != nil {
+            rootListener = listener
+            print("[ReelsSDK-iOS] Captured root listener: \(String(describing: type(of: listener)))")
+        }
+
         engineManager.setListener(listener)
     }
 
     /// Get the current listener
     internal static func getListener() -> ReelsListener? {
         return listener
+    }
+
+    /// Get the root listener (original app listener)
+    /// Used for multimodal navigation to bypass nested modal listeners
+    internal static func getRootListener() -> ReelsListener? {
+        return rootListener
     }
 
     /// Get the presenting view controller
@@ -229,6 +248,7 @@ public class ReelsModule {
         presentingViewController = nil
         flutterNavigationController = nil
         listener = nil
+        rootListener = nil  // Clear root listener when all reels screens are dismissed
         // Note: We don't clear collectDataByGeneration here because multiple
         // nested modals may exist simultaneously. Each generation's data is
         // managed independently and will be cleared when no longer needed.

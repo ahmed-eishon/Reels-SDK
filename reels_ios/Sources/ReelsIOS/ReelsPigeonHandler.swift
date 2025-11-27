@@ -58,19 +58,11 @@ class ReelsPigeonHandler: NSObject {
             }
 
             print("[ReelsSDK-iOS] Received swipe left: userId=\(userId), userName=\(userName)")
-            ReelsModule.getListener()?.onSwipeLeft(userId: userId, userName: userName)
-            reply(nil)
-        }
 
-        // Handle swipe right events
-        let swipeRightChannel = FlutterBasicMessageChannel(
-            name: "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeRight",
-            binaryMessenger: messenger,
-            codec: codec
-        )
-        swipeRightChannel.setMessageHandler { message, reply in
-            print("[ReelsSDK-iOS] Received swipe right event")
-            ReelsModule.getListener()?.onSwipeRight()
+            // MULTIMODAL FIX: Always use root listener for navigation events
+            // This ensures navigation works even when called from nested modals
+            let targetListener = ReelsModule.getRootListener() ?? ReelsModule.getListener()
+            targetListener?.onSwipeLeft(userId: userId, userName: userName)
             reply(nil)
         }
 
@@ -91,7 +83,11 @@ class ReelsPigeonHandler: NSObject {
             }
 
             print("[ReelsSDK-iOS] Received user profile click: userId=\(userId), userName=\(userName)")
-            ReelsModule.getListener()?.onUserProfileClick(userId: userId, userName: userName)
+
+            // MULTIMODAL FIX: Always use root listener for navigation events
+            // This ensures navigation works even when called from nested modals
+            let targetListener = ReelsModule.getRootListener() ?? ReelsModule.getListener()
+            targetListener?.onUserProfileClick(userId: userId, userName: userName)
             reply(nil)
         }
 

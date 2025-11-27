@@ -203,14 +203,14 @@ implementation 'com.rakuten.room:reels-sdk:1.1.0'
 
 ### Method 3: Maven Repository Integration (Recommended for Released Versions)
 
-This method is recommended for using **stable releases** without needing the SDK source code. The SDK is distributed as a complete Maven repository with proper dependency management.
+This method is **recommended for production use** with stable releases. The SDK is distributed as a complete Maven repository with proper dependency management, allowing Gradle to automatically resolve all transitive dependencies.
 
 #### Maven Repository Structure
 
 ```mermaid
 graph TD
     A[ReelsSDK-Android-Debug-0.1.4.zip] --> B[maven-repo/]
-    B --> C[com/rakuten/reels_android/0.1.4/]
+    B --> C[com/rakuten/reels/reels_android/0.1.4/]
     B --> D[com/example/reels_flutter/]
     B --> E[io/flutter/]
     B --> F[androidx/media3/]
@@ -259,9 +259,20 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
 # unzip ReelsSDK-Android-${VERSION}.zip -d ..
 ```
 
+> [!tip] Latest Release (v0.1.4)
+> The v0.1.4 release includes:
+> - ✅ Multimodal navigation support (nested native/Flutter screens)
+> - ✅ Root listener pattern for complex navigation flows
+> - ✅ Generation-based state management
+> - ✅ Profile navigation fixes
+>
+> **Download links:**
+> - Debug: https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-android-debug/ReelsSDK-Android-Debug-0.1.4.zip
+> - Release: https://github.com/ahmed-eishon/Reels-SDK/releases/download/v0.1.4-android/ReelsSDK-Android-0.1.4.zip
+
 **What's included in the package:**
 - `maven-repo/` - Complete Maven repository with:
-  - `com.rakuten:reels_android` - Native Android API (main SDK interface)
+  - `com.rakuten.reels:reels_android` - Native Android API (main SDK interface) with correct groupId structure
   - `com.example.reels_flutter:flutter_debug` or `flutter_release` - Flutter module
   - `io.flutter:flutter_embedding_*` - Flutter engine artifacts
   - `io.flutter:armeabi_v7a_*`, `arm64_v8a_*`, `x86_64_*` - Architecture-specific Flutter engines
@@ -269,6 +280,9 @@ unzip ReelsSDK-Android-Debug-${VERSION}.zip -d ..
   - All transitive dependencies with proper POM files
 - `README.md` - Integration instructions
 - `.sha256` - Checksum file for verification
+
+> [!important] Maven GroupId Structure
+> The SDK uses `com.rakuten.reels:reels_android` as the Maven coordinate. This corresponds to the directory structure `com/rakuten/reels/reels_android/` in the Maven repository. The groupId includes the full package path to avoid conflicts and follow Maven best practices.
 
 #### Step 2: Verify Checksums (Optional but Recommended)
 
@@ -356,15 +370,15 @@ android {
 dependencies {
     // ReelsSDK - Native Android API
     // This single dependency brings in all required Flutter and native dependencies transitively
-    debugImplementation 'com.rakuten:reels_android:0.1.4'
+    debugImplementation 'com.rakuten.reels:reels_android:0.1.4'
 
     // OR for Release builds
-    // releaseImplementation 'com.rakuten:reels_android:0.1.4'
+    // releaseImplementation 'com.rakuten.reels:reels_android:0.1.4'
 }
 ```
 
 > [!tip] Transitive Dependencies
-> - You only need to declare `com.rakuten:reels_android` as a dependency
+> - You only need to declare `com.rakuten.reels:reels_android` as a dependency
 > - Gradle automatically resolves all Flutter dependencies, engine artifacts, and media player libraries through the POM file
 > - No need to manually add Flutter or Media3 dependencies
 
@@ -410,13 +424,100 @@ Check that the SDK and its dependencies are properly resolved:
 ./gradlew app:dependencies --configuration debugCompileClasspath | grep -A 20 "reels_android"
 
 # Should show dependency tree like:
-# debugImplementation - com.rakuten:reels_android:0.1.4
+# debugImplementation - com.rakuten.reels:reels_android:0.1.4
 # +--- com.example.reels_flutter:flutter_debug:1.0
 # +--- io.flutter:flutter_embedding_debug:1.0.0-xxx
 # +--- io.flutter:arm64_v8a_debug:1.0.0-xxx
 # +--- androidx.media3:media3-exoplayer:1.1.1
 # \--- ... (other transitive dependencies)
 ```
+
+#### Maven Integration Precautions
+
+Based on production deployment experience, here are critical precautions to avoid common Maven integration issues:
+
+> [!warning] GroupId Structure Must Match Directory Structure
+> **Critical**: Maven groupId must match the actual directory structure in the repository.
+>
+> **❌ Wrong Structure (causes "Could not find" errors):**
+> ```
+> POM declares: groupId = "com.rakuten.reels"
+> But directory is: com/rakuten/reels_android/
+> → Gradle looks for: com/rakuten/reels/reels_android/ (doesn't exist!)
+> ```
+>
+> **✅ Correct Structure:**
+> ```
+> POM declares: groupId = "com.rakuten.reels"
+> Directory is: com/rakuten/reels/reels_android/
+> → Gradle finds: com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar ✓
+> ```
+>
+> **How we fixed this:**
+> - Debug workflow uses `groupId = 'com.rakuten.reels'` (matching release workflow)
+> - Directory structure is `com/rakuten/reels/reels_android/0.1.4/`
+> - Maven coordinates: `com.rakuten.reels:reels_android:0.1.4`
+
+> [!warning] Shell Copy Commands and Trailing Slashes
+> **Critical**: When copying Maven directories, trailing slashes affect behavior.
+>
+> **❌ Wrong (flattens structure):**
+> ```bash
+> # If com/rakuten/ already exists, this copies CONTENTS of reels/ into com/rakuten/
+> cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten/"
+> #                                                                              ^ trailing slash!
+> # Result: com/rakuten/reels_android/ (missing reels directory level!)
+> ```
+>
+> **✅ Correct (preserves structure):**
+> ```bash
+> # This copies the reels/ DIRECTORY itself into com/rakuten/
+> cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten"
+> #                                                                              ^ no trailing slash
+> # Result: com/rakuten/reels/reels_android/ (correct structure!)
+> ```
+>
+> **Lesson learned**: Always remove trailing slashes when copying directories to preserve structure.
+
+> [!tip] Verify Maven Structure Before Release
+> Always verify the Maven directory structure matches the POM groupId before publishing:
+>
+> ```bash
+> # After building, verify structure:
+> find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom"
+>
+> # Should show:
+> # ~/.m2/repository/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+> # ~/.m2/repository/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.pom
+>
+> # Verify in package:
+> unzip -l ReelsSDK-Android-Debug-0.1.4.zip | grep "reels_android.*\.aar"
+>
+> # Should show:
+> # ReelsSDK-Android-Debug-0.1.4/maven-repo/com/rakuten/reels/reels_android/0.1.4/reels_android-0.1.4.aar
+> ```
+
+> [!important] Alignment Between Debug and Release Workflows
+> Debug and Release workflows must use identical groupId and artifactId:
+>
+> **In `build.gradle`:**
+> ```gradle
+> publishing {
+>     publications {
+>         release(MavenPublication) {
+>             groupId = 'com.rakuten.reels'  // Must match
+>             artifactId = 'reels_android'
+>         }
+>
+>         debug(MavenPublication) {
+>             groupId = 'com.rakuten.reels'  // Same as release!
+>             artifactId = 'reels_android'
+>         }
+>     }
+> }
+> ```
+>
+> This ensures consumers can easily switch between debug and release versions by changing only the variant.
 
 **Advantages of Maven Integration:**
 - ✅ No Git authentication required
@@ -566,6 +667,14 @@ class MainActivity : AppCompatActivity(), ReelsListener {
         Analytics.track(eventName, properties)
 
         Log.d("Reels", "Analytics event: $eventName, properties: $properties")
+    }
+
+    override fun onUserProfileClick(userId: String, userName: String) {
+        // ✅ IMPORTANT: Use the userId parameter, NOT cached data
+        // Navigate to the clicked user's profile
+        openUserProfile(userId.toLong(), userName)
+
+        Log.d("Reels", "User profile clicked: $userId ($userName)")
     }
 }
 ```
@@ -828,6 +937,90 @@ If using ProGuard or R8, add these rules:
 -keepattributes *Annotation*
 ```
 
+## Profile Navigation Implementation
+
+### Critical: Use Event Parameters, Not Cached Data
+
+When implementing `onUserProfileClick()`, it's essential to use the `userId` and `userName` parameters from the event itself, **not** any cached data from your app.
+
+#### ✅ Correct Implementation
+
+```kotlin
+override fun onUserProfileClick(userId: String, userName: String) {
+    // ✅ Use the parameters from the event
+    openUserProfile(userId.toLong(), userName)
+}
+```
+
+#### ❌ Incorrect Implementation
+
+```kotlin
+override fun onUserProfileClick(userId: String, userName: String) {
+    // ❌ DON'T use cached item/content data
+    cachedItemData?.owner?.let {
+        openUserProfile(it.id, it.name)  // WRONG!
+    }
+}
+```
+
+### Why This Matters
+
+Consider this navigation flow:
+
+1. User opens reels for content owned by **User A** (opens reels screen f1)
+2. In f1, user sees a video created by **User B**
+3. User clicks **User B's** profile button in the video
+4. Expected: Opens **User B's** profile ✅
+5. If using cached `itemData.owner`: Opens **User A's** profile ❌
+
+**Root Cause**: Cached item/content data refers to the owner of the content that was initially selected to open the reels screen (User A), NOT the creator of the video whose profile button was clicked (User B).
+
+**Solution**: Always use the `userId` parameter from `onUserProfileClick()` - it contains the correct user ID for the profile that was actually clicked.
+
+### Complete Example
+
+```kotlin
+class MyFragment : Fragment(), ReelsListener {
+
+    private var currentItemData: ItemModel? = null  // Cached item/content data
+
+    fun openReelsForItem(item: ItemModel) {
+        this.currentItemData = item  // Cache for other purposes
+
+        // Register listener and open reels
+        ReelsModule.setListener(this)
+        ReelsModule.openReels(context = requireContext(), itemId = item.id)
+    }
+
+    // ✅ CORRECT: Use event parameters directly
+    override fun onUserProfileClick(userId: String, userName: String) {
+        // Use the userId from the event - this is the clicked user
+        navigateToUserProfile(userId.toLong(), userName)
+    }
+
+    // ❌ INCORRECT: Don't use cached data
+    // override fun onUserProfileClick(userId: String, userName: String) {
+    //     // DON'T do this - uses cached item owner, not clicked user
+    //     currentItemData?.owner?.let {
+    //         navigateToUserProfile(it.id, it.name)
+    //     }
+    // }
+}
+```
+
+### Testing Profile Navigation
+
+Test these scenarios to ensure correct implementation:
+
+1. **Single-level navigation**: Open reels for content → View video → Click profile button
+   - Should open the video creator's profile, not the initial content owner's profile
+
+2. **Multi-level navigation**: Open reels (User A) → Click profile button (User B) → Open reels → Click profile button (User C)
+   - Each profile click should navigate to the correct user's profile
+
+3. **Same user videos**: Open reels for User A's content → View User A's video → Click User A's profile
+   - Should work correctly even when video creator matches the initial content owner
+
 ## Best Practices
 
 ### ✅ Do's
@@ -836,8 +1029,10 @@ If using ProGuard or R8, add these rules:
 - ✅ Set listener before opening reels
 - ✅ Use application context for initialization
 - ✅ Implement all `ReelsListener` methods
+- ✅ Use event parameters in `onUserProfileClick()`, not cached data
 - ✅ Handle errors gracefully
 - ✅ Test on real devices, not just emulators
+- ✅ Test multi-level profile navigation flows
 - ✅ Use local folder import for development
 - ✅ Use Git + Gradle for production
 
@@ -846,6 +1041,7 @@ If using ProGuard or R8, add these rules:
 - ❌ Don't initialize multiple times
 - ❌ Don't open reels without setting listener
 - ❌ Don't use activity context for initialization
+- ❌ Don't use cached item/content data in `onUserProfileClick()`
 - ❌ Don't forget to handle lifecycle events
 - ❌ Don't modify generated Pigeon code
 - ❌ Don't include Flutter dependencies manually

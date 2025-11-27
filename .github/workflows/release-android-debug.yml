@@ -131,7 +131,7 @@ jobs:
           ./gradlew :reels_android:publishDebugPublicationToMavenLocal --stacktrace
           echo ""
           echo "=== Published reels_android artifacts ===="
-          find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom" | head -20
+          find ~/.m2/repository/com/eishon/reels -name "*.aar" -o -name "*.pom" | head -20
 
       - name: Create debug package
         id: package
@@ -147,8 +147,8 @@ jobs:
           # Copy reels_android AAR from local Maven
           # Ensure the parent directory exists, then copy without trailing slash
           echo "Copying reels_android AAR from local Maven..."
-          mkdir -p "$PACKAGE_DIR/maven-repo/com/rakuten"
-          cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten"
+          mkdir -p "$PACKAGE_DIR/maven-repo/com/eishon"
+          cp -r ~/.m2/repository/com/eishon/reels "$PACKAGE_DIR/maven-repo/com/eishon"
 
           echo ""
           echo "=== Package Maven structure ===="

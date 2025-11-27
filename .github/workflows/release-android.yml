@@ -131,7 +131,7 @@ jobs:
           ./gradlew :reels_android:publishReleasePublicationToMavenLocal --stacktrace
           echo ""
           echo "=== Published reels_android artifacts ==="
-          find ~/.m2/repository/com/rakuten/reels -name "*.aar" -o -name "*.pom" | head -20
+          find ~/.m2/repository/com/eishon/reels -name "*.aar" -o -name "*.pom" | head -20
 
       - name: Create release package
         id: package
@@ -146,7 +146,7 @@ jobs:
 
           # Copy reels_android AAR from local Maven
           echo "Copying reels_android AAR from local Maven..."
-          cp -r ~/.m2/repository/com/rakuten/reels "$PACKAGE_DIR/maven-repo/com/rakuten/"
+          cp -r ~/.m2/repository/com/eishon/reels "$PACKAGE_DIR/maven-repo/com/eishon/"
 
           echo ""
           echo "=== Package Maven structure ==="

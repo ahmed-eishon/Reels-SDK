@@ -6,7 +6,7 @@ plugins {
 }
 
 android {
-    namespace 'com.rakuten.room.reels'
+    namespace 'com.eishon.reels'
     compileSdk Integer.parseInt(project.COMPILE_SDK_VERSION)
     buildToolsVersion project.BUILD_TOOLS_VERSION
 
@@ -139,7 +139,7 @@ publishing {
         }
 
         debug(MavenPublication) {
-            groupId = 'com.rakuten.reels'
+            groupId = 'com.eishon.reels'
             artifactId = 'reels_android'
             version = getVersionName()
 

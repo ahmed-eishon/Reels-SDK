@@ -1,4 +1,4 @@
-package com.rakuten.room.reels.flutter
+package com.eishon.reels.flutter
 
 import android.content.Context
 import android.content.Intent
@@ -6,8 +6,8 @@ import android.os.Bundle
 import android.util.Log
 import android.widget.Toast
 import io.flutter.embedding.android.FlutterActivity
-import com.rakuten.room.reels.CollectData
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.CollectData
+import com.eishon.reels.ReelsModule
 
 /**
  * Flutter Activity for displaying video reels with sophisticated features.

@@ -1,4 +1,4 @@
-package com.rakuten.room.reels
+package com.eishon.reels
 
 import android.os.Parcelable
 import kotlinx.parcelize.Parcelize

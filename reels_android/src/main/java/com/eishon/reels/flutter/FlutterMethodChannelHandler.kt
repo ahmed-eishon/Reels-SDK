@@ -1,4 +1,4 @@
-package com.rakuten.room.reels.flutter
+package com.eishon.reels.flutter
 
 import android.content.Context
 import io.flutter.embedding.engine.FlutterEngine

@@ -1,4 +1,4 @@
-package com.rakuten.room.reels.flutter
+package com.eishon.reels.flutter
 
 import android.content.Context
 import android.util.Log
@@ -8,8 +8,8 @@ import io.flutter.embedding.engine.FlutterEngineGroup
 import io.flutter.embedding.engine.dart.DartExecutor
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.BinaryMessenger
-import com.rakuten.room.reels.pigeon.*
-import com.rakuten.room.reels.pigeon.CollectData
+import com.eishon.reels.pigeon.*
+import com.eishon.reels.pigeon.CollectData
 
 /**
  * Advanced Flutter Reels SDK with Pigeon integration.
@@ -89,7 +89,7 @@ class ReelsFlutterSDK private constructor() {
             // Host API: Provide context data to Flutter (Flutter calls, Android implements)
             ReelsFlutterContextApi.setUp(binaryMessenger, object : ReelsFlutterContextApi {
                 override fun getInitialCollect(generation: Long): CollectData? {
-                    val collectData = com.rakuten.room.reels.ReelsModule.getInitialCollect(generation.toInt())
+                    val collectData = com.eishon.reels.ReelsModule.getInitialCollect(generation.toInt())
                     Log.d(TAG, "Initial collect data requested for generation $generation: ${collectData?.id ?: "null"}")
 
                     return if (collectData != null) {
@@ -117,13 +117,13 @@ class ReelsFlutterSDK private constructor() {
                 }
 
                 override fun getCurrentGeneration(): Long {
-                    val generation = com.rakuten.room.reels.ReelsModule.getCurrentGeneration()
+                    val generation = com.eishon.reels.ReelsModule.getCurrentGeneration()
                     Log.d(TAG, "Current generation requested: $generation")
                     return generation.toLong()
                 }
 
                 override fun isDebugMode(): Boolean {
-                    val debugMode = com.rakuten.room.reels.ReelsModule.isDebugMode()
+                    val debugMode = com.eishon.reels.ReelsModule.isDebugMode()
                     Log.d(TAG, "Debug mode requested: $debugMode")
                     return debugMode
                 }

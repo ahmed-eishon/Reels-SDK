@@ -1,4 +1,4 @@
-package com.rakuten.room.reels.flutter
+package com.eishon.reels.flutter
 
 import android.os.Bundle
 import android.util.Log
@@ -7,8 +7,8 @@ import android.view.View
 import android.view.ViewGroup
 import androidx.fragment.app.Fragment
 import io.flutter.embedding.android.FlutterFragment
-import com.rakuten.room.reels.CollectData
-import com.rakuten.room.reels.ReelsModule
+import com.eishon.reels.CollectData
+import com.eishon.reels.ReelsModule
 
 class FlutterReelsFragment : Fragment() {
 

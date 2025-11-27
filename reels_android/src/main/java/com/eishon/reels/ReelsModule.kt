@@ -1,14 +1,14 @@
-package com.rakuten.room.reels
+package com.eishon.reels
 
 import android.app.Activity
 import android.content.Context
 import android.content.Intent
 import android.util.Log
 import androidx.fragment.app.Fragment
-import com.rakuten.room.reels.flutter.FlutterReelsActivity
-import com.rakuten.room.reels.flutter.FlutterReelsFragment
-import com.rakuten.room.reels.flutter.ReelsFlutterSDK
-import com.rakuten.room.reels.flutter.ReelsListener
+import com.eishon.reels.flutter.FlutterReelsActivity
+import com.eishon.reels.flutter.FlutterReelsFragment
+import com.eishon.reels.flutter.ReelsFlutterSDK
+import com.eishon.reels.flutter.ReelsListener
 
 /**
  * Main entry point for the Reels module.

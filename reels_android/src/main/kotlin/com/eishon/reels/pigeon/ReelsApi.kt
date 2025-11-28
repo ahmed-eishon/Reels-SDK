@@ -50,137 +50,186 @@ class FlutterError (
 ) : Throwable()
 
 /**
- * User profile data model
+ * Collect data model - represents a user's post/collection item
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
-data class UserProfile (
+data class CollectData (
   val id: String,
-  val name: String,
-  val avatar: String? = null,
-  val reelsCount: Long,
-  val followersCount: Long,
-  val followingCount: Long
+  val content: String? = null,
+  val name: String? = null,
+  val likes: Long? = null,
+  val comments: Long? = null,
+  val recollects: Long? = null,
+  val isLiked: Boolean? = null,
+  val isCollected: Boolean? = null,
+  val trackingTag: String? = null,
+  val userId: String? = null,
+  val userName: String? = null,
+  val userProfileImage: String? = null,
+  val itemName: String? = null,
+  val itemImageUrl: String? = null,
+  val imageUrl: String? = null
 )
  {
   companion object {
-    fun fromList(pigeonVar_list: List<Any?>): UserProfile {
+    fun fromList(pigeonVar_list: List<Any?>): CollectData {
       val id = pigeonVar_list[0] as String
-      val name = pigeonVar_list[1] as String
-      val avatar = pigeonVar_list[2] as String?
-      val reelsCount = pigeonVar_list[3] as Long
-      val followersCount = pigeonVar_list[4] as Long
-      val followingCount = pigeonVar_list[5] as Long
-      return UserProfile(id, name, avatar, reelsCount, followersCount, followingCount)
+      val content = pigeonVar_list[1] as String?
+      val name = pigeonVar_list[2] as String?
+      val likes = pigeonVar_list[3] as Long?
+      val comments = pigeonVar_list[4] as Long?
+      val recollects = pigeonVar_list[5] as Long?
+      val isLiked = pigeonVar_list[6] as Boolean?
+      val isCollected = pigeonVar_list[7] as Boolean?
+      val trackingTag = pigeonVar_list[8] as String?
+      val userId = pigeonVar_list[9] as String?
+      val userName = pigeonVar_list[10] as String?
+      val userProfileImage = pigeonVar_list[11] as String?
+      val itemName = pigeonVar_list[12] as String?
+      val itemImageUrl = pigeonVar_list[13] as String?
+      val imageUrl = pigeonVar_list[14] as String?
+      return CollectData(id, content, name, likes, comments, recollects, isLiked, isCollected, trackingTag, userId, userName, userProfileImage, itemName, itemImageUrl, imageUrl)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       id,
+      content,
       name,
-      avatar,
-      reelsCount,
-      followersCount,
-      followingCount,
-    )
-  }
-}
-
-/**
- * Application preferences data model
- *
- * Generated class from Pigeon that represents data sent in messages.
- */
-data class AppPreferences (
-  val darkMode: Boolean,
-  val language: String,
-  val notificationsEnabled: Boolean,
-  val autoPlayVideos: Boolean
-)
- {
-  companion object {
-    fun fromList(pigeonVar_list: List<Any?>): AppPreferences {
-      val darkMode = pigeonVar_list[0] as Boolean
-      val language = pigeonVar_list[1] as String
-      val notificationsEnabled = pigeonVar_list[2] as Boolean
-      val autoPlayVideos = pigeonVar_list[3] as Boolean
-      return AppPreferences(darkMode, language, notificationsEnabled, autoPlayVideos)
-    }
-  }
-  fun toList(): List<Any?> {
-    return listOf(
-      darkMode,
-      language,
-      notificationsEnabled,
-      autoPlayVideos,
-    )
-  }
-}
-
-/**
- * Reel data model
- *
- * Generated class from Pigeon that represents data sent in messages.
- */
-data class ReelData (
-  val id: String,
-  val title: String,
-  val description: String? = null,
-  val videoUrl: String,
-  val thumbnailUrl: String? = null,
-  val likeCount: Long,
-  val viewCount: Long,
-  val isLiked: Boolean
-)
- {
-  companion object {
-    fun fromList(pigeonVar_list: List<Any?>): ReelData {
-      val id = pigeonVar_list[0] as String
-      val title = pigeonVar_list[1] as String
-      val description = pigeonVar_list[2] as String?
-      val videoUrl = pigeonVar_list[3] as String
-      val thumbnailUrl = pigeonVar_list[4] as String?
-      val likeCount = pigeonVar_list[5] as Long
-      val viewCount = pigeonVar_list[6] as Long
-      val isLiked = pigeonVar_list[7] as Boolean
-      return ReelData(id, title, description, videoUrl, thumbnailUrl, likeCount, viewCount, isLiked)
-    }
-  }
-  fun toList(): List<Any?> {
-    return listOf(
-      id,
-      title,
-      description,
-      videoUrl,
-      thumbnailUrl,
-      likeCount,
-      viewCount,
+      likes,
+      comments,
+      recollects,
       isLiked,
+      isCollected,
+      trackingTag,
+      userId,
+      userName,
+      userProfileImage,
+      itemName,
+      itemImageUrl,
+      imageUrl,
     )
   }
 }
 
 /**
- * Analytics event data model
+ * Analytics event data
  *
  * Generated class from Pigeon that represents data sent in messages.
  */
 data class AnalyticsEvent (
   val eventName: String,
-  val parameters: Map<String, Any?>
+  val eventProperties: Map<String?, String?>
 )
  {
   companion object {
     fun fromList(pigeonVar_list: List<Any?>): AnalyticsEvent {
       val eventName = pigeonVar_list[0] as String
-      val parameters = pigeonVar_list[1] as Map<String, Any?>
-      return AnalyticsEvent(eventName, parameters)
+      val eventProperties = pigeonVar_list[1] as Map<String?, String?>
+      return AnalyticsEvent(eventName, eventProperties)
     }
   }
   fun toList(): List<Any?> {
     return listOf(
       eventName,
-      parameters,
+      eventProperties,
+    )
+  }
+}
+
+/**
+ * Share data for social sharing
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ShareData (
+  val videoId: String,
+  val videoUrl: String,
+  val title: String,
+  val description: String,
+  val thumbnailUrl: String? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ShareData {
+      val videoId = pigeonVar_list[0] as String
+      val videoUrl = pigeonVar_list[1] as String
+      val title = pigeonVar_list[2] as String
+      val description = pigeonVar_list[3] as String
+      val thumbnailUrl = pigeonVar_list[4] as String?
+      return ShareData(videoId, videoUrl, title, description, thumbnailUrl)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      videoId,
+      videoUrl,
+      title,
+      description,
+      thumbnailUrl,
+    )
+  }
+}
+
+/**
+ * Screen state data for native tracking
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class ScreenStateData (
+  val screenName: String,
+  val state: String,
+  val timestamp: Long? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): ScreenStateData {
+      val screenName = pigeonVar_list[0] as String
+      val state = pigeonVar_list[1] as String
+      val timestamp = pigeonVar_list[2] as Long?
+      return ScreenStateData(screenName, state, timestamp)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      screenName,
+      state,
+      timestamp,
+    )
+  }
+}
+
+/**
+ * Video state data for playback tracking
+ *
+ * Generated class from Pigeon that represents data sent in messages.
+ */
+data class VideoStateData (
+  val videoId: String,
+  val state: String,
+  val position: Long? = null,
+  val duration: Long? = null,
+  val timestamp: Long? = null
+)
+ {
+  companion object {
+    fun fromList(pigeonVar_list: List<Any?>): VideoStateData {
+      val videoId = pigeonVar_list[0] as String
+      val state = pigeonVar_list[1] as String
+      val position = pigeonVar_list[2] as Long?
+      val duration = pigeonVar_list[3] as Long?
+      val timestamp = pigeonVar_list[4] as Long?
+      return VideoStateData(videoId, state, position, duration, timestamp)
+    }
+  }
+  fun toList(): List<Any?> {
+    return listOf(
+      videoId,
+      state,
+      position,
+      duration,
+      timestamp,
     )
   }
 }
@@ -189,22 +238,27 @@ private open class ReelsApiPigeonCodec : StandardMessageCodec() {
     return when (type) {
       129.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          UserProfile.fromList(it)
+          CollectData.fromList(it)
         }
       }
       130.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AppPreferences.fromList(it)
+          AnalyticsEvent.fromList(it)
         }
       }
       131.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          ReelData.fromList(it)
+          ShareData.fromList(it)
         }
       }
       132.toByte() -> {
         return (readValue(buffer) as? List<Any?>)?.let {
-          AnalyticsEvent.fromList(it)
+          ScreenStateData.fromList(it)
+        }
+      }
+      133.toByte() -> {
+        return (readValue(buffer) as? List<Any?>)?.let {
+          VideoStateData.fromList(it)
         }
       }
       else -> super.readValueOfType(type, buffer)
@@ -212,20 +266,24 @@ private open class ReelsApiPigeonCodec : StandardMessageCodec() {
   }
   override fun writeValue(stream: ByteArrayOutputStream, value: Any?)   {
     when (value) {
-      is UserProfile -> {
+      is CollectData -> {
         stream.write(129)
         writeValue(stream, value.toList())
       }
-      is AppPreferences -> {
+      is AnalyticsEvent -> {
         stream.write(130)
         writeValue(stream, value.toList())
       }
-      is ReelData -> {
+      is ShareData -> {
         stream.write(131)
         writeValue(stream, value.toList())
       }
-      is AnalyticsEvent -> {
+      is ScreenStateData -> {
         stream.write(132)
+        writeValue(stream, value.toList())
+      }
+      is VideoStateData -> {
+        stream.write(133)
         writeValue(stream, value.toList())
       }
       else -> super.writeValue(stream, value)
@@ -233,50 +291,102 @@ private open class ReelsApiPigeonCodec : StandardMessageCodec() {
   }
 }
 
+
 /**
- * Host API - Android methods callable from Flutter
+ * API for accessing user authentication token from native
  *
  * Generated interface from Pigeon that represents a handler of messages from Flutter.
  */
-interface ReelsHostApi {
-  /** Get current user profile */
-  fun getUserProfile(): UserProfile
-  /** Share a reel using native Android sharing */
-  fun shareReel(reelId: String, title: String, description: String?)
-  /** Open a native Android screen */
-  fun openNativeScreen(screenName: String, params: Map<String, Any?>)
-  /** Log analytics event to native analytics system */
-  fun logAnalyticsEvent(eventName: String, parameters: Map<String, Any?>)
-  /** Show native Android toast message */
-  fun showToast(message: String)
-  /** Get app preferences from native storage */
-  fun getAppPreferences(): AppPreferences
-  /** Save app preferences to native storage */
-  fun saveAppPreferences(preferences: AppPreferences)
-  /** Get list of reels from native data source */
-  fun getReels(page: Long, limit: Long): List<ReelData>
-  /** Like/unlike a reel */
-  fun toggleReelLike(reelId: String, isLiked: Boolean)
-  /** Report content */
-  fun reportContent(reelId: String, reason: String)
-  /** Navigate back to native screen */
-  fun navigateBack()
+interface ReelsFlutterTokenApi {
+  /** Get the current access token from native platform */
+  fun getAccessToken(callback: (Result<String?>) -> Unit)
 
   companion object {
-    /** The codec used by ReelsHostApi. */
+    /** The codec used by ReelsFlutterTokenApi. */
     val codec: MessageCodec<Any?> by lazy {
       ReelsApiPigeonCodec()
     }
-    /** Sets up an instance of `ReelsHostApi` to handle messages through the `binaryMessenger`. */
+    /** Sets up an instance of `ReelsFlutterTokenApi` to handle messages through the `binaryMessenger`. */
     @JvmOverloads
-    fun setUp(binaryMessenger: BinaryMessenger, api: ReelsHostApi?, messageChannelSuffix: String = "") {
+    fun setUp(binaryMessenger: BinaryMessenger, api: ReelsFlutterTokenApi?, messageChannelSuffix: String = "") {
       val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.getUserProfile$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterTokenApi.getAccessToken$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { _, reply ->
+            api.getAccessToken{ result: Result<String?> ->
+              val error = result.exceptionOrNull()
+              if (error != null) {
+                reply.reply(wrapError(error))
+              } else {
+                val data = result.getOrNull()
+                reply.reply(wrapResult(data))
+              }
+            }
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+    }
+  }
+}
+/**
+ * API for getting initial Collect data from native
+ *
+ * Generated interface from Pigeon that represents a handler of messages from Flutter.
+ */
+interface ReelsFlutterContextApi {
+  /**
+   * Get the Collect data that was used to open this screen
+   * @param generation The generation number of the screen instance
+   * @return CollectData object if opened from a Collect, null otherwise
+   * If null, Flutter will show "no videos" screen
+   */
+  fun getInitialCollect(generation: Long): CollectData?
+  /**
+   * Get the current generation number from native
+   * @return Current generation number
+   */
+  fun getCurrentGeneration(): Long
+  /**
+   * Check if debug mode is enabled
+   * @return true if debug mode is enabled, false otherwise
+   */
+  fun isDebugMode(): Boolean
+
+  companion object {
+    /** The codec used by ReelsFlutterContextApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      ReelsApiPigeonCodec()
+    }
+    /** Sets up an instance of `ReelsFlutterContextApi` to handle messages through the `binaryMessenger`. */
+    @JvmOverloads
+    fun setUp(binaryMessenger: BinaryMessenger, api: ReelsFlutterContextApi?, messageChannelSuffix: String = "") {
+      val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getInitialCollect$separatedMessageChannelSuffix", codec)
+        if (api != null) {
+          channel.setMessageHandler { message, reply ->
+            val args = message as List<Any?>
+            val generationArg = args[0] as Long
+            val wrapped: List<Any?> = try {
+              listOf(api.getInitialCollect(generationArg))
+            } catch (exception: Throwable) {
+              wrapError(exception)
+            }
+            reply.reply(wrapped)
+          }
+        } else {
+          channel.setMessageHandler(null)
+        }
+      }
+      run {
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.getCurrentGeneration$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
-              listOf(api.getUserProfile())
+              listOf(api.getCurrentGeneration())
             } catch (exception: Throwable) {
               wrapError(exception)
             }
@@ -287,177 +397,11 @@ interface ReelsHostApi {
         }
       }
       run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.shareReel$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val reelIdArg = args[0] as String
-            val titleArg = args[1] as String
-            val descriptionArg = args[2] as String?
-            val wrapped: List<Any?> = try {
-              api.shareReel(reelIdArg, titleArg, descriptionArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.openNativeScreen$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val screenNameArg = args[0] as String
-            val paramsArg = args[1] as Map<String, Any?>
-            val wrapped: List<Any?> = try {
-              api.openNativeScreen(screenNameArg, paramsArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.logAnalyticsEvent$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val eventNameArg = args[0] as String
-            val parametersArg = args[1] as Map<String, Any?>
-            val wrapped: List<Any?> = try {
-              api.logAnalyticsEvent(eventNameArg, parametersArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.showToast$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val messageArg = args[0] as String
-            val wrapped: List<Any?> = try {
-              api.showToast(messageArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.getAppPreferences$separatedMessageChannelSuffix", codec)
+        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsFlutterContextApi.isDebugMode$separatedMessageChannelSuffix", codec)
         if (api != null) {
           channel.setMessageHandler { _, reply ->
             val wrapped: List<Any?> = try {
-              listOf(api.getAppPreferences())
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.saveAppPreferences$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val preferencesArg = args[0] as AppPreferences
-            val wrapped: List<Any?> = try {
-              api.saveAppPreferences(preferencesArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.getReels$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val pageArg = args[0] as Long
-            val limitArg = args[1] as Long
-            val wrapped: List<Any?> = try {
-              listOf(api.getReels(pageArg, limitArg))
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.toggleReelLike$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val reelIdArg = args[0] as String
-            val isLikedArg = args[1] as Boolean
-            val wrapped: List<Any?> = try {
-              api.toggleReelLike(reelIdArg, isLikedArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.reportContent$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { message, reply ->
-            val args = message as List<Any?>
-            val reelIdArg = args[0] as String
-            val reasonArg = args[1] as String
-            val wrapped: List<Any?> = try {
-              api.reportContent(reelIdArg, reasonArg)
-              listOf(null)
-            } catch (exception: Throwable) {
-              wrapError(exception)
-            }
-            reply.reply(wrapped)
-          }
-        } else {
-          channel.setMessageHandler(null)
-        }
-      }
-      run {
-        val channel = BasicMessageChannel<Any?>(binaryMessenger, "dev.flutter.pigeon.reels_flutter.ReelsHostApi.navigateBack$separatedMessageChannelSuffix", codec)
-        if (api != null) {
-          channel.setMessageHandler { _, reply ->
-            val wrapped: List<Any?> = try {
-              api.navigateBack()
-              listOf(null)
+              listOf(api.isDebugMode())
             } catch (exception: Throwable) {
               wrapError(exception)
             }
@@ -471,24 +415,24 @@ interface ReelsHostApi {
   }
 }
 /**
- * Flutter API - Flutter methods callable from Android
+ * API for sending analytics events to native analytics SDK
  *
  * Generated class from Pigeon that represents Flutter messages that can be called from Kotlin.
  */
-class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+class ReelsFlutterAnalyticsApi(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
   companion object {
-    /** The codec used by ReelsFlutterApi. */
+    /** The codec used by ReelsFlutterAnalyticsApi. */
     val codec: MessageCodec<Any?> by lazy {
       ReelsApiPigeonCodec()
     }
   }
-  /** Update user profile data in Flutter */
-  fun onUserProfileUpdated(profileArg: UserProfile, callback: (Result<Unit>) -> Unit)
+  /** Track a custom analytics event */
+  fun trackEvent(eventArg: AnalyticsEvent, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.onUserProfileUpdated$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterAnalyticsApi.trackEvent$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(profileArg)) {
+    channel.send(listOf(eventArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -500,13 +444,26 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Update app preferences in Flutter */
-  fun onPreferencesChanged(preferencesArg: AppPreferences, callback: (Result<Unit>) -> Unit)
+}
+/**
+ * API for notifying native about button interactions
+ *
+ * Generated class from Pigeon that represents Flutter messages that can be called from Kotlin.
+ */
+class ReelsFlutterButtonEventsApi(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by ReelsFlutterButtonEventsApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      ReelsApiPigeonCodec()
+    }
+  }
+  /** Called before like button is clicked (for optimistic UI) */
+  fun onBeforeLikeButtonClick(videoIdArg: String, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.onPreferencesChanged$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterButtonEventsApi.onBeforeLikeButtonClick$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(preferencesArg)) {
+    channel.send(listOf(videoIdArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -518,11 +475,127 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Trigger refresh of reels list */
-  fun refreshReels(callback: (Result<Unit>) -> Unit)
+  /** Called after like button click completes (with updated state) */
+  fun onAfterLikeButtonClick(videoIdArg: String, isLikedArg: Boolean, likeCountArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.refreshReels$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterButtonEventsApi.onAfterLikeButtonClick$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(videoIdArg, isLikedArg, likeCountArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+  /** Called when share button is clicked */
+  fun onShareButtonClick(shareDataArg: ShareData, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterButtonEventsApi.onShareButtonClick$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(shareDataArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+}
+/**
+ * API for notifying native about screen and video state changes
+ *
+ * Generated class from Pigeon that represents Flutter messages that can be called from Kotlin.
+ */
+class ReelsFlutterStateApi(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by ReelsFlutterStateApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      ReelsApiPigeonCodec()
+    }
+  }
+  /** Notify native when screen state changes */
+  fun onScreenStateChanged(stateArg: ScreenStateData, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterStateApi.onScreenStateChanged$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(stateArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+  /** Notify native when video state changes */
+  fun onVideoStateChanged(stateArg: VideoStateData, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterStateApi.onVideoStateChanged$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(stateArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+}
+/**
+ * API for handling navigation gestures
+ *
+ * Generated class from Pigeon that represents Flutter messages that can be called from Kotlin.
+ */
+class ReelsFlutterNavigationApi(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by ReelsFlutterNavigationApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      ReelsApiPigeonCodec()
+    }
+  }
+  /** Called when user swipes left (to open My Room / user profile) */
+  fun onSwipeLeft(userIdArg: String, userNameArg: String, callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeLeft$separatedMessageChannelSuffix"
+    val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
+    channel.send(listOf(userIdArg, userNameArg)) {
+      if (it is List<*>) {
+        if (it.size > 1) {
+          callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
+        } else {
+          callback(Result.success(Unit))
+        }
+      } else {
+        callback(Result.failure(createConnectionError(channelName)))
+      } 
+    }
+  }
+  /** Called when user swipes right */
+  fun onSwipeRight(callback: (Result<Unit>) -> Unit)
+{
+    val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onSwipeRight$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
     channel.send(null) {
       if (it is List<*>) {
@@ -536,13 +609,13 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Navigate to specific screen in Flutter */
-  fun navigateToScreen(screenNameArg: String, paramsArg: Map<String, Any?>, callback: (Result<Unit>) -> Unit)
+  /** Called when user clicks on profile/user image */
+  fun onUserProfileClick(userIdArg: String, userNameArg: String, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.navigateToScreen$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.onUserProfileClick$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(screenNameArg, paramsArg)) {
+    channel.send(listOf(userIdArg, userNameArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -554,13 +627,13 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Update theme/appearance */
-  fun updateTheme(isDarkModeArg: Boolean, callback: (Result<Unit>) -> Unit)
+  /** Called when user wants to dismiss/close the reels screen */
+  fun dismissReels(callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.updateTheme$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterNavigationApi.dismissReels$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(isDarkModeArg)) {
+    channel.send(null) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -572,13 +645,30 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Handle deep link */
-  fun handleDeepLink(urlArg: String, paramsArg: Map<String, Any?>, callback: (Result<Unit>) -> Unit)
+}
+/**
+ * API for managing Flutter lifecycle and state
+ * Used to ensure each screen presentation is independent with fresh state
+ *
+ * Generated class from Pigeon that represents Flutter messages that can be called from Kotlin.
+ */
+class ReelsFlutterLifecycleApi(private val binaryMessenger: BinaryMessenger, private val messageChannelSuffix: String = "") {
+  companion object {
+    /** The codec used by ReelsFlutterLifecycleApi. */
+    val codec: MessageCodec<Any?> by lazy {
+      ReelsApiPigeonCodec()
+    }
+  }
+  /**
+   * Reset Flutter state for fresh screen start
+   * Clears video provider state, resets navigation, ensures independent screen
+   */
+  fun resetState(callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.handleDeepLink$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.resetState$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(urlArg, paramsArg)) {
+    channel.send(null) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -590,13 +680,16 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Show message/notification in Flutter */
-  fun showMessage(messageArg: String, typeArg: String, callback: (Result<Unit>) -> Unit)
+  /**
+   * Pause all resources (videos, network) when screen loses focus
+   * Called when screen is backgrounded or another screen is pushed on top
+   */
+  fun pauseAll(callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.showMessage$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.pauseAll$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(messageArg, typeArg)) {
+    channel.send(null) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))
@@ -608,13 +701,17 @@ class ReelsFlutterApi(private val binaryMessenger: BinaryMessenger, private val 
       } 
     }
   }
-  /** Update reel data (for real-time updates) */
-  fun updateReelData(reelsArg: List<ReelData>, callback: (Result<Unit>) -> Unit)
+  /**
+   * Resume all resources when screen gains focus
+   * Called when screen returns to foreground or top of stack
+   * @param generation The generation number of the screen being resumed
+   */
+  fun resumeAll(generationArg: Long, callback: (Result<Unit>) -> Unit)
 {
     val separatedMessageChannelSuffix = if (messageChannelSuffix.isNotEmpty()) ".$messageChannelSuffix" else ""
-    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterApi.updateReelData$separatedMessageChannelSuffix"
+    val channelName = "dev.flutter.pigeon.reels_flutter.ReelsFlutterLifecycleApi.resumeAll$separatedMessageChannelSuffix"
     val channel = BasicMessageChannel<Any?>(binaryMessenger, channelName, codec)
-    channel.send(listOf(reelsArg)) {
+    channel.send(listOf(generationArg)) {
       if (it is List<*>) {
         if (it.size > 1) {
           callback(Result.failure(FlutterError(it[0] as String, it[1] as String, it[2] as String?)))

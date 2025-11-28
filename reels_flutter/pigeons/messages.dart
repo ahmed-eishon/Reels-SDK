@@ -10,8 +10,8 @@ import 'package:pigeon/pigeon.dart';
     swiftOptions: SwiftOptions(),
     // Generate Kotlin files for Android bridge (reels_android module)
     kotlinOut:
-        '../reels_android/src/main/java/com/rakuten/room/reels/pigeon/PigeonGenerated.kt',
-    kotlinOptions: KotlinOptions(package: 'com.rakuten.room.reels.pigeon'),
+        '../reels_android/src/main/kotlin/com/eishon/reels/pigeon/ReelsApi.kt',
+    kotlinOptions: KotlinOptions(package: 'com.eishon.reels.pigeon'),
     dartPackageName: 'reels_flutter',
   ),
 )
